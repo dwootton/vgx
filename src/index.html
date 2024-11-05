@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ALX Development</title>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <script src="alx.js"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Generate sample data
+      const data = Array.from({ length: 50 }, () => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100
+      }));
+      alx=alx.alx
+
+      // Create visualization using ALX
+      const vis = alx.scatterplot(data).bind(alx.brush());
+      
+      // Get the compiled spec
+      const { vegaLiteSpec } = await vis.compile();
+      console.log(vegaLiteSpec)
+
+      // Render the visualization using the VegaLite spec directly
+      vegaEmbed('#vis', vegaLiteSpec);
+    });
+  </script>
+</body>
+</html>

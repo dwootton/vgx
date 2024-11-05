@@ -1,0 +1,38 @@
+node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Cache directories
+.npm/
+.eslintcache
+.cache/
+
+# Coverage output
+coverage/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# TypeScript cache
+*.tsbuildinfo
+node_modules

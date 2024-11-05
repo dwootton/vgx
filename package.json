@@ -1,0 +1,35 @@
+{
+  "name": "alx",
+  "version": "0.1.0",
+  "description": "A library for creating interactive visualizations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "watch": "webpack --watch --mode development",
+    "build:dev": "webpack --mode development",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch"
+  },
+  "dependencies": {
+    "d3": "^7.0.0",
+    "vega": "^5.30.0",
+    "vega-embed": "^6.26.0",
+    "vega-lite": "^5.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/webpack": "^5.28.0",
+    "fork-ts-checker-webpack-plugin": "^8.0.0",
+    "html-webpack-plugin": "^5.5.0",
+    "ts-loader": "^9.4.0",
+    "typescript": "^4.9.0",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.11.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

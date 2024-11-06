@@ -9,6 +9,8 @@ import { BaseComponent } from '../base';
 import { Point, Line, Rect } from '../../types/geometry';
 import { GeometricAnchor, EncodingAnchor } from '../../types/anchors';
 import { BindingGraph } from '../../utils/bindingGraph';
+import { RectAnchors } from '../../anchors/rect';
+import { EncodingAnchors } from '../../anchors/encodingAnchors';
 
 export interface ChartConfig {
   data: any[];
@@ -49,87 +51,43 @@ export class BaseChart extends BaseComponent {
       encoding: {}
     };
 
-    // Register this component's anchors with the binding graph
-    this.bindingGraph.addComponent(this.id, this.anchors);
     this.initializeAnchors();
   }
 
   public initializeAnchors() {
-    this.initializeGeometricAnchors();
-    this.initializeEncodingAnchors();
-  }
 
-  protected initializeGeometricAnchors() {
-    const p = this.padding;
-    const w = this.width;
-    const h = this.height;
+    let encodingAnchors = new EncodingAnchors(this);
+    const instantiatedEncodingAnchors = encodingAnchors.initializeEncodingAnchors(this.spec);
+    let rectAnchors = new RectAnchors(this);
+    const instantiatedRectAnchors = rectAnchors.initializeRectAnchors();
 
-    // Line anchors
-    this.anchors.set('top', {
-      id: 'top',
-      type: 'geometric',
-      geometry: { x1: p, y1: p, x2: w - p, y2: p } as Line,
-      bind: this.createAnchorProxy('top')
-    });
 
-    this.anchors.set('bottom', {
-      id: 'bottom',
-      type: 'geometric',
-      geometry: { x1: p, y1: h - p, x2: w - p, y2: h - p } as Line,
-      bind: this.createAnchorProxy('bottom')
-    });
-
-    // Point anchors
-    this.anchors.set('topLeft', {
-      id: 'topLeft',
-      type: 'geometric',
-      geometry: { x: p, y: p } as Point,
-      bind: this.createAnchorProxy('topLeft')
-    });
-
-    // Rect anchor
-    this.anchors.set('plotArea', {
-      id: 'plotArea',
-      type: 'geometric',
-      geometry: { x1: p, y1: p, x2: w - p, y2: h - p } as Rect,
-      bind: this.createAnchorProxy('plotArea')
+    // Merge Maps directly
+    const mergedMap = new Map([...instantiatedEncodingAnchors, ...instantiatedRectAnchors]);
+    mergedMap.forEach((anchor) => {
+      const proxy = this.createAnchorProxy(anchor)
+      this.anchors.set(proxy.id, proxy);
     });
   }
 
-  protected initializeEncodingAnchors() {
-    //@ts-ignore
-    Object.entries(this.spec.encoding).forEach(([channel, encoding]) => {
-      this.anchors.set(channel, {
-        id: channel,
-        type: 'encoding',
-        channel,
-        //@ts-ignore
-        value: encoding,
-        bind: this.createAnchorProxy(channel)
-      });
-    });
-  }
+
 
   async compile() {
     let compiledSpec = { ...this.spec };
-    
+
     // Get all bindings for this component
     const bindings = this.bindingGraph.getBindings(this.id);
-    
-    // Process each binding
-    for (const binding of bindings) {
-      // Get the target component through the binding
-      const targetAnchors = this.bindingGraph.getComponentAnchors(binding.target.componentId);
-      if (!targetAnchors) continue;
 
-      const targetAnchor = targetAnchors.get(binding.target.anchorId);
+    for (const binding of bindings) {
+      const targetAnchor = this.bindingGraph.getComponentAnchors(binding.target.componentId)
+        ?.get(binding.target.anchorId);
+
       if (!targetAnchor) continue;
 
-      // If the target has a spec, merge it
-      if ('getSpec' in targetAnchor && typeof targetAnchor.getSpec === 'function') {
-        const targetSpec = targetAnchor.getSpec();
-        compiledSpec = this.mergeSpecs(compiledSpec, targetSpec);
-      }
+      // if ('getSpec' in targetAnchor) {
+      //   const targetSpec = targetAnchor.getSpec();
+      //   compiledSpec = this.mergeSpecs(compiledSpec, targetSpec);
+      // }
     }
 
     return {
@@ -139,24 +97,15 @@ export class BaseChart extends BaseComponent {
   }
 
   protected mergeSpecs(baseSpec: ChartSpec, newSpec: Partial<ChartSpec>): ChartSpec {
-    //@ts-ignore
     return {
       ...baseSpec,
       ...newSpec,
       encoding: {
-        //@ts-ignore
         ...baseSpec.encoding,
-        //@ts-ignore
         ...newSpec.encoding
       }
     };
   }
 
-  // Proxy getters for anchors
-  get x() { return this.createAnchorProxy('x'); }
-  get y() { return this.createAnchorProxy('y'); }
-  get color() { return this.createAnchorProxy('color'); }
-  get top() { return this.createAnchorProxy('top'); }
-  get bottom() { return this.createAnchorProxy('bottom'); }
-  get plotArea() { return this.createAnchorProxy('plotArea'); }
+
 }

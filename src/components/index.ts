@@ -4,4 +4,6 @@ export * from './interactive';
 
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap } from './charts';
 
-console.log('Scatterplot:', Scatterplot); // Add this temporarily to verify the import
+import { Brush  } from './interactive';
+
+console.log('Brush:', Brush);

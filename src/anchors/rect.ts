@@ -30,7 +30,6 @@ export class RectAnchors {
           id: this.component.generateAnchorId(name),
           type: 'geometric',
           geometry: getGeometry(config),
-          bind: this.component.createAnchorProxy(name)
         });
       });
   
@@ -44,12 +43,12 @@ export class RectAnchors {
             if ('type' in anchor && anchor.type === 'group') throw new Error(`Nested groups are not allowed: "${name}"`);
             return [name, anchor];
           })),
-        bind: this.component.createGroupProxy(groupName)
       });
     }
   
-    initializeRectAnchors(config: RectAnchorConfig) {
-      const { x1, y1, x2, y2 } = config;
+    initializeRectAnchors(providedConfig?: RectAnchorConfig) {
+
+      const config = providedConfig || { x1: 0, y1: 0, x2: 100, y2: 100 };
   
       // Define anchor configurations
       const sideConfigs = [

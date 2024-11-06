@@ -1,18 +1,20 @@
-import { Anchor, AnchorOrGroup, BindFunction } from '../types/anchors';
+import { Anchor, AnchorOrGroup, AnchorProxy } from '../types/anchors';
 import { BindingGraph } from '../utils/bindingGraph';
 import { generateId } from '../utils/id';
 
 export interface Component {
   id: string;
   type: string;
-  anchors: Map<string, Anchor>;
+  anchors: Map<string, AnchorOrGroup>;
   getSpec(): any;
 }
 
 
 export abstract class BaseComponent {
   id: string;
-  anchors: Map<string, AnchorOrGroup> = new Map();
+  private rawAnchors: Map<string, AnchorOrGroup> = new Map();
+  protected anchors: Map<string, AnchorProxy> = new Map();
+
   protected bindingGraph: BindingGraph;
 
   constructor() {
@@ -24,41 +26,131 @@ export abstract class BaseComponent {
     return `${this.id}:${name}`; // e.g., "brush_123:topLeft"
   }
 
-  public createGroupProxy(groupName: string): any {
-    // may change for logic in the future
-    return this.createAnchorProxy(groupName);
-  }
 
-  public createAnchorProxy(anchorId: string): BindFunction {
-    // Create the binding function
-    const bindFn: BindFunction = (targetComponent: BaseComponent, targetAnchorId: string) => {
-      this.bindingGraph.addComponent(this.id, this.anchors);
-      this.bindingGraph.addComponent(targetComponent.id, targetComponent.anchors);
+  // protected createAnchorProxy(anchorId: string): BindFunction {
+  //   // const bindFn = (target: BaseComponent | { component: BaseComponent, anchorId: string }) => {
+  //   //   // If target is an anchor proxy (e.g., brush.x), it will have component and anchorId
+  //   //   console.log('target:', target);
+      
+  //   //   const targetComponent = 'component' in target ? target.component : target;
+  //   //   const targetAnchorId = 'anchorId' in target ? target.anchorId : anchorId;
 
-      const bindingId = this.bindingGraph.addBinding(
+  //   //   this.bindingGraph.addComponent(this.id, this.anchors);
+  //   //   this.bindingGraph.addComponent(targetComponent.id, targetComponent.anchors);
+
+  //   //   const bindingId = this.bindingGraph.addBinding(
+  //   //     this.id,
+  //   //     anchorId,
+  //   //     targetComponent.id,
+  //   //     targetAnchorId
+  //   //   );
+
+  //   //   return targetComponent;
+  //   // };
+  //   // Create the bind function
+    
+  //   const bindFn = (target: any) => {
+  //     const targetComponent = target?.component || target;
+  //     const targetAnchorId = target?.anchorId;
+
+  //     if (!targetComponent || !targetAnchorId) {
+  //       console.warn('Invalid binding target:', target);
+  //       return this;
+  //     }
+
+  //     this.bindingGraph.addComponent(this.id, this.anchors);
+  //     this.bindingGraph.addComponent(targetComponent.id, targetComponent.anchors);
+
+  //     const bindingId = this.bindingGraph.addBinding(
+  //       this.id,
+  //       anchorId,
+  //       targetComponent.id,
+  //       targetAnchorId
+  //     );
+
+  //     return targetComponent;
+  //   };
+  //   // Create proxy object with metadata
+  //   const proxyObj = {
+  //     component: this,
+  //     anchorId: anchorId,
+  //     bind: bindFn,
+  //     // Add other anchor properties
+  //     ...this.anchors.get(anchorId)
+  //   };
+
+  //   // Return proxy that handles both function calls and property access
+  //   return new Proxy(proxyObj, {
+  //     get: (target, prop) => {
+  //       if (prop === 'bind') {
+  //         return (targetProxy: any): BaseComponent => {
+  //           return proxyObj.bind(targetProxy, targetProxy.anchorId);
+  //         };
+  //       }
+  //       return target[prop as keyof typeof target];
+  //     },
+  //     apply: (target, thisArg, args) => {
+  //       return target.bind.apply(thisArg, args as [BaseComponent, string]);
+  //     }
+  //   });
+    
+
+  // }
+  protected createAnchorProxy(anchor: AnchorOrGroup): AnchorProxy {
+    // Create the bind function
+    const bindFn = (targetAnchor: AnchorProxy) => {
+      if (!targetAnchor?.component || !targetAnchor?.id) {
+        throw new Error('Invalid binding target');
+      }
+
+      this.bindingGraph.addBinding(
         this.id,
-        anchorId,
-        targetComponent.id,
-        targetAnchorId
+        anchor.id,
+        targetAnchor.component.id, //component ID
+        targetAnchor.id //anchor ID
       );
 
-      return targetComponent;
+      return targetAnchor.component;
     };
 
-    // Create proxy that can be called as a function
-    return new Proxy(bindFn, {
-      apply: (target, thisArg, args) => {
-        //@ts-ignore
-        return target.apply(thisArg, args);
-      },
-      get: (target, prop) => {
+    const bindFninOgproxy = (targetAnchor: any) => {
+      console.log('in og proxy bind')
+      return targetAnchor.component;
+    };
+
+    const proxyObj = {
+          id: anchor.id,
+          component: this,
+          bind: bindFninOgproxy,
+          // Add other anchor properties
+        };
+
+      
+    // Return proxy that handles both function access and property access
+    return new Proxy(proxyObj, {
+      get: (source, prop) => {
         if (prop === 'bind') {
-          return target;
+          // actually call the bind function
+          console.log('bind called from:', source);
+          return (target: AnchorProxy)=>bindFn(target);
         }
-        const anchor = this.anchors.get(anchorId);
-        return anchor?.[prop as keyof Anchor];
+        if (prop === 'component') return this;
+        
+        // Get raw anchor data for other property access
+
+        return anchor?.[prop as keyof AnchorOrGroup];
       }
-    }) as BindFunction;
+    });
+  }
+
+  protected getRawAnchor(anchorId: string): AnchorOrGroup | undefined {
+    return this.rawAnchors.get(anchorId);
+  }
+
+  protected setRawAnchor(anchorId: string, anchor: AnchorOrGroup) {
+    this.rawAnchors.set(anchorId, anchor);
+    // Create/update proxy when setting raw anchor
+    this.createAnchorProxy(anchor);
   }
 
   // Example usage of getting bindings for a component

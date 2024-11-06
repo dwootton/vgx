@@ -107,8 +107,12 @@
         height: 300
       })
 
+      console.log(scatter.x)
+      const brush = alx.brush();
+      console.log(brush);
       // Create bindings
-      // const brush = scatter.x.bind(alx.brush);
+      const brushablechart = scatter.x.bind(brush.x);
+      console.log(brushablechart);
       // // const dragPoint = brush.x.bind(alx.drag_point);
 
       // // Inspect bindings

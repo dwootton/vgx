@@ -1,6 +1,31 @@
-//@ts-nocheck
 import { TopLevelSpec } from 'vega-lite';
 import { Spec as VegaSpec } from 'vega';
+
+export type ChartType = 'point' | 'bar' | 'line' | 'rect';
+export type AggregateType = 'count' | 'sum' | 'mean' | 'median';
+
+export interface Encoding {
+  field: string;
+  type: 'quantitative' | 'nominal' | 'ordinal' | 'temporal';
+  bin?: boolean | {step: number};
+  aggregate?: AggregateType;
+  timeUnit?: string;
+}
+
+export interface ChartState {
+  type: ChartType;
+  data: any[];
+  encodings: {[key: string]: Encoding};
+  width?: number;
+  height?: number;
+  interactors: Interactor[];
+}
+
+export interface Interactor {
+  type: string;
+  config: any;
+  getSpec: (state: ChartState) => Partial<TopLevelSpec>;
+}
 
 export type JsonPatch = {
   op: 'add' | 'remove' | 'replace' | 'move' | 'copy' | 'test';
@@ -43,11 +68,4 @@ export interface View {
     vegaSpec: VegaSpec;
     patches: JsonPatch[];
   }>;
-}
-
-export interface Interactor {
-  type: string;
-  events: EventType[];
-  getVegaLiteSpec: (view: View) => Partial<TopLevelSpec>;
-  getVegaPatches: (view: View) => JsonPatch[];
 }

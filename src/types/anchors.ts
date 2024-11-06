@@ -29,6 +29,7 @@ export type Anchor = GeometricAnchor<Point | Line | Rect | Path> | EventAnchor |
 export interface AnchorProxy {
   component: BaseComponent;
   id: string;
+  type: 'encoding' | 'event' | 'geometric' | 'group';
   bind: (target: AnchorProxy) => BaseComponent;
   // other proxy properties
 }

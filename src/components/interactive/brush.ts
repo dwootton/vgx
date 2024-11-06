@@ -25,4 +25,3 @@ export class Brush extends BaseComponent {
     }
   }
 
-console.log(Brush);

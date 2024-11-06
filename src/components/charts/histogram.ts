@@ -28,4 +28,3 @@ export class Histogram extends BaseChart {
   }
   
 
-console.log(Histogram);

@@ -1,5 +1,4 @@
 import { Anchor } from '../types/anchors';
-import { BindingGraph } from '../utils/bindingGraph';
 import { generateId } from '../utils/id';
 import { BaseComponent } from '../components/base';
 // Component base

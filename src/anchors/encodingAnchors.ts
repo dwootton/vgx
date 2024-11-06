@@ -19,7 +19,7 @@ export class EncodingAnchors {
         encoding: any  // Could type this more specifically with Vega-Lite types
     ) {
         this.anchors.set(channel, {
-            id: this.component.generateAnchorId(channel),
+            id: (channel),
             type: 'encoding',
             channel,
         });
@@ -48,7 +48,7 @@ export class EncodingAnchors {
         // Add groups if they have members
         if (positionEncodings.size > 0) {
             this.anchors.set('position', {
-                id: this.component.generateAnchorId('position'),
+                id: ('position'),
                 type: 'group',
                 children: positionEncodings as Map<string, Anchor>
             });
@@ -56,7 +56,7 @@ export class EncodingAnchors {
 
         if (valueEncodings.size > 0) {
             this.anchors.set('value', {
-                id: this.component.generateAnchorId('value'),
+                id: ('value'),
                 type: 'group',
                 children: valueEncodings as Map<string, Anchor>
             });

@@ -8,7 +8,6 @@ import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { Point, Line, Rect } from '../../types/geometry';
 import { GeometricAnchor, EncodingAnchor } from '../../types/anchors';
-import { BindingGraph } from '../../utils/bindingGraph';
 import { RectAnchors } from '../../anchors/rect';
 import { EncodingAnchors } from '../../anchors/encodingAnchors';
 
@@ -41,6 +40,7 @@ export class BaseChart extends BaseComponent {
     this.height = config.height || 300;
     this.padding = config.padding || 20;
 
+
     this.spec = {
       $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
       title: config.title,
@@ -66,7 +66,7 @@ export class BaseChart extends BaseComponent {
     const mergedMap = new Map([...instantiatedEncodingAnchors, ...instantiatedRectAnchors]);
     mergedMap.forEach((anchor) => {
       const proxy = this.createAnchorProxy(anchor)
-      this.anchors.set(proxy.id, proxy);
+      this.anchors.set(anchor.id, proxy);
     });
   }
 
@@ -76,23 +76,23 @@ export class BaseChart extends BaseComponent {
     let compiledSpec = { ...this.spec };
 
     // Get all bindings for this component
-    const bindings = this.bindingGraph.getBindings(this.id);
+    const bindings = this.getBindings();
 
-    for (const binding of bindings) {
-      const targetAnchor = this.bindingGraph.getComponentAnchors(binding.target.componentId)
-        ?.get(binding.target.anchorId);
+    // for (const binding of bindings.values()) {
+    //   // const targetAnchor = graph.getComponentAnchors(binding.target.componentId)
+    //   //   ?.get(binding.target.anchorId);
 
-      if (!targetAnchor) continue;
+    //   // if (!targetAnchor) continue;
 
-      // if ('getSpec' in targetAnchor) {
-      //   const targetSpec = targetAnchor.getSpec();
-      //   compiledSpec = this.mergeSpecs(compiledSpec, targetSpec);
-      // }
-    }
+    //   // if ('getSpec' in targetAnchor) {
+    //   //   const targetSpec = targetAnchor.getSpec();
+    //   //   compiledSpec = this.mergeSpecs(compiledSpec, targetSpec);
+    //   // }
+    // }
 
     return {
       vegaLiteSpec: compiledSpec,
-      bindingGraph: this.bindingGraph
+      bindingGraph: bindings
     };
   }
 

@@ -29,4 +29,3 @@ export interface HeatmapConfig extends ChartConfig {
     }
   }
 
-  console.log('Heatmap:', Heatmap); // Add this temporarily to verify the import

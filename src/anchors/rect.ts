@@ -27,7 +27,7 @@ export class RectAnchors {
       // Create individual anchors
       anchorConfigs.forEach(([name, getGeometry]) => {
         this.anchors.set(name, {
-          id: this.component.generateAnchorId(name),
+          id: (name),
           type: 'geometric',
           geometry: getGeometry(config),
         });
@@ -35,7 +35,7 @@ export class RectAnchors {
   
       // Create group
       this.anchors.set(groupName, {
-        id: this.component.generateAnchorId(groupName),
+        id: (groupName),
         type: 'group',
         children: new Map(anchorConfigs.map(([name]) => {
             const anchor = this.anchors.get(name);

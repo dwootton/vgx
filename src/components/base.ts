@@ -36,11 +36,43 @@ export abstract class BaseComponent {
       }
     });
   }
-  
-  abstract compile(
-    context: CompilationContext, 
+  // TODO fix any ->BaseChart
+  private findRootChart(graph: BindingGraph): any | undefined {
+    // Keep walking up bindings until we find a Chart component
+    let currentId = this.id;
+    while (true) {
+      const parentBinding = graph.getTargetBindings(currentId)[0];
+      if (!parentBinding) break;
+      currentId = parentBinding.source.componentId;
+    }
+
+    const component = this.bindingStore.getComponent(currentId);
+    return component;
+  }
+  // This is the method components implement
+  abstract compileComponent(
+    context: CompilationContext,
     parentInfo?: ParentInfo
   ): CompilationResult;
+
+  // Public compile that redirects to root chart
+  compile(): CompilationResult {
+    // Get the binding graph this component belongs to
+    const graph = this.bindingStore.getGraphForComponent(this.id);
+
+    // Walk up bindings to find the root chart component
+    const rootChart = this.findRootChart(graph);
+    if (!rootChart) {
+      throw new Error('No root chart found for component');
+    }
+
+
+    // Call compile on the root chart
+    return rootChart.compiler.compile(rootChart);
+  }
+
+
+
 
   protected createAnchorProxy(anchor: AnchorOrGroup): AnchorProxy {
     const bindFn = (targetAnchor: AnchorProxy) => {

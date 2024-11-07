@@ -15,8 +15,6 @@ registry.register('heatmap', Heatmap);
 // Register interactive components
 registry.register('brush', Brush);
 // registry.register('drag_point', DragPoint);
-console.log(registry);
-console.log(Scatterplot);
 // Export the public API
 export const alx = {
   // Registry access

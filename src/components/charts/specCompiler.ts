@@ -38,7 +38,7 @@ export class SpecCompiler {
         context.compiledComponents.add(component.id);
 
         // Compile the component itself with its parent info
-        const componentResult = component.compile(context, parentInfo);
+        const componentResult = component.compileComponent(context, parentInfo);
 
         // Find and compile all children
         const childBindings = context.bindings.filter(b =>

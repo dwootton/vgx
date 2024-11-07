@@ -33,7 +33,11 @@ export class Brush extends BaseComponent {
     });
   }
 
-  compile(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
+  compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
+    // if compile called on brush, bubble it up to root component
+
+
+
     if (!parentInfo?.boundAnchor) {
       return {}; // No parent info or bound anchor
     }
@@ -84,7 +88,7 @@ export class Brush extends BaseComponent {
     }
 
     return {
-      parameters: [selectionSpec]
+      params: [selectionSpec]
     };
   }
 

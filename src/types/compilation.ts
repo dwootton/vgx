@@ -27,7 +27,7 @@ export interface CompilationContext {
 
 export interface CompilationResult {
     // For Vega-Lite parameter specs (like selections)
-    parameters?: any[];
+    params?: any[];
     
     // For any mark specifications
     marks?: any[];

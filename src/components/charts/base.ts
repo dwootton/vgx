@@ -35,7 +35,7 @@ export class BaseChart extends BaseComponent {
   protected width: number;
   protected height: number;
   protected padding: number;
-  private compiler: SpecCompiler;
+  public compiler: SpecCompiler;
 
 
   constructor(config: ChartConfig) {
@@ -59,8 +59,8 @@ export class BaseChart extends BaseComponent {
     this.compiler = new SpecCompiler();
 
   }
-  
-  compile(): CompilationResult {
+
+  compileComponent(): CompilationResult {
     return this.spec;
   }
 

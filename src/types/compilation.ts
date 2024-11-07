@@ -1,5 +1,7 @@
 import { BaseComponent } from "components/base";
 import { Anchor, AnchorOrGroup, AnchorProxy } from "./anchors";
+import { TopLevelUnitSpec } from 'vega-lite/build/src/spec/unit';
+import { Field } from "vega-lite/build/src/channeldef";
 
 export interface ComponentRef {
     componentId: string;
@@ -25,18 +27,11 @@ export interface CompilationContext {
     compiledComponents: Set<string>;
 }
 
+
+
 export interface CompilationResult {
-    // For Vega-Lite parameter specs (like selections)
-    params?: any[];
-    
-    // For any mark specifications
-    marks?: any[];
-    
-    // For encoding modifications
-    encoding?: Record<string, any>;
-    
-    // For any additional transforms
-    transform?: any[];
+  // Each component can return a partial unit spec
+  spec?: Partial<TopLevelUnitSpec<Field>>;
 }
 
 // // Helper function to merge compilation results

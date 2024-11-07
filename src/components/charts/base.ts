@@ -12,6 +12,7 @@ import { RectAnchors } from '../../anchors/rect';
 import { EncodingAnchors } from '../../anchors/encodingAnchors';
 import { SpecCompiler } from './specCompiler';
 import { CompilationResult } from 'types/compilation';
+import { ChartAnchors } from '../../anchors/chart';
 
 export interface ChartConfig {
   data: any[];
@@ -26,6 +27,7 @@ export type ChartSpec = GenericUnitSpec<Encoding<Field>, StandardType> & {
   $schema?: string;
   data?: { values: any[] };
   width?: number;
+  layer?: any[];
   height?: number;
   title?: string;
 };
@@ -46,7 +48,6 @@ export class BaseChart extends BaseComponent {
 
 
     this.spec = {
-      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
       title: config.title,
       data: { values: config.data },
       mark: config.mark,
@@ -61,7 +62,7 @@ export class BaseChart extends BaseComponent {
   }
 
   compileComponent(): CompilationResult {
-    return this.spec;
+    return {"spec":this.spec};
   }
 
 
@@ -72,9 +73,12 @@ export class BaseChart extends BaseComponent {
     let rectAnchors = new RectAnchors(this);
     const instantiatedRectAnchors = rectAnchors.initializeRectAnchors();
 
+    let chartAnchors = new ChartAnchors(this);
+    const instantiatedChartAnchors = chartAnchors.initializeChartAnchors(this.spec);
+    console.log('instantiatedChartAnchors',instantiatedChartAnchors);
 
     // Merge Maps directly
-    const mergedMap = new Map([ ...instantiatedRectAnchors,...instantiatedEncodingAnchors]);
+    const mergedMap = new Map([ ...instantiatedRectAnchors,...instantiatedEncodingAnchors,...instantiatedChartAnchors]);
     mergedMap.forEach((anchor) => {
       const proxy = this.createAnchorProxy(anchor)
       this.anchors.set(anchor.id, proxy);

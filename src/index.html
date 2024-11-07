@@ -123,6 +123,8 @@
         height: 300
       })
 
+      const pointHist=hist.plot.bind(alx.point({x:50,y:20}).center);
+
       const line = alx.lineplot({
         data: timeSeriesData,
         xField: 'time',
@@ -154,12 +156,12 @@
       const renderChart = async (chart, elementId) => {
         const  vegaLiteSpec  = await chart.compile();
         console.log(`${elementId} spec:`, vegaLiteSpec); // Debug output
-        vegaEmbed(`#${elementId}`, vegaLiteSpec);
+        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'});
       };
 
       await Promise.all([
         renderChart(brushablechart, 'scatter'),
-        renderChart(hist, 'hist'),
+        renderChart(pointHist, 'hist'),
         renderChart(line, 'line'),
         renderChart(bar, 'bar'),
         renderChart(heat, 'heat')

@@ -98,7 +98,7 @@ export class Brush extends BaseComponent {
     }
 
     return {
-      params: [selectionSpec]
+      spec: {"params":[selectionSpec]}
     };
   }
 

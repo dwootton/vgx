@@ -80,7 +80,7 @@ export class PointComponent extends BaseComponent {
    
     return {
       spec: {
-        data:[{}],
+        data:{"values":[{"name":"pointData"}]},
         params: compiledParams,
         //@ts-ignore
         mark:circleMark

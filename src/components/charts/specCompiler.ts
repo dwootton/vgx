@@ -56,10 +56,9 @@
                 // Keep top-level properties from component result
                 width,
                 height,
-                data,
                 // Create layers from all specs with marks
                 layer: hasMarks.map(r => {
-                  const { params, width, height, data, $schema, ...specWithoutParams } = r.spec;
+                  const { params, width, height,  $schema, ...specWithoutParams } = r.spec;
                   return specWithoutParams;
                 })
               };

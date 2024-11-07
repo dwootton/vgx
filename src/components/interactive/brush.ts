@@ -36,7 +36,9 @@ export class Brush extends BaseComponent {
   compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
     // if compile called on brush, bubble it up to root component
 
-
+    // TODO need to handle brush compilation through the idea of what its bound to
+    // for example if bound to brush.x, then we need to change how selectionSpec is compiled via the x lines. 
+    // there needs to be underlying logic about how to compile based upon these components (might it change between params?)
 
     if (!parentInfo?.boundAnchor) {
       return {}; // No parent info or bound anchor
@@ -49,9 +51,17 @@ export class Brush extends BaseComponent {
     };
 
     const { boundAnchor } = parentInfo;
+    console.log('bound anchor',boundAnchor);
 
     // Determine selection behavior based on bound anchor
     switch (boundAnchor.anchorRef.type) {
+      case 'group':
+        // If bound to a group anchor (like chart.x or chart.xy)
+        // now apply to all children components 
+
+
+        console.log('NOT IMPLEMENTED YET: group');
+        break;
       case 'encoding':
         // If bound to an encoding anchor (like chart.x or chart.xy)
         if (boundAnchor.id === 'x') {

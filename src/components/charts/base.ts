@@ -74,7 +74,7 @@ export class BaseChart extends BaseComponent {
 
 
     // Merge Maps directly
-    const mergedMap = new Map([...instantiatedEncodingAnchors, ...instantiatedRectAnchors]);
+    const mergedMap = new Map([ ...instantiatedRectAnchors,...instantiatedEncodingAnchors]);
     mergedMap.forEach((anchor) => {
       const proxy = this.createAnchorProxy(anchor)
       this.anchors.set(anchor.id, proxy);

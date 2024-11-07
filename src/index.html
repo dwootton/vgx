@@ -107,9 +107,7 @@
         height: 300
       })
 
-      console.log(scatter)
       const brush = alx.brush();
-      console.log(brush);
       // Create bindings
       const brushablechart = scatter.x.bind(brush.x);
       console.log('brush chart',brushablechart);
@@ -154,7 +152,7 @@
 
       // Render all charts
       const renderChart = async (chart, elementId) => {
-        const { vegaLiteSpec } = await chart.compile();
+        const  vegaLiteSpec  = await chart.compile();
         console.log(`${elementId} spec:`, vegaLiteSpec); // Debug output
         vegaEmbed(`#${elementId}`, vegaLiteSpec);
       };

@@ -1,18 +1,5 @@
 import { Anchor, AnchorOrGroup } from '../types/anchors';
-
-export interface ComponentRef {
-  componentId: string;
-  anchorId: string;  // Just stores which anchor was used in the binding
-}
-
-export interface Binding {
-  id: string;
-  source: ComponentRef;
-  target: ComponentRef;
-  sourceType: 'geometric' | 'encoding' | 'event' | 'group';
-  targetType: 'geometric' | 'encoding' | 'event' | 'group';
-}
-
+import { Binding } from '../types/compilation';
 
 export class BindingGraph {
   private bindings: Map<string, Binding> = new Map();

@@ -6,10 +6,12 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 
 import { BaseComponent } from '../base';
-import { Point, Line, Rect } from '../../types/geometry';
+import { Point, Line, Area } from '../../types/geometry';
 import { GeometricAnchor, EncodingAnchor } from '../../types/anchors';
 import { RectAnchors } from '../../anchors/rect';
 import { EncodingAnchors } from '../../anchors/encodingAnchors';
+import { SpecCompiler } from './specCompiler';
+import { CompilationResult } from 'types/compilation';
 
 export interface ChartConfig {
   data: any[];
@@ -33,6 +35,8 @@ export class BaseChart extends BaseComponent {
   protected width: number;
   protected height: number;
   protected padding: number;
+  private compiler: SpecCompiler;
+
 
   constructor(config: ChartConfig) {
     super();
@@ -52,7 +56,14 @@ export class BaseChart extends BaseComponent {
     };
 
     this.initializeAnchors();
+    this.compiler = new SpecCompiler();
+
   }
+  
+  compile(): CompilationResult {
+    return this.spec;
+  }
+
 
   public initializeAnchors() {
 
@@ -68,32 +79,6 @@ export class BaseChart extends BaseComponent {
       const proxy = this.createAnchorProxy(anchor)
       this.anchors.set(anchor.id, proxy);
     });
-  }
-
-
-
-  async compile() {
-    let compiledSpec = { ...this.spec };
-
-    // Get all bindings for this component
-    const bindings = this.getBindings();
-
-    // for (const binding of bindings.values()) {
-    //   // const targetAnchor = graph.getComponentAnchors(binding.target.componentId)
-    //   //   ?.get(binding.target.anchorId);
-
-    //   // if (!targetAnchor) continue;
-
-    //   // if ('getSpec' in targetAnchor) {
-    //   //   const targetSpec = targetAnchor.getSpec();
-    //   //   compiledSpec = this.mergeSpecs(compiledSpec, targetSpec);
-    //   // }
-    // }
-
-    return {
-      vegaLiteSpec: compiledSpec,
-      bindingGraph: bindings
-    };
   }
 
   protected mergeSpecs(baseSpec: ChartSpec, newSpec: Partial<ChartSpec>): ChartSpec {

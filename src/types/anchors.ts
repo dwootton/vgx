@@ -1,5 +1,5 @@
 import { BaseComponent } from 'components/base';
-import { Point, Line, Rect, Path } from './geometry';
+import { Point, Line, Area, Path } from './geometry';
 
 export type BindingType = 'geometric' | 'event' | 'encoding';
 
@@ -24,7 +24,7 @@ export interface EncodingAnchor {
   channel: string;
 }
 
-export type Anchor = GeometricAnchor<Point | Line | Rect | Path> | EventAnchor | EncodingAnchor;
+export type Anchor = GeometricAnchor<Point | Line | Area | Path> | EventAnchor | EncodingAnchor;
 
 export interface AnchorProxy {
   component: BaseComponent;

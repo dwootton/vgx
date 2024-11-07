@@ -7,6 +7,8 @@ export class BindingStore {
     private defaultGraph: BindingGraph;
     private graphs: Map<string, BindingGraph> = new Map();
     private componentToGraphMap: Map<string, string> = new Map();
+    // Add map to store component instances
+    private components: Map<string, BaseComponent> = new Map();
   
     private constructor() {
       this.defaultGraph = new BindingGraph();
@@ -34,8 +36,13 @@ export class BindingStore {
       return this.defaultGraph;
     }
   
-    registerComponent(componentId: string, graphId: string = 'default') {
-      this.componentToGraphMap.set(componentId, graphId);
+    registerComponent(component: BaseComponent, graphId: string = 'default') {
+        this.componentToGraphMap.set(component.id, graphId);
+        this.components.set(component.id, component);
+    }
+    // Add method to get component instance
+    getComponent(componentId: string): BaseComponent | undefined {
+        return this.components.get(componentId);
     }
   
     getGraphForComponent(componentId: string): BindingGraph {

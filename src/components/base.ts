@@ -2,6 +2,7 @@ import { Anchor, AnchorOrGroup, AnchorProxy } from '../types/anchors';
 import { BindingGraph } from '../utils/bindingGraph';
 import { BindingStore, ContextManager } from '../utils/bindingStore';
 import { generateId } from '../utils/id';
+import { CompilationContext, CompilationResult, ParentInfo } from '../types/compilation';
 
 export interface Component {
   id: string;
@@ -12,7 +13,7 @@ export interface Component {
 
 export abstract class BaseComponent {
   id: string;
-  protected anchors: Map<string, AnchorProxy> = new Map();
+  public anchors: Map<string, AnchorProxy> = new Map();
   private bindingStore: BindingStore;
   private graphId: string;
 
@@ -21,7 +22,7 @@ export abstract class BaseComponent {
     this.graphId = graphId;
     this.bindingStore = BindingStore.getInstance();
     // Register with the store
-    this.bindingStore.registerComponent(this.id, this.graphId);
+    this.bindingStore.registerComponent(this, this.graphId);
     return new Proxy(this, {
       get: (target, prop: string) => {
         // If it's a normal property/method, return it
@@ -35,6 +36,11 @@ export abstract class BaseComponent {
       }
     });
   }
+  
+  abstract compile(
+    context: CompilationContext, 
+    parentInfo?: ParentInfo
+  ): CompilationResult;
 
   protected createAnchorProxy(anchor: AnchorOrGroup): AnchorProxy {
     const bindFn = (targetAnchor: AnchorProxy) => {
@@ -62,7 +68,8 @@ export abstract class BaseComponent {
       id: anchor.id,
       type: anchor.type,
       component: this,
-      bind: bindFn
+      bind: bindFn,
+      anchorRef: anchor
     };
 
     return new Proxy(proxyObj, {
@@ -70,6 +77,7 @@ export abstract class BaseComponent {
         if (prop === 'bind') {
           return (target: AnchorProxy) => bindFn(target);
         }
+        if (prop === 'anchorRef') return anchor;
         if (prop === 'component') return this;
         return anchor?.[prop as keyof Anchor];
       }

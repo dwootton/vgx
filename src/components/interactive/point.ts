@@ -44,7 +44,7 @@ export class PointComponent extends BaseComponent {
     const signalName = `${this.id.replace(/\./g, '_')}_pointDatum`;
 
 
-    console.log('compiled context',context)
+    console.log('compiled context', context)
     // Compile the point component to a Vega-Lite mark with params
     const compiledParams = [
       {
@@ -60,30 +60,28 @@ export class PointComponent extends BaseComponent {
                 { "type": "pointerup", "source": "window" }
               ]
             },
-            "update": "{'x':clamp(x(),0,200),'y':clamp(y(),0,200)}"
+            "update": "{'x':clamp(x(),range('x')[0],range('x')[1]),'y':clamp(y(),range('y')[1],range('y')[0])}"
           }
         ]
       }
     ];
 
     const circleMark = {
-      
-        "type": "circle",
-        
-            "x": { "expr": `${signalName}.x` },
-            "y": { "expr": `${signalName}.y` },
-            "color":  "firebrick" ,
-            "size": 300 ,
-            "opacity": 1 
-          
+      "type": "circle",
+      "x": { "expr": `${signalName}.x` },
+      "y": { "expr": `${signalName}.y` },
+      "color": "firebrick",
+      "size": 300,
+      "opacity": 1
+
     };
-   
+
     return {
       spec: {
-        data:{"values":[{"name":"pointData"}]},
+        data: { "values": [{ "name": "pointData" }] },
         params: compiledParams,
         //@ts-ignore
-        mark:circleMark
+        mark: circleMark
       }
     };
   }

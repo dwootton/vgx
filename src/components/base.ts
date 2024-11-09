@@ -16,6 +16,7 @@ export abstract class BaseComponent {
   public anchors: Map<string, AnchorProxy> = new Map();
   private bindingStore: BindingStore;
   private graphId: string;
+  requiredProperties?: string[];
 
   constructor(graphId: string = 'default') {
     this.id = `component_${Date.now()}_${Math.random()}`;

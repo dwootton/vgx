@@ -2,7 +2,7 @@ import { BaseComponent } from "../base";
 import { RectAnchorConfig, RectAnchors } from "../../anchors/rect";
 import { CompilationContext, CompilationResult, ParentInfo } from "../../types/compilation";
 import { Line, Area, Point } from "types/geometry";
-import { GeometricAnchor } from "types/anchors";
+import { GeometricAnchorSchema } from "types/anchors";
 
 type BrushConfig = RectAnchorConfig;
 // Types for information passed down from parent during compilation
@@ -33,28 +33,36 @@ export class Brush extends BaseComponent {
     });
   }
 
-  compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
+  compileComponent(context: CompilationContext, parentInfo?: ParentInfo): Partial<CompilationResult> {
     // if compile called on brush, bubble it up to root component
 
     // TODO need to handle brush compilation through the idea of what its bound to
     // for example if bound to brush.x, then we need to change how selectionSpec is compiled via the x lines. 
     // there needs to be underlying logic about how to compile based upon these components (might it change between params?)
 
-    if (!parentInfo?.boundAnchor) {
+    console.log('brush compileComponent', parentInfo);
+    if (!parentInfo?.childAnchor) {
       return {}; // No parent info or bound anchor
     }
 
     // Base selection parameter
     const selectionSpec: any = {
       name: `${this.id}_selection`,
-      select: { type: "interval" }
+      //  "mark":{
+        // "fillOpacity":0,
+        // "strokeOpacity":0
+      // }
+      select: { type: "interval" ,}
     };
+    console.log('brush compileComponent', selectionSpec);
 
-    const { boundAnchor } = parentInfo;
-    console.log('bound anchor',boundAnchor);
+
+    const { childAnchor } = parentInfo;
+    const childAnchorSchema = childAnchor.anchorRef
+
 
     // Determine selection behavior based on bound anchor
-    switch (boundAnchor.anchorRef.type) {
+    switch (childAnchor.anchorRef.type) {
       case 'group':
         // If bound to a group anchor (like chart.x or chart.xy)
         // now apply to all children components 
@@ -63,19 +71,20 @@ export class Brush extends BaseComponent {
         console.log('NOT IMPLEMENTED YET: group');
         break;
       case 'encoding':
+        console.log('brush compileComponent in ecncoding', selectionSpec);
         // If bound to an encoding anchor (like chart.x or chart.xy)
-        if (boundAnchor.id === 'x') {
+        if (childAnchorSchema.id === 'x') {
           selectionSpec.select.encodings = ['x'];
-        } else if (boundAnchor.id === 'y') {
+        } else if (childAnchorSchema.id === 'y') {
           selectionSpec.select.encodings = ['y'];
-        } else if (boundAnchor.id === 'xy') {
+        } else if (childAnchorSchema.id === 'xy') {
           selectionSpec.select.encodings = ['x', 'y'];
         }
         break;
 
       case 'geometric':
         // Handle geometric anchors (like points, lines, areas)
-        const geometry = boundAnchor.anchorRef.geometry;
+        const geometry = (childAnchorSchema as GeometricAnchorSchema<any>).geometry;
           switch (geometry.type) {
             case 'line':
               // Determine if line is horizontal or vertical
@@ -96,9 +105,11 @@ export class Brush extends BaseComponent {
         
         break;
     }
+    console.log('brush compileComponent', selectionSpec);
 
     return {
-      spec: {"params":[selectionSpec]}
+      spec: {"params":[selectionSpec]},
+      componentId: this.id
     };
   }
 

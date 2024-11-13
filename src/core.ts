@@ -19,72 +19,6 @@ export interface Encoding {
 }
 
 
-// Binding graph nodes
-export interface BindingNode {
-  id: string;
-  type: 'spatial' | 'encoding' | 'event' | 'transform';
-  parentId?: string;
-  children: string[];  // IDs of child nodes
-  value: any;  // The actual anchor object
-  bindingType?: string;  // e.g., 'brush', 'drag_point', etc.
-}
-
-export interface BindingGraph {
-  nodes: Map<string, BindingNode>;
-  getNode(id: string): BindingNode | undefined;
-  addNode(node: BindingNode): void;
-  addBinding(parentId: string, childId: string): void;
-  getBindings(nodeId: string): BindingNode[];
-  getRootBindings(): BindingNode[];
-}
-
-// Implementation of the binding graph
-class BasicBindingGraph implements BindingGraph {
-  nodes: Map<string, BindingNode> = new Map();
-
-  getNode(id: string) {
-    return this.nodes.get(id);
-  }
-
-  addNode(node: BindingNode) {
-    this.nodes.set(node.id, node);
-  }
-
-  addBinding(parentId: string, childId: string) {
-    const parent = this.nodes.get(parentId);
-    const child = this.nodes.get(childId);
-    
-    if (parent && child) {
-      parent.children.push(childId);
-      child.parentId = parentId;
-    }
-  }
-
-  getBindings(nodeId: string): BindingNode[] {
-    const node = this.nodes.get(nodeId);
-    if (!node) return [];
-
-    const bindings: BindingNode[] = [];
-    const queue = [node];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      bindings.push(current);
-      
-      for (const childId of current.children) {
-        const child = this.nodes.get(childId);
-        if (child) queue.push(child);
-      }
-    }
-
-    return bindings;
-  }
-
-  getRootBindings(): BindingNode[] {
-    return Array.from(this.nodes.values())
-      .filter(node => !node.parentId);
-  }
-}
 
 
 // Base Chart with spatial anchors
@@ -128,42 +62,42 @@ export class BaseChart {
     });
   }
 
-  protected createBindingProxy(property: string, type: 'spatial' | 'encoding' | 'event' | 'transform') {
-    return new Proxy({}, {
-      get: (target, prop) => {
-        if (prop === 'bind') {
-          return (value: any) => {
-            // Create new node for the bound value
-            const newNodeId = this.generateId();
-            this.bindingGraph.addNode({
-              id: newNodeId,
-              type: type,
-              children: [],
-              value: value,
-              bindingType: value.type // e.g., 'brush', 'drag_point'
-            });
+  // protected createBindingProxy(property: string, type: 'spatial' | 'encoding' | 'event' | 'transform') {
+  //   return new Proxy({}, {
+  //     get: (target, prop) => {
+  //       if (prop === 'bind') {
+  //         return (value: any) => {
+  //           // Create new node for the bound value
+  //           const newNodeId = this.generateId();
+  //           this.bindingGraph.addNode({
+  //             id: newNodeId,
+  //             type: type,
+  //             children: [],
+  //             value: value,
+  //             bindingType: value.type // e.g., 'brush', 'drag_point'
+  //           });
 
-            // Find the parent node (the one being bound to)
-            const parentNode = Array.from(this.bindingGraph.nodes.values())
-              .find(node => node.value === target);
+  //           // Find the parent node (the one being bound to)
+  //           const parentNode = Array.from(this.bindingGraph.nodes.values())
+  //             .find(node => node.value === target);
 
-            if (parentNode) {
-              this.bindingGraph.addBinding(parentNode.id, newNodeId);
-            }
+  //           if (parentNode) {
+  //             this.bindingGraph.addBinding(sourceAnchor, targetAnchor);
+  //           }
 
-            // Return proxy for the new node for further chaining
-            return this.createBindingProxy(newNodeId, type);
-          };
-        }
+  //           // Return proxy for the new node for further chaining
+  //           return this.createBindingProxy(newNodeId, type);
+  //         };
+  //       }
 
-        // Handle other property access
-        const node = this.bindingGraph.getNode(property);
-        if (node) {
-          return node.value[prop];
-        }
-      }
-    });
-  }
+  //       // Handle other property access
+  //       const node = this.bindingGraph.getNode(property);
+  //       if (node) {
+  //         return node.value[prop];
+  //       }
+  //     }
+  //   });
+  // }
 
   // Method to inspect bindings
   getBindings() {
@@ -300,39 +234,6 @@ export class Heatmap extends BaseChart {
     };
   }
 }
-
-export class MarkRegistry {
-  private static instance: MarkRegistry;
-  private marks: Map<string, typeof BaseComponent> = new Map();
-
-  static getInstance() {
-    if (!MarkRegistry.instance) {
-      MarkRegistry.instance = new MarkRegistry();
-    }
-    return MarkRegistry.instance;
-  }
-
-  register(type: string, markClass: typeof BaseComponent) {
-    this.marks.set(type, markClass);
-  }
-
-  create(type: string, config: any): BaseComponent {
-    const MarkClass = this.marks.get(type);
-    if (!MarkClass) throw new Error(`Unknown mark type: ${type}`);
-    return new MarkClass(config);
-  }
-}
-// Export factory functions
-export const alx = {
-  scatterplot: (config: any) => new Scatterplot(config),
-  histogram: (config: any) => new Histogram(config),
-  lineplot: (config: any) => new LinePlot(config),
-  barchart: (config: any) => new BarChart(config),
-  heatmap: (config: any) => new Heatmap(config)
-};
-
-(window as any).alx = alx;
-
 
 // Brush interactor implementation
 export class Brush implements Interactor {

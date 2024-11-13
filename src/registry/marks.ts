@@ -1,11 +1,11 @@
-import { Anchor } from '../types/anchors';
+import { AnchorSchema } from '../types/anchors';
 import { generateId } from '../utils/id';
 import { BaseComponent } from '../components/base';
 // Component base
 export interface Component {
     id: string;
     type: string;
-    anchors: Map<string, Anchor>;
+    anchors: Map<string, AnchorSchema>;
     getSpec(): any;
   }
   

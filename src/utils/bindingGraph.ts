@@ -1,63 +1,59 @@
-import { Anchor, AnchorOrGroup } from '../types/anchors';
-import { Binding } from '../types/compilation';
+import { AnchorSchema, AnchorId,AnchorGroupSchema, AnchorOrGroupSchema, AnchorProxy } from '../types/anchors';
+import {  Binding } from '../types/compilation';
+
 
 export class BindingGraph {
   private bindings: Map<string, Binding> = new Map();
   constructor() {}
 
+  splitGroup(group: AnchorGroupSchema): AnchorSchema[] {
+    return Array.from(group.children.values());
+  }
+
   addBinding(
-    sourceComponentId: string,
-    sourceAnchorId: string,
-    sourceType: 'geometric' | 'encoding' | 'event' | 'group',
-    targetComponentId: string,
-    targetAnchorId: string,
-    targetType: 'geometric' | 'encoding' | 'event' | 'group'
+    parentAnchorId: AnchorId,
+    childAnchorId: AnchorId
   ): string {
     const bindingId = `binding_${Date.now()}_${Math.random()}`;
     
     const binding: Binding = {
-      id: bindingId,
-      source: {
-        componentId: sourceComponentId,
-        anchorId: sourceAnchorId
-      },
-      target: {
-        componentId: targetComponentId,
-        anchorId: targetAnchorId
-      },
-      sourceType,
-      targetType
-    };
+        id: bindingId,
+        parentAnchorId: parentAnchorId,
+        childAnchorId: childAnchorId,
+      };
 
     this.bindings.set(bindingId, binding);
     return bindingId;
   }
 
-  // Get all bindings for a component
+
+
+  // Get all bindings for a component, both source and target
   getBindings(componentId?: string): Binding[] {
-    if (componentId) {
-      return Array.from(this.bindings.values()).filter(binding => 
-        binding.source.componentId === componentId ||
-        binding.target.componentId === componentId
-      );
-    }
+    // if (componentId) {
+    //   return Array.from(this.bindings.values()).filter(binding => 
+    //     binding.source.component.id === componentId ||
+    //     binding.target.component.id === componentId
+    //   );
+    // }
     return Array.from(this.bindings.values());
   }
 
   // Get bindings where component is source
-  getSourceBindings(componentId: string, anchorId?: string): Binding[] {
+  getSourceBindings(componentId: string): Binding[] {
     return Array.from(this.bindings.values()).filter(binding => 
-      binding.source.componentId === componentId &&
-      (!anchorId || binding.source.anchorId === anchorId)
+      binding.parentAnchorId.componentId === componentId 
     );
   }
 
   // Get bindings where component is target
-  getTargetBindings(componentId: string, anchorId?: string): Binding[] {
-    return Array.from(this.bindings.values()).filter(binding => 
-      binding.target.componentId === componentId &&
-      (!anchorId || binding.target.anchorId === anchorId)
-    );
+  getTargetBindings(componentId: string): Binding[] {
+    // console.log('getTargetBindings', componentId, this.bindings.values());
+    const vals =  Array.from(this.bindings.values()).filter(binding => {
+      return binding.childAnchorId.componentId === componentId;
+    });
+    
+    return vals;
   }
 
   // Remove a binding

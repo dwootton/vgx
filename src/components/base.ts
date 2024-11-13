@@ -1,13 +1,13 @@
-import { Anchor, AnchorOrGroup, AnchorProxy } from '../types/anchors';
+import { AnchorSchema, AnchorId,AnchorOrGroupSchema, AnchorProxy } from '../types/anchors';
 import { BindingGraph } from '../utils/bindingGraph';
 import { BindingStore, ContextManager } from '../utils/bindingStore';
-import { generateId } from '../utils/id';
-import { CompilationContext, CompilationResult, ParentInfo } from '../types/compilation';
+import { generateAnchorId, generateId } from '../utils/id';
+import {  CompilationContext, CompilationResult, ParentInfo } from '../types/compilation';
 
 export interface Component {
   id: string;
   type: string;
-  anchors: Map<string, AnchorOrGroup>;
+  anchors: Map<string, AnchorOrGroupSchema>;
   getSpec(): any;
 }
 
@@ -38,13 +38,15 @@ export abstract class BaseComponent {
     });
   }
   // TODO fix any ->BaseChart
-  private findRootChart(graph: BindingGraph): any | undefined {
+  private findRootChart(): any | undefined {
     // Keep walking up bindings until we find a Chart component
+    const graph = this.bindingStore.getGraphForComponent(this.id);
+
     let currentId = this.id;
     while (true) {
       const parentBinding = graph.getTargetBindings(currentId)[0];
       if (!parentBinding) break;
-      currentId = parentBinding.source.componentId;
+      currentId = parentBinding.parentAnchorId.componentId;
     }
 
     const component = this.bindingStore.getComponent(currentId);
@@ -54,51 +56,51 @@ export abstract class BaseComponent {
   abstract compileComponent(
     context: CompilationContext,
     parentInfo?: ParentInfo
-  ): CompilationResult;
+  ): Partial<CompilationResult>;
 
   // Public compile that redirects to root chart
   compile(): CompilationResult {
     // Get the binding graph this component belongs to
-    const graph = this.bindingStore.getGraphForComponent(this.id);
 
     // Walk up bindings to find the root chart component
-    const rootChart = this.findRootChart(graph);
+    const rootChart = this.findRootChart();
     if (!rootChart) {
       throw new Error('No root chart found for component');
     }
 
 
     // Call compile on the root chart
-    return rootChart.compiler.compile(rootChart);
+    return rootChart.compiler.compileRootComponent(rootChart);
   }
 
 
 
 
-  protected createAnchorProxy(anchor: AnchorOrGroup): AnchorProxy {
-    const bindFn = (targetAnchor: AnchorProxy) => {
-      if (!targetAnchor?.component || !targetAnchor?.id) {
+  protected createAnchorProxy(anchor: AnchorOrGroupSchema): AnchorProxy {
+    const anchorId: AnchorId =  {
+      componentId: this.id,
+      anchorId: anchor.id
+    };
+    
+    const bindFn = (childAnchor: AnchorProxy) => {
+      if (!childAnchor?.component || !childAnchor?.id) {
         throw new Error('Invalid binding target');
       }
+
 
       // Get the appropriate graph from the store
       const graph = this.bindingStore.getGraphForComponent(this.id);
 
-      const targetType = targetAnchor.component.anchors.get(targetAnchor.id)?.type;
       graph.addBinding(
-        this.id,
-        anchor.id,
-        anchor.type,
-        targetAnchor.component.id,
-        targetAnchor.id,
-        targetAnchor.type
+        anchorId,
+        childAnchor.id
       );
 
-      return targetAnchor.component;
+      return childAnchor.component;
     };
 
     const proxyObj = {
-      id: anchor.id,
+      id: anchorId,
       type: anchor.type,
       component: this,
       bind: bindFn,
@@ -112,18 +114,10 @@ export abstract class BaseComponent {
         }
         if (prop === 'anchorRef') return anchor;
         if (prop === 'component') return this;
-        return anchor?.[prop as keyof Anchor];
+        return proxyObj?.[prop as keyof AnchorSchema];
       }
     });
   }
-
-  getBindings() {
-    const graph = this.bindingStore.getGraphForComponent(this.id);
-    return {
-      all: graph.getBindings(this.id),
-      asSource: graph.getSourceBindings(this.id),
-      asTarget: graph.getTargetBindings(this.id)
-    };
-  }
 }
+
 

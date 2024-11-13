@@ -7,7 +7,7 @@ import { StandardType } from 'vega-lite/build/src/type';
 
 import { BaseComponent } from '../base';
 import { Point, Line, Area } from '../../types/geometry';
-import { GeometricAnchor, EncodingAnchor } from '../../types/anchors';
+import { GeometricAnchorSchema, EncodingAnchorSchema } from '../../types/anchors';
 import { RectAnchors } from '../../anchors/rect';
 import { EncodingAnchors } from '../../anchors/encodingAnchors';
 import { SpecCompiler } from './specCompiler';
@@ -58,11 +58,13 @@ export class BaseChart extends BaseComponent {
 
     this.initializeAnchors();
     this.compiler = new SpecCompiler();
+    console.log('new compiler', this.compiler)
+
 
   }
 
-  compileComponent(): CompilationResult {
-    return {"spec":this.spec};
+  compileComponent(): Partial<CompilationResult> {
+    return {"spec":this.spec, componentId: this.id};
   }
 
 
@@ -75,12 +77,13 @@ export class BaseChart extends BaseComponent {
 
     let chartAnchors = new ChartAnchors(this);
     const instantiatedChartAnchors = chartAnchors.initializeChartAnchors(this.spec);
-    console.log('instantiatedChartAnchors',instantiatedChartAnchors);
 
     // Merge Maps directly
     const mergedMap = new Map([ ...instantiatedRectAnchors,...instantiatedEncodingAnchors,...instantiatedChartAnchors]);
     mergedMap.forEach((anchor) => {
       const proxy = this.createAnchorProxy(anchor)
+
+      // note this is using the anchor schema id
       this.anchors.set(anchor.id, proxy);
     });
   }

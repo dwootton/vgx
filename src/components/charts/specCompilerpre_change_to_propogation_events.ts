@@ -2,7 +2,7 @@
 
       import { BindingGraph } from '../../utils/bindingGraph';
       import { Binding, CompilationResult ,CompilationContext, ParentInfo} from '../../types/compilation';
-      import { Anchor, AnchorOrGroup, AnchorProxy } from '../../types/anchors';
+      import { AnchorSchema, AnchorOrGroupSchema, AnchorProxy } from '../../types/anchors';
       import { BaseComponent } from '../base';
       import { BindingStore } from '../../utils/bindingStore';
       import { TopLevelUnitSpec } from 'vega-lite/build/src/spec/unit';
@@ -83,7 +83,6 @@
           }
       
         public compile(rootComponent: BaseComponent): TopLevelSpec {
-            console.log('rootComponent', rootComponent,this, this.bindingGraph)
           const context: CompilationContext = {
             bindings: this.bindingStore.getDefaultGraph().getBindings(),
             compiledComponents: new Set()
@@ -93,7 +92,6 @@
           // Get merged compilation result
           const mergedResult = this.compileComponent(rootComponent, context);
       
-          console.log('mergedResult',mergedResult);
           // Create final spec
           return {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",

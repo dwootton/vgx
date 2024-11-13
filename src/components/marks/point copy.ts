@@ -1,5 +1,5 @@
 import { BaseComponent } from "../base";
-import { GeometricAnchor } from "types/anchors";
+import { GeometricAnchorSchema } from "types/anchors";
 import { CompilationContext, CompilationResult, ParentInfo } from "../../types/compilation";
 import { Point } from "types/geometry";
 
@@ -20,7 +20,7 @@ export class PointComponent extends BaseComponent {
 
   private initializeAnchors() {
     // Create a center anchor for the point
-    const centerAnchor: GeometricAnchor<Point> = {
+    const centerAnchor: GeometricAnchorSchema<Point> = {
       id: "center",
       type: "geometric",
       geometry: {
@@ -40,7 +40,6 @@ export class PointComponent extends BaseComponent {
       return {};
     }
 
-    const { boundAnchor } = parentInfo;
     const signalName = `${this.id.replace(/\./g, '_')}_pointDatum`;
 
 

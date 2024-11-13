@@ -109,11 +109,11 @@
 
       const brush = alx.brush();
       // Create bindings
-      const brushablechart = scatter.x.bind(brush.x1);
-      console.log('brush chart',brushablechart);
-      // // const dragPoint = brush.x.bind(alx.drag_point);
+      // const brushablechart = scatter.x.bind(brush.x1);
+      // console.log('brush chart',brushablechart);
+      // const dragPoint = brush.x.bind(alx.drag_point);
 
-      // // Inspect bindings
+      // Inspect bindings
       // console.log(scatter.getBindings());
       
       const hist = alx.histogram({
@@ -123,7 +123,9 @@
         height: 300
       })
 
-      const pointHist=hist.plot.bind(alx.point({x:50,y:20}).center);
+      const point = alx.point({x:50,y:20});
+      console.log('point', point);
+      const pointHist=hist.plot.bind(point.center);
 
       const line = alx.lineplot({
         data: timeSeriesData,
@@ -156,15 +158,15 @@
       const renderChart = async (chart, elementId) => {
         const  vegaLiteSpec  = await chart.compile();
         console.log(`${elementId} spec:`, vegaLiteSpec); // Debug output
-        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'});
+        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'}).then(console.log).catch(console.warn);
       };
 
       await Promise.all([
-        renderChart(brushablechart, 'scatter'),
+        // renderChart(brushablechart, 'scatter'),
         renderChart(pointHist, 'hist'),
-        renderChart(line, 'line'),
-        renderChart(bar, 'bar'),
-        renderChart(heat, 'heat')
+        // renderChart(line, 'line'),
+        // renderChart(bar, 'bar'),
+        // renderChart(heat, 'heat')
       ]);
     });
   </script>

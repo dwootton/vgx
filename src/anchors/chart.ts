@@ -1,11 +1,11 @@
 import { BaseComponent } from "../components/base";
-import { AnchorOrGroup, Anchor } from "../types/anchors";
+import { AnchorOrGroupSchema, AnchorSchema } from "../types/anchors";
 import { ChartSpec } from "../components/charts/base";
 import { ChartConfig } from "components/charts/base";
 
 export class ChartAnchors {
     private component: BaseComponent;
-    protected anchors: Map<string, AnchorOrGroup> = new Map();
+    protected anchors: Map<string, AnchorOrGroupSchema> = new Map();
 
     constructor(component: BaseComponent) {
         this.component = component;
@@ -33,8 +33,8 @@ export class ChartAnchors {
         // Initialize base anchors
         this.createPlotAnchor();
         // Create groups for further organization
-        const positionEncodings = new Map<string, AnchorOrGroup>();
-        const valueEncodings = new Map<string, AnchorOrGroup>();
+        const positionEncodings = new Map<string, AnchorOrGroupSchema>();
+        const valueEncodings = new Map<string, AnchorOrGroupSchema>();
 
         this.anchors.forEach((anchor, channel) => {
             if (channel === 'x' || channel === 'y') {
@@ -48,7 +48,7 @@ export class ChartAnchors {
             this.anchors.set('position', {
                 id: 'position',
                 type: 'group',
-                children: positionEncodings as Map<string, Anchor>
+                children: positionEncodings as Map<string, AnchorSchema>
             });
         }
 
@@ -56,7 +56,7 @@ export class ChartAnchors {
             this.anchors.set('value', {
                 id: 'value',
                 type: 'group',
-                children: valueEncodings as Map<string, Anchor>
+                children: valueEncodings as Map<string, AnchorSchema>
             });
         }
 

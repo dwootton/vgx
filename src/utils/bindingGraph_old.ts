@@ -1,4 +1,4 @@
-import { Anchor , AnchorOrGroup} from '../types/anchors';
+import { AnchorSchema , AnchorOrGroupSchema} from '../types/anchors';
 
 export interface ComponentRef {
   componentId: string;
@@ -17,11 +17,11 @@ export interface Binding {
 // src/utils/binding-graph.ts
 export class BindingGraph {
   private bindings: Map<string, Binding> = new Map();
-  private componentAnchors: Map<string, Map<string, AnchorOrGroup>> = new Map();
+  private componentAnchors: Map<string, Map<string, AnchorOrGroupSchema>> = new Map();
   
   constructor() {}
 
-  addComponent(componentId: string, anchors: Map<string, AnchorOrGroup>) {
+  addComponent(componentId: string, anchors: Map<string, AnchorOrGroupSchema>) {
     this.componentAnchors.set(componentId, anchors);
   }
 
@@ -31,7 +31,6 @@ export class BindingGraph {
     targetComponentId: string,
     targetAnchorId: string
   ): string[] {
-    console.log('adding binding', sourceComponentId, sourceAnchorId, targetComponentId, targetAnchorId)
     const sourceAnchors = this.componentAnchors.get(sourceComponentId);
     const targetAnchors = this.componentAnchors.get(targetComponentId);
 
@@ -100,8 +99,8 @@ export class BindingGraph {
     sourceAnchorId: string,
     targetComponentId: string,
     targetAnchorId: string,
-    sourceAnchor: Anchor,
-    targetAnchor: Anchor
+    sourceAnchor: AnchorSchema,
+    targetAnchor: AnchorSchema
   ): string {
     const bindingId = `binding_${Date.now()}_${Math.random()}`;
     
@@ -133,7 +132,7 @@ export class BindingGraph {
     return Array.from(this.bindings.values());
   }
 
-  getComponentAnchors(componentId: string): Map<string, AnchorOrGroup> | undefined {
+  getComponentAnchors(componentId: string): Map<string, AnchorOrGroupSchema> | undefined {
     return this.componentAnchors.get(componentId);
   }
 

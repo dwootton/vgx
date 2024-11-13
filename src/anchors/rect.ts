@@ -1,6 +1,6 @@
 import { BaseComponent } from "../components/base";
 import { Point, Line } from "../types/geometry";
-import { AnchorOrGroup } from "../types/anchors";
+import { AnchorOrGroupSchema } from "../types/anchors";
 
 export interface RectAnchorConfig {
     x1: number;
@@ -17,7 +17,7 @@ export class RectAnchors {
     }
 
    
-    protected anchors: Map<string, AnchorOrGroup> = new Map();
+    protected anchors: Map<string, AnchorOrGroupSchema> = new Map();
   
     private createGeometricAnchors(
       config: RectAnchorConfig,

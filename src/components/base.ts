@@ -3,6 +3,8 @@ import { BindingGraph } from '../utils/bindingGraph';
 import { BindingStore, ContextManager } from '../utils/bindingStore';
 import { generateAnchorId, generateId } from '../utils/id';
 import {  CompilationContext, CompilationResult, ParentInfo } from '../types/compilation';
+import { Field } from 'vega-lite/build/src/channeldef';
+import { LayerSpec, UnitSpec} from 'vega-lite/build/src/spec';
 
 export interface Component {
   id: string;
@@ -44,7 +46,7 @@ export abstract class BaseComponent {
 
     let currentId = this.id;
     while (true) {
-      const parentBinding = graph.getTargetBindings(currentId)[0];
+      const parentBinding = graph.getBindingsAsChild(currentId)[0];
       if (!parentBinding) break;
       currentId = parentBinding.parentAnchorId.componentId;
     }
@@ -55,11 +57,10 @@ export abstract class BaseComponent {
   // This is the method components implement
   abstract compileComponent(
     context: CompilationContext,
-    parentInfo?: ParentInfo
-  ): Partial<CompilationResult>;
+  ): Partial<UnitSpec<Field>>;
 
   // Public compile that redirects to root chart
-  compile(): CompilationResult {
+  compile(): any {
     // Get the binding graph this component belongs to
 
     // Walk up bindings to find the root chart component

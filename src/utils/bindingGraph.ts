@@ -39,12 +39,8 @@ export class BindingGraph {
 
     this.bindings.set(bindingId, binding);
 
-
     this.addToNestedTree(parentAnchorId, childAnchorId);
-    
-  
-    //navigate to find the node in the binding tree and add the child
-    
+      
     return bindingId;
   }
 
@@ -87,28 +83,20 @@ export class BindingGraph {
 
   }
 
-
-
   // Get all bindings for a component, both source and target
-  getBindings(componentId?: string): Binding[] {
-    // if (componentId) {
-    //   return Array.from(this.bindings.values()).filter(binding => 
-    //     binding.source.component.id === componentId ||
-    //     binding.target.component.id === componentId
-    //   );
-    // }
+  getBindings(): Binding[] {
     return Array.from(this.bindings.values());
   }
 
   // Get bindings where component is source
-  getSourceBindings(componentId: string): Binding[] {
+  getBindingsAsParent(componentId: string): Binding[] {
     return Array.from(this.bindings.values()).filter(binding => 
       binding.parentAnchorId.componentId === componentId 
     );
   }
 
   // Get bindings where component is target
-  getTargetBindings(componentId: string): Binding[] {
+  getBindingsAsChild(componentId: string): Binding[] {
     // console.log('getTargetBindings', componentId, this.bindings.values());
     const vals =  Array.from(this.bindings.values()).filter(binding => {
       return binding.childAnchorId.componentId === componentId;

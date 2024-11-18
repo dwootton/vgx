@@ -1,11 +1,14 @@
 import { BaseComponent } from '../base';
-import { CompilationContext, CompilationResult, ParentInfo, Binding } from '../../types/compilation';
+import { CompilationContext, ParentInfo, Binding } from '../../types/compilation';
 import { BindingGraph } from '../../utils/bindingGraph';
 import { BindingStore } from '../../utils/bindingStore';
 import { TopLevelSpec } from 'vega-lite';
 import { AnchorProxy } from '../../types/anchors';
 import { LayerSpec, UnitSpec} from 'vega-lite/build/src/spec';
 import { Field  } from 'vega-lite/build/src/channeldef';
+
+
+
 
 export class SpecCompiler {
     private bindingStore: BindingStore;
@@ -17,77 +20,18 @@ export class SpecCompiler {
     }
   
     public compileRootComponent(rootComponent: BaseComponent): TopLevelSpec {
+
       const context: CompilationContext = {
-        bindings: this.bindingStore.getDefaultGraph().getBindings(),
-        compiledComponents: new Set(),
-        placeholders: [], // Track placeholders during initial compilation
-        generators: [] // Track generators that produce data
+        parentCompilation: {},
+        //@ts-ignore
+        binding: {childAnchorId: {componentId: rootComponent.id, anchorId: 'root'}},
       };
+      
   
       // Compile all components (first pass)
-      const initialResult = this.compileComponent(rootComponent, context);
-  
-      // Second pass: resolve placeholders by navigating through the result and checking for generated data
-      this.resolvePlaceholders(context, initialResult);
-  
-      // Merge the final compilation result
-      return {
-        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        ...(initialResult.spec || {})
-      };
-    }
+      const initialResult = this.compileComponentRecursive(rootComponent, context);
 
-   
-
-    
-  
-    public compileComponent(
-      component: BaseComponent,
-      context: CompilationContext,
-      parentInfo?: ParentInfo
-    ): CompilationResult {
-      if (context.compiledComponents.has(component.id)) {
-        return { binding: context.bindings[0], spec: {}, generatedData: {} };
-      }
-  
-      context.compiledComponents.add(component.id);
-  
-      // Compile the component itself
-      const componentResult = component.compileComponent(context, parentInfo);
-  
-      const childBindings = this.bindingGraph.getSourceBindings(component.id);
-      // Compile child components
-      // const childBindings = context.bindings.filter(b =>
-      //   b.childAnchorId.componentId === component.id
-      // );
-  
-      // look here to see what parent info is being passed
-      const childResults = childBindings.map(binding => {
-
-        const childComponent = this.getComponent(binding.childAnchorId.componentId);
-        if (!childComponent) return { binding: binding, spec: {}, generatedData: {} };
-  
-        const childAnchor = childComponent.anchors.get(binding.childAnchorId.anchorId);
-        const parentAnchor = component.anchors.get(binding.parentAnchorId.anchorId);
-        if (!childAnchor || !parentAnchor) return { binding: binding, spec: {}, generatedData: {} };// TODO: handle is anchor is not found
-        const childParentInfo: ParentInfo = {
-          childAnchor: childAnchor,//this.getParentAnchor(binding),
-          parentAnchor: parentAnchor,
-          parentComponent: component
-        };
-  
-        const childResult = this.compileComponent(childComponent, context, childParentInfo);
-        return { binding: binding, componentId: binding.childAnchorId.componentId, spec: childResult.spec, generatedData: {} };
-      });
-
-      const compiledResults: CompilationResult[] = [componentResult, ...(childResults||[])];
-
-
-      // form into tree of results 
-
-      // Merge the results
-      const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
-      console.log('mergedResult', mergedResult);
+      const mergedResult = this.mergeResults(initialResult);
 
       function moveParamsToTopLevel(spec: Partial<TopLevelSpec>){
         // traverse the spec and move all params to the top level
@@ -113,11 +57,165 @@ export class SpecCompiler {
         }
       }
 
-      let finalSpec = moveParamsToTopLevel(mergedResult);
+      moveParamsToTopLevel(mergedResult);
+      console.log('final:mergedResult', mergedResult);
+      return  mergedResult
+
+      // extract params to top level:
+
+  
+      // Second pass: resolve placeholders by navigating through the result and checking for generated data
+  
+      // Merge the final compilation result
+      //@ts-ignore
+      return {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        ...(initialResult.spec || {})
+      };
+    }
+
+    public mergeResults(results: CompilationContext[]): Partial<UnitSpec<Field>> {
+      // TODO: respect when a child has multiple parents  
 
 
-      return {'spec': mergedResult};
+      // Helper to check if spec has layer/mark
+      const hasLayerOrMark = (spec: any) => {
+        return spec.layer || spec.mark;
+      };
 
+      // Recursive merge function
+      const mergeWithChildren = (result: CompilationContext, allResults: CompilationContext[]): Partial<UnitSpec<Field>> => {
+        // Find direct children
+        const children = allResults.filter(r => {
+          return r.binding.parentAnchorId?.componentId === result.binding.childAnchorId.componentId;
+        });
+        console.log('childSpecs', allResults);
+
+
+        // Base case - no children
+        if (children.length === 0) {
+          return result.spec;
+        }
+
+        // Merge all children recursively
+        const childSpecs = children.map(child => mergeWithChildren(child, allResults));
+        console.log('childSpecs', childSpecs);
+
+        // Merge current result with children
+        const mergedChildSpecs = childSpecs.reduce((merged:any, childSpec) => {
+          // If either has layer/mark, create layer spec
+          if (hasLayerOrMark(merged) && hasLayerOrMark(childSpec)) {
+            console.log('hasLayerOrMark', merged, childSpec);
+            return {
+              layer: [
+                merged,
+                childSpec
+              ]
+            };
+          }
+
+          // Otherwise merge normally
+          const mergedSpec = {
+            ...merged,
+            ...childSpec,
+            // Concatenate params if they exist
+            params: [
+              ...(merged.params || []),
+              ...(childSpec.params || [])
+            ]
+          };
+          console.log('mergedSpec', mergedSpec);
+          return mergedSpec;
+        }, result.spec);
+        console.log('mergedChildSpecs', mergedChildSpecs);
+        return mergedChildSpecs;
+      };
+
+      // Find root result (empty binding)
+      const rootResult = results.find(r => !r.binding.parentAnchorId);
+      console.log('rootResult', rootResult);
+      if (!rootResult) {
+        throw new Error('No root result found');
+      }
+
+      // Start merge from root
+      const mergedResult = mergeWithChildren(rootResult, results);
+      console.log('mergedResult', mergedResult);
+      return mergedResult;
+
+    }
+  
+    public compileComponentRecursive(
+      component: BaseComponent,
+      context: CompilationContext,
+    ): CompilationContext[] {
+      const result: CompilationContext = { spec: {}, binding: context.binding, children: []};
+      // Compile the component itself
+      const parentResult = component.compileComponent(context);
+      result.spec = parentResult;
+
+  
+      const childBindings = this.bindingGraph.getBindingsAsParent(component.id);
+      
+      const childResults = childBindings.map(binding => {
+        
+        const childComponent = this.getComponent(binding.childAnchorId.componentId);
+        if (!childComponent) throw new Error(`Child component ${binding.childAnchorId.componentId} not found`);
+        const childContext: CompilationContext = { spec: {}, binding: binding};
+        const childResult = this.compileComponentRecursive(childComponent, childContext);
+
+        
+  
+        console.log('childResult', childResult);
+        return childResult;
+      });
+
+      const compiledResults: CompilationContext[] = [result, ...childResults.flatMap(r => r)];
+      console.log('compiledResults', compiledResults);
+      return compiledResults;
+      
+      // 
+
+
+
+      // // form into tree of results 
+
+      // // Merge the results
+      // const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
+      // console.log('mergedResult', mergedResult);
+
+      // function moveParamsToTopLevel(spec: Partial<TopLevelSpec>){
+      //   // traverse the spec and move all params to the top level
+      //   const params: any[] = [];
+        
+      //   // Collect all params
+      //   const traverse = (obj: any) => {
+      //     for (const key in obj) {
+      //       if (key === 'params' && Array.isArray(obj[key])) {
+      //         params.push(...obj[key]);
+      //         delete obj[key];
+      //       } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      //         traverse(obj[key]);
+      //       }
+      //     }
+      //   };
+        
+      //   traverse(spec);
+        
+      //   // Add collected params to top level
+      //   if (params.length > 0) {
+      //     spec.params = params;
+      //   }
+      // }
+
+      // let finalSpec = moveParamsToTopLevel(mergedResult);
+
+
+      // return {'spec': mergedResult};
+
+
+
+      ///END OLD UNCOMENT
 
       // go through each binding
 
@@ -161,55 +259,7 @@ export class SpecCompiler {
       // TODO: validate that the bindings are valid
     }
 
-    private mergeResults(results: CompilationResult[]): Partial<UnitSpec<Field>> {
     
-      let vegaLiteSpec: Partial<UnitSpec<Field>> = {};
-      const bindings = results.map(r => r.binding).filter(b => b);
-      
-
-      for(const binding of bindings) {
-        const parentComponent = this.getComponent(binding.parentAnchorId.componentId);
-        const childComponent = this.getComponent(binding.childAnchorId.componentId);
-        if (!parentComponent || !childComponent) continue;
-       
-        const parentResult = results.find(r => r.componentId === parentComponent.id);
-        const childResult = results.find(r => r.componentId === childComponent.id);
-
-        if (!parentResult?.spec || !childResult?.spec) continue;
-        const parentAnchor = parentComponent.anchors.get(binding.parentAnchorId.anchorId);
-        const childAnchor = childComponent.anchors.get(binding.childAnchorId.anchorId);
-        if (!parentAnchor || !childAnchor) continue;
-
-        // if(parentResult?.spec.mark && (childResult?.spec?.mark || childResult?.spec?.layer){
-        //   // merge the marks
-
-        //   // combine both specs into a layered spec
-        //   const layeredSpec: Partial<TopLevelSpec> = {
-        //     layer: [parentResult.spec, childResult.spec]
-        //   }
-
-          
-         
-          
-        //}
-
-
-
-        
-
-      }
-      // now for each binding, extract the type of parent and child anchors, and information about each
-      const bindingTypes = bindings.map(b => ({
-        parentAnchorType: b.parentAnchorId.anchorType,
-        childAnchorType: b.childAnchorId.anchorType,
-        parentComponentId: b.parentAnchorId.componentId,
-        childComponentId: b.childAnchorId.componentId
-      }))
-
-
-      // TODO: implement
-      return vegaLiteSpec;
-    }
   
     private resolvePlaceholders(context: CompilationContext, result: CompilationResult) {
       // Traverse the compilation result and resolve placeholders

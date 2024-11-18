@@ -11,7 +11,6 @@ import { GeometricAnchorSchema, EncodingAnchorSchema } from '../../types/anchors
 import { RectAnchors } from '../../anchors/rect';
 import { EncodingAnchors } from '../../anchors/encodingAnchors';
 import { SpecCompiler } from './specCompiler';
-import { CompilationResult } from 'types/compilation';
 import { ChartAnchors } from '../../anchors/chart';
 
 export interface ChartConfig {
@@ -23,14 +22,7 @@ export interface ChartConfig {
   mark?: any;
 }
 // Define our specific spec type that we know will have encoding
-export type ChartSpec = GenericUnitSpec<Encoding<Field>, StandardType> & {
-  $schema?: string;
-  data?: { values: any[] };
-  width?: number;
-  layer?: any[];
-  height?: number;
-  title?: string;
-};
+export type ChartSpec = Partial<UnitSpec<Field>>;
 
 export class BaseChart extends BaseComponent {
   protected spec: ChartSpec;
@@ -52,6 +44,7 @@ export class BaseChart extends BaseComponent {
       title: config.title,
       data: { values: config.data },
       mark: config.mark,
+      //@ts-ignore
       width: this.width,
       height: this.height,
       encoding: {}
@@ -63,8 +56,8 @@ export class BaseChart extends BaseComponent {
 
   }
 
-  compileComponent(): Partial<CompilationResult> {
-    return {"spec":this.spec, componentId: this.id};
+  compileComponent(): Partial<UnitSpec<Field>> {
+    return this.spec ;
   }
 
 

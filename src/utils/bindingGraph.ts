@@ -25,10 +25,6 @@ export class BindingGraph {
     };
   }
 
-  splitGroup(group: AnchorGroupSchema): AnchorSchema[] {
-    return Array.from(group.children.values());
-  }
-
   addBinding(
     parentAnchorId: AnchorId,
     childAnchorId: AnchorId

@@ -4,6 +4,8 @@ import { BindingGraph } from '../../utils/bindingGraph';
 import { BindingStore } from '../../utils/bindingStore';
 import { TopLevelSpec } from 'vega-lite';
 import { AnchorProxy } from '../../types/anchors';
+import { LayerSpec, UnitSpec} from 'vega-lite/build/src/spec';
+import { Field  } from 'vega-lite/build/src/channeldef';
 
 export class SpecCompiler {
     private bindingStore: BindingStore;
@@ -79,6 +81,10 @@ export class SpecCompiler {
       });
 
       const compiledResults: CompilationResult[] = [componentResult, ...(childResults||[])];
+
+
+      // form into tree of results 
+
       // Merge the results
       const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
       console.log('mergedResult', mergedResult);
@@ -105,7 +111,6 @@ export class SpecCompiler {
         if (params.length > 0) {
           spec.params = params;
         }
-
       }
 
       let finalSpec = moveParamsToTopLevel(mergedResult);
@@ -156,9 +161,9 @@ export class SpecCompiler {
       // TODO: validate that the bindings are valid
     }
 
-    private mergeResults(results: CompilationResult[]): Partial<TopLevelSpec> {
+    private mergeResults(results: CompilationResult[]): Partial<UnitSpec<Field>> {
     
-      let vegaLiteSpec: Partial<TopLevelSpec> = {};
+      let vegaLiteSpec: Partial<UnitSpec<Field>> = {};
       const bindings = results.map(r => r.binding).filter(b => b);
       
 
@@ -166,58 +171,31 @@ export class SpecCompiler {
         const parentComponent = this.getComponent(binding.parentAnchorId.componentId);
         const childComponent = this.getComponent(binding.childAnchorId.componentId);
         if (!parentComponent || !childComponent) continue;
-        const parentAnchor = parentComponent.anchors.get(binding.parentAnchorId.anchorId);
-        const childAnchor = childComponent.anchors.get(binding.childAnchorId.anchorId);
-        if (!parentAnchor || !childAnchor) continue;
        
         const parentResult = results.find(r => r.componentId === parentComponent.id);
         const childResult = results.find(r => r.componentId === childComponent.id);
-        // Handle geometric-geometric binding
-        if (parentAnchor.anchorRef.type === 'geometric' && childAnchor.anchorRef.type === 'geometric') {
-          // Find the compilation results for both components
-          console.log('in geometric-geometric binding',childResult?.spec, parentResult?.spec);
+
+        if (!parentResult?.spec || !childResult?.spec) continue;
+        const parentAnchor = parentComponent.anchors.get(binding.parentAnchorId.anchorId);
+        const childAnchor = childComponent.anchors.get(binding.childAnchorId.anchorId);
+        if (!parentAnchor || !childAnchor) continue;
+
+        // if(parentResult?.spec.mark && (childResult?.spec?.mark || childResult?.spec?.layer){
+        //   // merge the marks
+
+        //   // combine both specs into a layered spec
+        //   const layeredSpec: Partial<TopLevelSpec> = {
+        //     layer: [parentResult.spec, childResult.spec]
+        //   }
+
           
+         
           
-          if (parentResult?.spec && childResult?.spec) {
-            vegaLiteSpec = {
-              layer: [
-                parentResult.spec,
-                childResult.spec
-              ]
-            };
-            console.log('vegaLiteSpec', vegaLiteSpec);
-          }
-        }
+        //}
 
-        /// 
 
-        // Handle geometric-event binding
-        else if (parentAnchor.anchorRef.type === 'geometric' && childAnchor.anchorRef.type === 'event') {
-          console.log('in geometric-event binding',childResult?.spec, parentResult?.spec);
 
-          //const childResult = results.find(r => r.binding?.childAnchorId.componentId === childComponent.id);
-          if (childResult?.spec) {
-            vegaLiteSpec = {
-              ...vegaLiteSpec,
-              ...parentResult.spec,
-              ...childResult.spec
-            };
-            console.log('vegaLiteSpec', vegaLiteSpec);
-          }
-        }
-
-        // Handle event-geometric binding
-        else if (parentAnchor.anchorRef.type === 'event' && childAnchor.anchorRef.type === 'geometric') {
-          throw new Error('Event to geometric binding not implemented yet');
-        }
-
-        // Handle encoding-geometric binding
-        else if (parentAnchor.anchorRef.type === 'encoding' && childAnchor.anchorRef.type === 'geometric') {
-          // parent binding encoding means that 
-          throw new Error('Encoding to geometric binding not implemented yet');
-        }
-        // if parent 
-        // if parent 
+        
 
       }
       // now for each binding, extract the type of parent and child anchors, and information about each

@@ -35,6 +35,8 @@ export class SpecCompiler {
       };
     }
 
+   
+
     
   
     public compileComponent(
@@ -80,6 +82,35 @@ export class SpecCompiler {
       // Merge the results
       const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
       console.log('mergedResult', mergedResult);
+
+      function moveParamsToTopLevel(spec: Partial<TopLevelSpec>){
+        // traverse the spec and move all params to the top level
+        const params: any[] = [];
+        
+        // Collect all params
+        const traverse = (obj: any) => {
+          for (const key in obj) {
+            if (key === 'params' && Array.isArray(obj[key])) {
+              params.push(...obj[key]);
+              delete obj[key];
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+              traverse(obj[key]);
+            }
+          }
+        };
+        
+        traverse(spec);
+        
+        // Add collected params to top level
+        if (params.length > 0) {
+          spec.params = params;
+        }
+
+      }
+
+      let finalSpec = moveParamsToTopLevel(mergedResult);
+
+
       return {'spec': mergedResult};
 
 
@@ -125,7 +156,7 @@ export class SpecCompiler {
       // TODO: validate that the bindings are valid
     }
 
-    private mergeResults(results: CompilationResult[]): CompilationResult {
+    private mergeResults(results: CompilationResult[]): Partial<TopLevelSpec> {
     
       let vegaLiteSpec: Partial<TopLevelSpec> = {};
       const bindings = results.map(r => r.binding).filter(b => b);

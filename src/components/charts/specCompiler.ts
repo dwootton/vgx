@@ -79,7 +79,7 @@ export class SpecCompiler {
       const compiledResults: CompilationResult[] = [componentResult, ...(childResults||[])];
       // Merge the results
       const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
-
+      console.log('mergedResult', mergedResult);
       return {'spec': mergedResult};
 
 

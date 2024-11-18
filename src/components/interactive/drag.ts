@@ -38,38 +38,38 @@ export class MouseMove extends BaseComponent {
     }
 
     compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
-
-        // chart>point>drag
-        // chart>drag>point  // anywhere you drag on the chart, the mark goes where you drag
-        // point>drag
         let markname = undefined;
-        if(parentInfo?.parentAnchor.type === "geometric") {
-            markname = parentInfo.parentComponent.id +"_marks";
+        if (parentInfo?.parentAnchor.type === "geometric") {
+            markname = parentInfo.parentComponent.id + "_marks";
         }
 
+        let events: any = {
+            source: this.config.source,
+            type: 'pointermove',
+            filter: this.config.filter,
+        };
 
-        // but this information would need to be added at the vega level (ie mark names are known there)
-        // INFO I need: what is the parent anchor? Is it a mark, and if so, what is its name?
-        
-        // if parent is a mark, then use markname
-        
+        // if a markname is provided
+        if (this.config.between) {
+            events.between = [
+                { ...this.config.between[0], markname },
+                this.config.between[1]
+            ];
+        } else {
+            events.markname = markname;
+        }
 
-        const signal : Signal = {
+        const signal: Signal = {
             name: this.id,
-            value: { x: this.config.x, y: this.config.y , movementX: 0, movementY: 0},
+            value: { x: this.config.x, y: this.config.y, movementX: 0, movementY: 0 },
             on: [{
-                events: {
-                    source: this.config.source,
-                    markname: markname,
-                    type: 'pointermove',
-                    between: this.config.between,
-                    filter: this.config.filter,
-                },
-                update: "event"
+                events: events,
+                update: "{x:x(),y:y()}"
             }]
-        }
-        return {"componentId": this.id, "spec": {"params": [signal]}, "binding": context.bindings[0]};
-      }
+        };
+
+        return { "componentId": this.id, "spec": { "params": [signal] }, "binding": context.bindings[0] };
+    }
 }
 
 

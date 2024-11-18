@@ -12,7 +12,7 @@ interface PointConfig {
 export class Point extends BaseComponent {
   private config: PointConfig;
 
-  constructor(config: PointConfig) {
+  constructor(config: PointConfig = {}) {
     super();
     console.log('centerAnchor', config);
 
@@ -67,10 +67,12 @@ export class Point extends BaseComponent {
     // }
 
     const result: Partial<CompilationResult> = {
+      componentId: this.id,
       spec: {
+        name: this.id,
         data: {"values":[{"name": "datum"}]},
         mark: {
-          "type": "point",
+          "type": "circle",
           x:  intialX ,
           y:  intialY ,
           color: "firebrick",

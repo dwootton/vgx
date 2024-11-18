@@ -1,110 +1,87 @@
-// import { BaseComponent } from "../base";
-// import { RectAnchorConfig, RectAnchors } from "../../anchors/rect";
-// import { CompilationContext, CompilationResult, ParentInfo } from "../../types/compilation";
-// import { Line, Area, Point } from "types/geometry";
-// import { GeometricAnchor } from "types/anchors";
+import { BaseComponent } from "../base";
+import { MouceEventAnchors, MouseEventAnchors } from "../../anchors/mouseEvents";
+import { CompilationContext, CompilationResult, ParentInfo } from "../../types/compilation";
+import { Line, Area, Point } from "types/geometry";
+import { EventAnchorSchema, EventAnchorsSchema } from "types/anchors";
+import {EventStream, Signal} from "vega-typings";
 
-// type DragConfig = {
-//   x?: number;
-//   y?: number;
-// };
+type DragConfig = {
+  x?: number;
+  y?: number;
+};
 
-// export class Drag extends BaseComponent {
-//   private config: DragConfig;
+type MouseMoveConfig = {
+    x?: number;
+    y?: number;
+    between?: [EventStream, EventStream];
+    source?: "view" | "scope" | "window";
+    filter?: string[];
+}
 
-//   constructor(config: DragConfig = {}) {
-//     super();
-//     this.config = {
-//       x: config.x || 0,
-//       y: config.y || 0
-//     };
-//     this.initializeAnchors();
-//   }
+export class MouseMove extends BaseComponent {
+    private config: MouseMoveConfig;
 
-//   private initializeAnchors() {
-//     // Create geometric anchors for x and y
-//     const xAnchor: GeometricAnchor<Line> = {
-//       id: 'x',
-//       type: 'geometric',
-//       geometry: {
-//         type: 'line',
-//         x1: this.config.x,
-//         y1: 0,
-//         x2: this.config.x,
-//         y2: 100
-//       }
-//     };
+    constructor(config: MouseMoveConfig = {}) {
+        super();
+        this.config = config;
+        this.initializeAnchors();
+    }
 
-//     const yAnchor: GeometricAnchor<Line> = {
-//       id: 'y',
-//       type: 'geometric',
-//       geometry: {
-//         type: 'line',
-//         x1: 0,
-//         y1: this.config.y,
-//         x2: 100,
-//         y2: this.config.y
-//       }
-//     };
+    private initializeAnchors() {
+        const mousemove = new MouseEventAnchors(this);
+        const instantiatedMouseAnchors = mousemove.initializeMouseAnchors();
+        instantiatedMouseAnchors.forEach((anchor) => {
+            const proxy = this.createAnchorProxy(anchor)
+            // note this is using the anchor schema id
+            this.anchors.set(anchor.id, proxy);
+        });
+    }
 
-//     const xyAnchor: GeometricAnchor<Point> = {
-//       id: 'xy',
-//       type: 'geometric',
-//       geometry: {
-//         type: 'point',
-//         x: this.config.x,
-//         y: this.config.y
-//       }
-//     };
+    compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
 
-//     // Add anchors to component
-//     [xAnchor, yAnchor, xyAnchor].forEach(anchor => {
-//       this.anchors.set(anchor.id, this.createAnchorProxy(anchor));
-//     });
-//   }
+        // chart>point>drag
+        // chart>drag>point  // anywhere you drag on the chart, the mark goes where you drag
+        // point>drag
+        let markname = undefined;
+        if(parentInfo?.parentAnchor.type === "geometric") {
+            markname = parentInfo.parentComponent.id +"_marks";
+        }
 
-//   compileComponent(context: CompilationContext, parentInfo?: ParentInfo): CompilationResult {
-//     if (!parentInfo?.boundAnchor) {
-//       return {};
-//     }
 
-//     const { boundAnchor } = parentInfo;
-//     const signalName = `${this.id.replace(/\./g, '_')}_dragDatum`;
+        // but this information would need to be added at the vega level (ie mark names are known there)
+        // INFO I need: what is the parent anchor? Is it a mark, and if so, what is its name?
+        
+        // if parent is a mark, then use markname
+        
 
-//     let dragSpec: any = {
-//       name: signalName,
-//       value: { x: this.config.x, y: this.config.y },
-//       on: [{
-//         events: {
-//           source: "window",
-//           type: "pointermove",
-//           between: [
-//             { type: "pointerdown", markname: "layer_1_marks" },
-//             { type: "pointerup", source: "window" }
-//           ]
-//         }
-//       }]
-//     };
+        const signal : Signal = {
+            name: this.id,
+            value: { x: this.config.x, y: this.config.y , movementX: 0, movementY: 0},
+            on: [{
+                events: {
+                    source: this.config.source,
+                    markname: markname,
+                    type: 'pointermove',
+                    between: this.config.between,
+                    filter: this.config.filter,
+                },
+                update: "event"
+            }]
+        }
+        return {"componentId": this.id, "spec": {"params": [signal]}, "binding": context.bindings[0]};
+      }
+}
 
-//     // Customize update based on bound anchor
-//     switch (boundAnchor.id) {
-//       case 'x':
-//         dragSpec.on[0].update = "{'x':clamp(x(),range('x')[0],range('x')[1]),'y':" + signalName + ".y}";
-//         break;
-//       case 'y':
-//         dragSpec.on[0].update = "{'x':" + signalName + ".x,'y':clamp(y(),range('y')[1],range('y')[0])}";
-//         break;
-//       case 'xy':
-//         dragSpec.on[0].update = "{'x':clamp(x(),range('x')[0],range('x')[1]),'y':clamp(y(),range('y')[1],range('y')[0])}";
-//         break;
-//       default:
-//         return {};
-//     }
 
-//     return {
-//       spec: {
-//         params: [dragSpec]
-//       }
-//     };
-//   }
-// }
+export class Drag extends MouseMove {
+    constructor(config: DragConfig = {}) {
+        super({
+            ...config,
+            between: [
+                { type: "pointerdown" },
+                { type: "pointerup" }
+            ]
+        });
+    }
+}
+

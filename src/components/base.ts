@@ -19,7 +19,7 @@ export abstract class BaseComponent {
   requiredProperties?: string[];
 
   constructor(graphId: string = 'default') {
-    this.id = `component_${Date.now()}_${Math.random()}`;
+    this.id = generateId(); // generate hex id
     this.graphId = graphId;
     this.bindingStore = BindingStore.getInstance();
     // Register with the store
@@ -83,6 +83,7 @@ export abstract class BaseComponent {
     };
     
     const bindFn = (childAnchor: AnchorProxy) => {
+      console.log('parent',anchor, 'child',childAnchor);
       if (!childAnchor?.component || !childAnchor?.id) {
         throw new Error('Invalid binding target');
       }

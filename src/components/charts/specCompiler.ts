@@ -57,7 +57,6 @@ export class SpecCompiler {
       //   b.childAnchorId.componentId === component.id
       // );
   
-      console.log('childBindings', childBindings);
       // look here to see what parent info is being passed
       const childResults = childBindings.map(binding => {
 
@@ -79,9 +78,7 @@ export class SpecCompiler {
 
       const compiledResults: CompilationResult[] = [componentResult, ...(childResults||[])];
       // Merge the results
-      console.log('compiledResults', compiledResults);
       const mergedResult = compiledResults.length > 1 ? this.mergeResults(compiledResults) : compiledResults[0].spec;
-      console.log('merged', mergedResult);
 
       return {'spec': mergedResult};
 
@@ -123,12 +120,15 @@ export class SpecCompiler {
   
       // return {...componentResult};
     }
+    private validateBindings(bindingGraph: BindingGraph): void {
+
+      // TODO: validate that the bindings are valid
+    }
 
     private mergeResults(results: CompilationResult[]): CompilationResult {
+    
       let vegaLiteSpec: Partial<TopLevelSpec> = {};
-      console.log('mergeResults', results);
       const bindings = results.map(r => r.binding).filter(b => b);
-      console.log('bindings', bindings);
       
 
       for(const binding of bindings) {
@@ -139,11 +139,8 @@ export class SpecCompiler {
         const childAnchor = childComponent.anchors.get(binding.childAnchorId.anchorId);
         if (!parentAnchor || !childAnchor) continue;
        
-        console.log('binding', binding, parentComponent.id, childComponent.id, results);
         const parentResult = results.find(r => r.componentId === parentComponent.id);
         const childResult = results.find(r => r.componentId === childComponent.id);
-        console.log('parentResult', parentResult);
-        console.log('childResult', childResult);
         // Handle geometric-geometric binding
         if (parentAnchor.anchorRef.type === 'geometric' && childAnchor.anchorRef.type === 'geometric') {
           // Find the compilation results for both components
@@ -165,12 +162,16 @@ export class SpecCompiler {
 
         // Handle geometric-event binding
         else if (parentAnchor.anchorRef.type === 'geometric' && childAnchor.anchorRef.type === 'event') {
-          const childResult = results.find(r => r.binding?.childAnchorId.componentId === childComponent.id);
+          console.log('in geometric-event binding',childResult?.spec, parentResult?.spec);
+
+          //const childResult = results.find(r => r.binding?.childAnchorId.componentId === childComponent.id);
           if (childResult?.spec) {
             vegaLiteSpec = {
               ...vegaLiteSpec,
+              ...parentResult.spec,
               ...childResult.spec
             };
+            console.log('vegaLiteSpec', vegaLiteSpec);
           }
         }
 

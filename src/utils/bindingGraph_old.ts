@@ -102,7 +102,7 @@ export class BindingGraph {
     sourceAnchor: AnchorSchema,
     targetAnchor: AnchorSchema
   ): string {
-    const bindingId = `binding_${Date.now()}_${Math.random()}`;
+    const bindingId = `binding_${sourceAnchorId}_${targetAnchorId}`;
     
     const binding: Binding = {
       id: bindingId,

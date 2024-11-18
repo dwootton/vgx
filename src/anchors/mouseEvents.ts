@@ -6,7 +6,7 @@ import { RectAnchorConfig } from "./rect";
 export interface MouceEventAnchorConfig {
     x: number; // TODO: change this and y to Field
     y: number; 
-    event: 'click' | 'dblclick' | 'mouseover' | 'mouseout' | 'mousedown' | 'mouseup' | 'mousemove';
+    // event: 'click' | 'dblclick' | 'mouseover' | 'mouseout' | 'mousedown' | 'mouseup' | 'mousemove';
     movementX: number; // distance X since last mouse move event
     movementY: number; // distance Y since last mouse move event
 }
@@ -28,8 +28,8 @@ export class MouseEventAnchors {
       anchorConfigs.forEach(([name, getGeometry]) => {
         this.anchors.set(name, {
           id: (name),
-          type: 'geometric',
-          geometry: getGeometry(config),
+          type: 'event',
+          //geometry: getGeometry(config),
         });
       });
   
@@ -46,12 +46,9 @@ export class MouseEventAnchors {
       });
     }
   
-    initializeRectAnchors(providedConfig?: MouceEventAnchorConfig) {
+    initializeMouseAnchors(providedConfig?: MouceEventAnchorConfig) {
 
-      const config = providedConfig || {"x":0, "y":0, "event": "click", "movementX": 0, "movementY": 0};
-
-        //  // define xy position and all mouse events ancho
-
+      const config = providedConfig || {"x":0, "y":0, "movementX": 0, "movementY": 0};
       
       // Define anchor configurations
       const positionConfigs = [
@@ -64,12 +61,8 @@ export class MouseEventAnchors {
         ['movementY', (c: MouceEventAnchorConfig) => ({ y: c.movementY })],
       ] as const;
   
-      const xConfigs = [
-        ['x1', (c: RectAnchorConfig) => ({ x1: c.x1 , x2: c.x1, y1: c.y1 ,y2: c.y2 })],
-        ['x2', (c: RectAnchorConfig) => ({ x1: c.x2, x2:c.x2 ,y1: c.y1 ,y2: c.y2 })],
-      ] as const;
 
-      this.createGeometricAnchors(config, positionConfigs.map(c => [...c]), 'position');
+      this.createGeometricAnchors(config, positionConfigs.map(c => [...c]), 'center');
       this.createGeometricAnchors(config, movementConfigs.map(c => [...c]), 'movement');
   
       return this.anchors;

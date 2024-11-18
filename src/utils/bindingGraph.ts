@@ -1,10 +1,29 @@
+import { generateId } from 'utils';
 import { AnchorSchema, AnchorId,AnchorGroupSchema, AnchorOrGroupSchema, AnchorProxy } from '../types/anchors';
 import {  Binding } from '../types/compilation';
+import { generateAnchorId } from './id';
 
+interface IBindingGraph {
+  addBinding(parentAnchorId: AnchorId, childAnchorId: AnchorId): string;
+  getBindings(componentId?: string): Binding[];
+  getSourceBindings(componentId: string): Binding[];
+  getTargetBindings(componentId: string): Binding[];
+  removeBinding(bindingId: string): void;
+  removeComponentBindings(componentId: string): void;
+}
 
 export class BindingGraph {
   private bindings: Map<string, Binding> = new Map();
-  constructor() {}
+  public bindingTree: { name: string, children: { name: string, children: any[] }[] } = {
+    "name": "root",
+    "children": []
+  };
+  constructor() {
+    this.bindingTree = {
+      "name": "root",
+      "children": []
+    };
+  }
 
   splitGroup(group: AnchorGroupSchema): AnchorSchema[] {
     return Array.from(group.children.values());
@@ -14,7 +33,7 @@ export class BindingGraph {
     parentAnchorId: AnchorId,
     childAnchorId: AnchorId
   ): string {
-    const bindingId = `binding_${Date.now()}_${Math.random()}`;
+    const bindingId = `binding_${generateAnchorId(parentAnchorId)}_${generateAnchorId(childAnchorId)}`;
     
     const binding: Binding = {
         id: bindingId,
@@ -23,7 +42,53 @@ export class BindingGraph {
       };
 
     this.bindings.set(bindingId, binding);
+
+
+    this.addToNestedTree(parentAnchorId, childAnchorId);
+    
+  
+    //navigate to find the node in the binding tree and add the child
+    
     return bindingId;
+  }
+
+  addToNestedTree(parentAnchorId: AnchorId, childAnchorId: AnchorId) {
+    //navigate to find the node in the binding tree and add the child
+    // Add to binding tree
+    const findNode = (node: any, targetId: string): any => {
+      if (node.name === targetId) return node;
+      if (!node.children) return null;
+      
+      for (const child of node.children) {
+        const found = findNode(child, targetId);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    // Try to find parent node
+    const parentNode = findNode(this.bindingTree, generateAnchorId(parentAnchorId));
+
+    // If parent not found, add to root
+    if (!parentNode) {
+      this.bindingTree.children.push({
+        name: generateAnchorId(parentAnchorId),
+        children: [{
+          name: generateAnchorId(childAnchorId),
+          children: []
+        }]
+      });
+    } else {
+      // Add child to existing parent
+      if (!parentNode.children) {
+        parentNode.children = [];
+      }
+      parentNode.children.push({
+        name: generateAnchorId(childAnchorId),
+        children: []
+      });
+    }
+
   }
 
 

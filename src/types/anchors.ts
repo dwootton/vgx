@@ -19,7 +19,7 @@ export interface GeometricAnchorSchema<T> {
 export interface EventAnchorSchema {
   id: string;
   type: 'event';
-  eventType: 'start' | 'during' | 'end' | 'click' | 'hover' |'state';
+  eventType?: 'start' | 'during' | 'end' | 'click' | 'hover' |'state';
 }
 
 export interface EncodingAnchorSchema {

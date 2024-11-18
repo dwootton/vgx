@@ -48,6 +48,7 @@ export class BaseChart extends BaseComponent {
 
 
     this.spec = {
+      name: this.id,
       title: config.title,
       data: { values: config.data },
       mark: config.mark,
@@ -58,7 +59,6 @@ export class BaseChart extends BaseComponent {
 
     this.initializeAnchors();
     this.compiler = new SpecCompiler();
-    console.log('new compiler', this.compiler)
 
 
   }

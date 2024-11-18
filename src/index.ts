@@ -1,4 +1,4 @@
-import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, Brush, Point } from './components';
+import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, Brush, Point, Drag } from './components';
 import { ChartConfig } from './components/charts/base';
 import { MarkRegistry } from './registry/marks';
 
@@ -15,6 +15,7 @@ registry.register('heatmap', Heatmap);
 // Register interactive components
 registry.register('brush', Brush);
 registry.register('point', Point);
+registry.register('drag', Drag);
 // registry.register('drag_point', DragPoint);
 // Export the public API
 export const alx = {
@@ -41,6 +42,7 @@ export const alx = {
   // Interactive component creation methods
   brush: (config = {}) => registry.create('brush', config),
   point: (config = {}) => registry.create('point', config),
+  drag: (config = {}) => registry.create('drag', config),
 //   drag_point: (config = {}) => registry.create('drag_point', config)
 };
 

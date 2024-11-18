@@ -99,19 +99,20 @@
       }
 
       // Create visualizations
-      const scatter = alx.scatterplot({
-        data: scatterData,
-        xField: 'x',
-        yField: 'y',
-        width: 400,
-        height: 300
-      })
+      // const scatter = alx.scatterplot({
+      //   data: scatterData,
+      //   xField: 'x',
+      //   yField: 'y',
+      //   width: 400,
+      //   height: 300
+      // })
 
-      const brush = alx.brush();
+      // const brush = alx.brush();
       // Create bindings
-      // const brushablechart = scatter.x.bind(brush.x1);
-      // console.log('brush chart',brushablechart);
-      // const dragPoint = brush.x.bind(alx.drag_point);
+      // const brushablechart = scatter.x.bind(brush.x);
+
+
+      // const dragPoint = hist.plot.bind(alx.drag_point);
 
       // Inspect bindings
       // console.log(scatter.getBindings());
@@ -124,8 +125,19 @@
       })
 
       const point = alx.point({x:50,y:20});
-      console.log('point', point);
-      const pointHist=hist.plot.bind(point.center);
+
+      // const brushablechart = scatter.x.bind(brush.x);
+
+
+      const drag = alx.drag();
+      // const point = new Point();
+      const pointHist = hist.plot.bind(point.center);
+      pointHist.center.bind(drag.x);
+
+      //const point_drag = point
+
+     
+
 
       const line = alx.lineplot({
         data: timeSeriesData,

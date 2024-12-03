@@ -17,5 +17,6 @@ export interface LineplotConfig extends ChartConfig {
         y: { field: config.yField, type: 'quantitative' }
       };
   
+      this.initializeAnchors();
     }
   }

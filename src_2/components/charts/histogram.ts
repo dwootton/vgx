@@ -23,6 +23,7 @@ export class Histogram extends BaseChart {
         }
       };
   
+      this.initializeAnchors();
     }
   }
   

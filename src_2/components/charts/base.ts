@@ -6,7 +6,12 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 
 import { BaseComponent } from '../base';
-
+import { Point, Line, Area } from '../../types/geometry';
+import { GeometricAnchorSchema, EncodingAnchorSchema } from '../../types/anchors';
+import { RectAnchors } from '../../anchors/rect';
+import { EncodingAnchors } from '../../anchors/encodingAnchors';
+import { SpecCompiler } from './specCompiler';
+import { ChartAnchors } from '../../anchors/chart';
 
 export interface ChartConfig {
   data: any[];
@@ -24,6 +29,7 @@ export class BaseChart extends BaseComponent {
   protected width: number;
   protected height: number;
   protected padding: number;
+  public compiler: SpecCompiler;
 
 
   constructor(config: ChartConfig) {
@@ -44,12 +50,35 @@ export class BaseChart extends BaseComponent {
       encoding: {}
     };
 
+    this.initializeAnchors();
+    this.compiler = new SpecCompiler();
 
 
   }
 
   compileComponent(): Partial<UnitSpec<Field>> {
     return this.spec ;
+  }
+
+
+  public initializeAnchors() {
+
+    let encodingAnchors = new EncodingAnchors(this);
+    const instantiatedEncodingAnchors = encodingAnchors.initializeEncodingAnchors(this.spec);
+    let rectAnchors = new RectAnchors(this);
+    const instantiatedRectAnchors = rectAnchors.initializeRectAnchors();
+
+    let chartAnchors = new ChartAnchors(this);
+    const instantiatedChartAnchors = chartAnchors.initializeChartAnchors(this.spec);
+
+    // Merge Maps directly
+    const mergedMap = new Map([ ...instantiatedRectAnchors,...instantiatedEncodingAnchors,...instantiatedChartAnchors]);
+    mergedMap.forEach((anchor) => {
+      const proxy = this.createAnchorProxy(anchor)
+
+      // note this is using the anchor schema id
+      this.anchors.set(anchor.id, proxy);
+    });
   }
 
   protected mergeSpecs(baseSpec: ChartSpec, newSpec: Partial<ChartSpec>): ChartSpec {

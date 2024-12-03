@@ -25,6 +25,7 @@ export interface HeatmapConfig extends ChartConfig {
         }
       };
   
+      this.initializeAnchors();
     }
   }
 

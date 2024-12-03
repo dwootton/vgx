@@ -99,13 +99,13 @@
       }
 
       // Create visualizations
-      const scatter = alx.scatterplot({
-        data: scatterData,
-        xField: 'x',
-        yField: 'y',
-        width: 400,
-        height: 300
-      })
+      // const scatter = alx.scatterplot({
+      //   data: scatterData,
+      //   xField: 'x',
+      //   yField: 'y',
+      //   width: 400,
+      //   height: 300
+      // })
 
       // const brush = alx.brush();
       // Create bindings
@@ -124,11 +124,17 @@
         height: 300
       })
 
-      // const point = alx.point({x:50,y:20});
+      const point = alx.point({x:50,y:20});
 
       // const brushablechart = scatter.x.bind(brush.x);
 
 
+      const drag = alx.drag();
+      // const point = new Point();
+      const pointHist = hist.plot.bind(point.center);
+      pointHist.x.bind(drag.x);
+
+      //const point_drag = point
 
      
 
@@ -168,11 +174,11 @@
       };
 
       await Promise.all([
-        renderChart(scatter, 'scatter'),
-        renderChart(hist, 'hist'),
-        renderChart(line, 'line'),
-        renderChart(bar, 'bar'),
-        renderChart(heat, 'heat')
+        // renderChart(brushablechart, 'scatter'),
+        renderChart(pointHist, 'hist'),
+        // renderChart(line, 'line'),
+        // renderChart(bar, 'bar'),
+        // renderChart(heat, 'heat')
       ]);
     });
   </script>

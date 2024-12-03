@@ -9,6 +9,11 @@ import { EventStream, Signal } from "vega-typings";
 
 export class Drag extends BaseComponent {
     private mouseEventAnchors: MouseEventAnchors;
+    public start: Point;
+    public stop: Point;
+    public x: number;
+    public y: number;
+    
     constructor(config: MouceEventAnchorConfig = {}) {
         super();
         this.mouseEventAnchors = new MouseEventAnchors();
@@ -32,7 +37,7 @@ export class Drag extends BaseComponent {
 
         const signal = {
             name: this.id,
-            value: { x: 0, y: 0 },
+            value: { start: { x: 0, y: 0 }, stop: { x: 0, y: 0 }, x: 0, y: 0 },
             on: [{
                 events: {
                     type: 'pointermove',
@@ -40,9 +45,22 @@ export class Drag extends BaseComponent {
                         { type: "pointerdown", "markname": context.binding.parentAnchorId.componentId + "_marks" },
                         { type: "pointerup" }
                     ]
-                }
+                },
+                update: "{x:x(),y:y()}"
+            },
+            {
+                "events": {
+                  "type": "pointerdown",
+                },
+                "update": `merge(${this.id},{start:{x:x(),y:y()}})`
+            },
+            {
+                "events": {
+                  "type": "pointerup",
+                },
+                "update": `merge(${this.id},{stop:{x:x(),y:y()}})`
             }
-            ]
+        ]
         };
 
 

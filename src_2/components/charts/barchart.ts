@@ -26,6 +26,7 @@ export interface BarchartConfig extends ChartConfig {
         }
       };
   
+      this.initializeAnchors();
     }
   }
   

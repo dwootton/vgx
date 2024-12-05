@@ -5,7 +5,7 @@ import { AnchorValue } from 'vega';
 import { AnchorGroupSchema, AnchorProxy, AnchorSchema } from '../types/anchors';
 import { createAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
-
+import { BindingManager } from '../binding/BindingManager';
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;
@@ -20,10 +20,13 @@ export abstract class BaseComponent {
   constructor() {
     this.id = generateId();
     // Create special _all anchor that represents the entire component
-    this.initializeAllAnchor();
+    
+    console.log('BaseComponent constructor', this);
   }
 
-  private initializeAllAnchor() {
+  public initializeAnchors() {
+    console.log('in base all anchors', this)
+
     const allAnchor: AnchorGroupSchema = {
       id: '_all',
       type: 'group',
@@ -67,62 +70,4 @@ export abstract class BaseComponent {
     // find the root of the component tree
     return this.compileComponent() as TopLevelSpec;
   }
-}
-
-// Simple binding manager to track component bindings
-export class BindingManager {
-  private bindings: Array<{sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string}>;
-  private static instance: BindingManager;
-
-  private constructor() {
-    this.bindings = [];
-  }
-
-  public static getInstance(): BindingManager {
-    if (!BindingManager.instance) {
-      BindingManager.instance = new BindingManager();
-    }
-    return BindingManager.instance;
-  }
-
-  public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string) {
-    this.bindings.push({
-      sourceId,
-      targetId,
-      sourceAnchor,
-      targetAnchor
-    });
-  }
-
-  public getBindingsForComponent(componentId: string) {
-    return this.bindings.filter(binding => binding.sourceId === componentId || binding.targetId === componentId);
-  }
-
-  public getAllBindings() {
-    return this.bindings;
-  }
-}
-
-// Function to make properties bindable
-export function anchorize<T extends object>(obj: T): T {
-  const handler: ProxyHandler<T> = {
-    get(target: T, prop: string | symbol): any {
-      if (prop === 'bind') {
-        return function(this: any, target: any) {
-          // Implement binding logic here
-          console.log(`Binding ${String(prop)} to`, target);
-          // You might want to store this binding information somewhere
-        };
-      }
-      
-      const value = target[prop as keyof T];
-      if (typeof value === 'object' && value !== null) {
-        return new Proxy(value as object, handler) as any;
-      }
-      
-      return value;
-    }
-  };
-
-  return new Proxy(obj, handler);
 }

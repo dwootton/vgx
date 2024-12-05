@@ -25,7 +25,7 @@ export interface BarchartConfig extends ChartConfig {
           aggregate: config.aggregate || 'mean'
         }
       };
-  
+      this.initializeAnchors();  
     }
   }
   

@@ -3,18 +3,15 @@ import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
 import { AnchorGroupSchema, AnchorProxy, AnchorSchema } from '../types/anchors';
+import { createAnchorProxy } from '../utils/anchorProxy';
+import { isComponent } from '../utils/component';
+
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;
   type: string;
   getSpec(): any;
 }
-
-function isComponent(obj: any): obj is BaseComponent {
-  return obj instanceof BaseComponent;
-}
-
-
 
 export abstract class BaseComponent {
   protected anchors: Map<string, AnchorProxy> = new Map();
@@ -49,7 +46,7 @@ export abstract class BaseComponent {
   }
 
   // Protected method to get anchor (used by bind)
-  protected getAnchor(id: string): AnchorProxy {
+  public getAnchor(id: string): AnchorProxy {
     const anchor = this.anchors.get(id);
     if (!anchor) {
       throw new Error(`Anchor "${id}" not found`);
@@ -57,39 +54,12 @@ export abstract class BaseComponent {
     return anchor;
   }
 
-  
-
 
   protected createAnchorProxy(anchor: AnchorSchema): AnchorProxy {
-    // bind function that will be used if called on a specific anchor (chart.x.bind....)
-    const bindFn = (target:  BindingTarget) => {
-      
-      // If target is a component, use its _all anchor
-      const targetAnchor = isComponent(target) 
-        ? target.getAnchor('_all')
-        : target;
-
-      // Get the binding graph
-      const bindingManager = BindingManager.getInstance();
-
-      // Add the binding
-      bindingManager.addBinding(
-        this.id,targetAnchor.id.componentId, anchor.id,
-        targetAnchor.id.anchorId
-      );
-
-      //chart._all.bind(brush._all
-
-      return targetAnchor.component;
-    };
-
-    return {
-      id: { componentId: this.id, anchorId: anchor.id },
-      component: this,
-      bind: bindFn,
-      anchorSchema: anchor
-    };
+    return createAnchorProxy(this, anchor);
   }
+  
+  
 
   abstract compileComponent(): Partial<UnitSpec<Field>>;
 

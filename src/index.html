@@ -46,6 +46,10 @@
       <h2>Heatmap</h2>
       <div id="heat"></div>
     </div>
+    <div class="chart">
+      <h2>Pie</h2>
+      <div id="pie"></div>
+    </div>
   </div>
 
   <script>
@@ -160,6 +164,12 @@
         height: 300
       })
 
+      const pie = alx.piechart({
+        data:barData,
+        categoryField:'category'
+      }
+      )
+
       // Render all charts
       const renderChart = async (chart, elementId) => {
         const  vegaLiteSpec  = await chart.compile();
@@ -172,7 +182,8 @@
         renderChart(hist, 'hist'),
         renderChart(line, 'line'),
         renderChart(bar, 'bar'),
-        renderChart(heat, 'heat')
+        renderChart(heat, 'heat'),
+        renderChart(pie,'pie')
       ]);
     });
   </script>

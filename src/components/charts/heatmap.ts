@@ -24,6 +24,9 @@ export interface HeatmapConfig extends ChartConfig {
           scale: { scheme: 'blues' }
         }
       };
+
+      this.initializeAnchors();
+
   
     }
   }

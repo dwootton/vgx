@@ -2,10 +2,11 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorProxy, AnchorSchema } from '../types/anchors';
+import { AnchorGroupSchema, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
 import { createAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager } from '../binding/BindingManager';
+import { compilationContext } from '../binding/binding';
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;
@@ -57,17 +58,29 @@ export abstract class BaseComponent {
     return anchor;
   }
 
+  generateAnchorsFromContext(context: Record<AnchorType, any>) {
+    const anchors = new Map<string, AnchorProxy>();
+
+    Object.entries(context).forEach(([key, value]) => {   
+        const anchorSchema = {
+            id: `${this.id}-${key}`,
+            type: key as AnchorType,
+        }            
+        anchors.set(key, this.createAnchorProxy(anchorSchema));
+    });
+    return anchors;
+}
+
 
   protected createAnchorProxy(anchor: AnchorSchema): AnchorProxy {
     return createAnchorProxy(this, anchor);
   }
-  
-  
 
-  abstract compileComponent(): Partial<UnitSpec<Field>>;
+  abstract compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>>;
 
   compile(): TopLevelSpec {
     // find the root of the component tree
-    return this.compileComponent() as TopLevelSpec;
+    return this.compileComponent({}) as TopLevelSpec;
   }
 }
+

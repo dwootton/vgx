@@ -6,11 +6,12 @@ export interface AnchorId {
 }
 
 export type GeometricAnchorType = 'point' | 'line' | 'area' | 'path';
+export type ScaleAnchorType = "scale"
 export type ChannelAnchorType = 'x' | 'y' | 'x2' | 'y2' | 'color' | 'size' | 'shape';
 export type SelectionAnchorType = 'PointSelection' | 'IntervalSelection' | 'LassoSelection';
 export type OtherAnchorTypes = string;
 
-export type AnchorType = GeometricAnchorType | ChannelAnchorType | SelectionAnchorType | OtherAnchorTypes;
+export type AnchorType = GeometricAnchorType | ChannelAnchorType | SelectionAnchorType | ScaleAnchorType | OtherAnchorTypes;
 
 // AnchorTypes correspond to all of the different 
 export interface AnchorId {

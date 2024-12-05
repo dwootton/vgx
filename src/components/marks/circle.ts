@@ -1,4 +1,4 @@
-import { BaseComponent } from "components/base";
+import { BaseComponent } from "../base";
 import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
@@ -24,12 +24,11 @@ export class Circle extends BaseComponent {
         super()
         this.anchors = this.generateAnchorsFromContext(circleBaseContext);
         this.config = config;
+        console.log('circle',this.anchors)
         this.initializeAnchors()
     }
 
-
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-
         return {
             "data":inputContext.data,
             "mark":{
@@ -48,12 +47,5 @@ export class Circle extends BaseComponent {
                 }
             }
         }
-        
     }
-
-
-
-
-
-
 }

@@ -61,6 +61,9 @@
         y: Math.random() * 100
       }));
 
+     
+      
+
       // Data for histogram - single array of values
       const histData = Array.from({ length: 200 }, () => ({
         value: Math.random() * 100 + Math.random() * 50 // Create some clustering
@@ -111,15 +114,14 @@
         height: 300
       })
 
-      // const brush = alx.brush();
-      // Create bindings
-      // const brushablechart = scatter.x.bind(brush.x);
+      const circle = alx.circle({
+        x: 50,
+        y: 50
+      })
 
+      const sp= scatter.bind(circle);
+      console.log('sp',sp)
 
-      // const dragPoint = hist.plot.bind(alx.drag_point);
-
-      // Inspect bindings
-      // console.log(scatter.getBindings());
       
       const hist = alx.histogram({
         data: histData,
@@ -178,7 +180,7 @@
       };
 
       await Promise.all([
-        renderChart(scatter, 'scatter'),
+        renderChart(sp, 'scatter'),
         renderChart(hist, 'hist'),
         renderChart(line, 'line'),
         renderChart(bar, 'bar'),

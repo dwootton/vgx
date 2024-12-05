@@ -1,11 +1,13 @@
+import { BaseComponent } from "components/base";
 
 // Simple binding manager to track component bindings
 export class BindingManager {
     private bindings: Array<{sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string}>;
     private static instance: BindingManager;
-  
+    private components: Map<string, BaseComponent>;
     private constructor() {
       this.bindings = [];
+      this.components = new Map();
     }
   
     public static getInstance(): BindingManager {
@@ -14,7 +16,15 @@ export class BindingManager {
       }
       return BindingManager.instance;
     }
+
+    public getComponent(componentId: string): BaseComponent | undefined {
+      return this.components.get(componentId);
+    }
   
+    public addComponent(component: BaseComponent) {
+      this.components.set(component.id, component);
+    }
+
     public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string) {
       this.bindings.push({
         sourceId,

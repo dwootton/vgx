@@ -17,6 +17,9 @@ export class Scatterplot extends BaseChart {
       y: { field: config.yField, type: 'quantitative' }
     };
 
+    this.initializeAnchors();
+
+
   }
 }
 

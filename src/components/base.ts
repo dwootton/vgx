@@ -7,6 +7,7 @@ import { createAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager } from '../binding/BindingManager';
 import { compilationContext } from '../binding/binding';
+import { generateComponentSignalName } from './marks/circle';
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;
@@ -18,6 +19,7 @@ export abstract class BaseComponent {
   protected anchors: Map<string, AnchorProxy> = new Map();
   public id: string;
   public bindingManager: BindingManager;
+
   constructor() {
     this.id = generateId();
     this.bindingManager = BindingManager.getInstance();
@@ -25,7 +27,6 @@ export abstract class BaseComponent {
   }
 
   public initializeAnchors() {
-
     const allAnchor: AnchorGroupSchema = {
       id: '_all',
       type: 'group',
@@ -57,48 +58,19 @@ export abstract class BaseComponent {
   }
 
 
-  generateAnchorsFromContext(context: Record<AnchorType, any>) {
-    const anchors = new Map<string, AnchorProxy>();
+  
 
-    Object.entries(context).forEach(([key, value]) => {
-      const anchorSchema = {
-        id: `${this.id}-${key}`,
-        type: key as AnchorType,
-      }
-      anchors.set(key, this.createAnchorProxy(anchorSchema));
-    });
-    return anchors;
-  }
-
-  protected createAnchorProxy(anchor: AnchorSchema): AnchorProxy {
-    return createAnchorProxy(this, anchor);
+  protected createAnchorProxy(anchor: AnchorSchema,compileFn?:()=>string): AnchorProxy {
+    console.log('about to create anchor',anchor.id,compileFn)
+    return createAnchorProxy(this, anchor,compileFn);
   }
 
   abstract compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>>;
 
+  // whenever compile is called, we go to the root and then compile the entire binding tree
   compile(): TopLevelSpec {
-    const root = findRootComponent(this.bindingManager, this.id);
-    console.log('root',root)
-    return root.compileComponent({}) as TopLevelSpec;
+
+    return this.bindingManager.compile(this.id) as TopLevelSpec;
   }
 }
 
-
-
-function findRootComponent(bindingManager: BindingManager, componentId: string): BaseComponent {
-  const bindings = bindingManager.getBindingsForComponent(componentId);
-
-  const sourceBindings = bindings.filter(binding => binding.targetId === componentId);
-  for(const binding of sourceBindings){
-    // if the called component is the target of the binding, then we need to find the source of the binding
-    if(binding.targetId === componentId){
-      const sourceId = binding.sourceId;
-      return findRootComponent(bindingManager, sourceId);
-    }
-  }
-  const component = bindingManager.getComponent(componentId);
-  if(!component){
-    throw new Error(`Component "${componentId}" not added to binding manager`);
-  }
-  return component;
-}

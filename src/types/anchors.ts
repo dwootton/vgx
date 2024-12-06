@@ -9,6 +9,7 @@ export type GeometricAnchorType = 'point' | 'line' | 'area' | 'path';
 export type ScaleAnchorType = "scale"
 export type ChannelAnchorType = 'x' | 'y' | 'x2' | 'y2' | 'color' | 'size' | 'shape';
 export type SelectionAnchorType = 'PointSelection' | 'IntervalSelection' | 'LassoSelection';
+export type DataAnchorType = 'data'; // note: this can take multiple forms, but it represents the internals
 export type OtherAnchorTypes = string;
 
 export type AnchorType = GeometricAnchorType | ChannelAnchorType | SelectionAnchorType | ScaleAnchorType | OtherAnchorTypes;
@@ -37,6 +38,7 @@ export interface AnchorProxy {
   id: AnchorId;
   anchorSchema: AnchorOrGroupSchema;
   bind: (target: AnchorProxy) => BaseComponent;
+  compile: () => string; // produces a expr string
 }
 
 // brush.sides.top 

@@ -35,6 +35,7 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     compile: compileFn || (() => '')
   };
 }
+//TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 
 
 export function generateAnchorsFromContext(context: Record<AnchorType, any>, component:BaseComponent, metaContext:any={}) {

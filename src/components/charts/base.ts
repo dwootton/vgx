@@ -175,7 +175,11 @@ export class BaseChart extends BaseComponent {
           type: 'scale',
           
         }, () => {
-          return `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`
+          console.log('in proxy', scaleName)
+          return {
+            source: 'baseContext',
+            value: `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`
+          }
         })
       })
     })

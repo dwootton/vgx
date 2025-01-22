@@ -76,7 +76,7 @@ export abstract class BaseComponent {
 
 
 
-  protected createAnchorProxy(anchor: AnchorSchema, compileFn?: () => string): AnchorProxy {
+  protected createAnchorProxy(anchor: AnchorSchema, compileFn?: () => {source:string,value:any}): AnchorProxy {
     return createAnchorProxy(this, anchor, compileFn);
   }
 

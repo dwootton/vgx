@@ -23,8 +23,8 @@ export class Drag extends BaseComponent {
     public config: DragConfig;
 
     constructor(config: DragConfig = {}) {
-        super();
-        this.anchors = generateAnchorsFromContext(dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
+        super(config);
+        this.anchors = generateAnchorsFromContext(config,dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
         this.config = config;
         console.log('drag', this.anchors);
         this.initializeAnchors();

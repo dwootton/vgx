@@ -12,7 +12,7 @@ export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: () => string): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: () => {source:string,value:any}): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -36,24 +36,28 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     component,
     bind: bindFn,
     anchorSchema: anchor,
-    compile: compileFn || (() => '')
+    compile: compileFn || (() => ({source:'baseContext',value:''}))
   };
 }
 //TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 
 
-export function generateAnchorsFromContext(context: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
+export function generateAnchorsFromContext(context: Record<AnchorType, any>, baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
   const anchors = new Map<string, AnchorProxy>();
 
   console.log('meta', metaContext)
-  Object.entries(context).forEach(([key, value]) => {
+  Object.entries(baseContext).forEach(([key, value]) => {
     const anchorSchema = {
       id: `${key}`,
       type: key as AnchorType,
-      interactive: metaContext[key]?.interactive || false
+      interactive: baseContext[key]?.interactive || false
     }
     const compileFn = () => {
-      return `${generateComponentSignalName(component.id)}.${key}`;
+      console.log('in base compileFn', context)
+      
+        value =  `${generateComponentSignalName(component.id)}.${key}`;
+        return {source:'baseContext',value}
+      
     }
     anchors.set(key, createAnchorProxy(component, anchorSchema, compileFn));
   });

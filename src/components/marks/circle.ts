@@ -26,7 +26,7 @@ export class Circle extends BaseComponent {
 
     constructor(config:CircleConfig={}){
         super({...config})
-        this.anchors = generateAnchorsFromContext(circleBaseContext,this);
+        this.anchors = generateAnchorsFromContext(config,circleBaseContext,this);
         this.config = config;
         this.initializeAnchors()
       

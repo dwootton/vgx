@@ -189,18 +189,49 @@ export class BindingManager {
             const groupedEdges = groupEdgesByChannel(edges);
 
             const compilationContext:compilationContext = {};
+            console.log('groupedEdges', groupedEdges,edges);
 
             // for each of these groups, generate the compilation context
             for (const [channel, edges] of groupedEdges.entries()) {
 
                 // for each of these edges, get the corresponding component and ask for it to provide that compilation context
                 const generatedData:{expr:string,type:AnchorType}[] = [];
-                for (const edge of edges) {
-                    const edgeData = edge.compile();//component.getData(channel);
-                    generatedData.push({expr:edgeData,type:edge.anchorSchema.type});
+                enum DataSource {
+                    CONTEXT = 'context',
+                    BASE_CONTEXT = 'baseContext',
+                    GENERATED = 'generated'
                 }
 
-                compilationContext[channel] = generatedData.map(data => data.expr).join(',');
+                // Compile all edges and group by source type
+                const edgeResults = edges.map(edge => ({
+                    data: edge.compile(),
+                    type: edge.anchorSchema.type
+                }));
+
+                // Process edges in priority order: context > generated > baseContext
+                // Find data sources in priority order
+                const contextData = edgeResults.find(result => result.data.source === DataSource.CONTEXT);
+                const generatedDataResults = edgeResults.filter(result => 
+                    result.data.source !== DataSource.CONTEXT && 
+                    result.data.source !== DataSource.BASE_CONTEXT
+                );
+                const baseContextData = edgeResults.find(result => result.data.source === DataSource.BASE_CONTEXT);
+
+                // Process in priority order: context > generated > baseContext
+                if (contextData) {
+                    // Context data takes highest priority
+                    compilationContext[channel] = contextData.data.value;
+                } else if (generatedDataResults.length > 0) {
+                    // Generated data is second priority
+                    generatedData.push(...generatedDataResults.map(result => ({
+                        expr: result.data.value,
+                        type: result.type
+                    })));
+                    compilationContext[channel] = generatedData.map(data => data.expr).join(',');
+                } else if (baseContextData) {
+                    // Base context is lowest priority
+                    compilationContext[channel] = baseContextData.data.value;
+                }
 
             }
 
@@ -209,52 +240,14 @@ export class BindingManager {
                 throw new Error(`Component "${node.id}" not added to binding manager`);
             }
 
+            console.log('compilationContext', compilationContext);
             const compiledComponent = component.compileComponent(compilationContext);
 
             compiledComponents.push(compiledComponent);
 
 
-            //const compilationContext = {}
-            // get the anchorSchema for each of the edges 
-
-            const anchorSchemas: AnchorGroupSchema[] = [];
-
-            // function expandEdges(edges: BindingEdge[]) {
-            //     // go through each edge, get the anchor shcema, and then apply the correct bindings to any group anchors
-            //     for (const edge of edges) {
-            //         const sourceComponent = this.getComponent(edge.source.nodeId);
-            //         if (!sourceComponent) {
-            //             throw new Error(`Component "${edge.source.nodeId}" not added to binding manager`);
-            //         }
-            //         const sourceAnchor = edge.source.anchorId;
-            //         const anchorProxy = sourceComponent.getAnchor(sourceAnchor);
-            //         const anchorSchema = anchorProxy.anchorSchema;
-            //         /
-            //         console.log('anchorSchema', anchorSchema);
-            //         if (anchorSchema) {
-            //             anchorSchemas.push(anchorSchema);
-            //         }
-            //     }
-            // }
-            
-
-            // for each edge, get the corresponding component and ask for it to provide that compilation context
-
-
-
-            // for each edge, get the corresponding component and ask for it to provide that compilation context
-
-            // got hrough and resolve group anchors 
-            
-
-
 
             
-            
-            // if (!component) {
-            //     throw new Error(`Component "${node.id}" not added to binding manager`);
-            // }
-            // const compilationContext = component.compile();
         }
 
 

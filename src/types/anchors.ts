@@ -38,7 +38,7 @@ export interface AnchorProxy {
   id: AnchorId;
   anchorSchema: AnchorOrGroupSchema;
   bind: (target: AnchorProxy) => BaseComponent;
-  compile: () => string; // produces a expr string
+  compile: () => {source:string,value:any}; // produces a expr string
 }
 
 // brush.sides.top 

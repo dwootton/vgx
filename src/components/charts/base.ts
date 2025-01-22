@@ -2,13 +2,12 @@
 import { TopLevelSpec } from 'vega-lite/build/src/spec';
 import { UnitSpec, GenericUnitSpec } from 'vega-lite/build/src/spec/unit';
 import { Encoding } from 'vega-lite/build/src/encoding';
-import { Field } from 'vega-lite/build/src/channeldef';
+import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
 import { AnchorProxy } from 'types/anchors';
-
 
 export interface ChartConfig {
   data: any[];
@@ -17,7 +16,46 @@ export interface ChartConfig {
   title?: string;
   padding?: number;
   mark?: any;
+  // all channels will either be a fieldValue, fieldBinds,
+  y: FieldProps | FieldProps[] | undefined;
+  x: FieldProps | FieldProps[] | undefined;
+  color: FieldValueProps | FieldValueProps[] ; // not undefined as we will proivide a default
+  size: FieldValueProps | FieldValueProps[] ;
+  opacity: FieldValueProps | FieldValueProps[] ; 
 }
+
+type FieldBinds = AnchorProxy
+type FieldName = string
+type FieldProps  = FieldName | FieldBinds
+
+import { ExprRef } from 'vega-lite/build/src/expr';
+
+type FieldValue = number | ExprRef | "width" | "height"
+type FieldValueProps = FieldProps | FieldValue
+
+// Base encoding definition for field-based encodings
+export type FieldEncodingDef = {
+  field: FieldName;
+  type: StandardType;
+};
+
+// Base encoding definition for constant value-based encodings
+type ValueEncodingDef = {
+  value: FieldValue;
+};
+
+// General encoding definition that combines both options
+type EncodingDef = FieldEncodingDef | ValueEncodingDef;
+
+// Specific encoding for positional channels (only allows field-based encodings)
+type PositionEncodingDef = FieldEncodingDef;
+
+
+type SplitConfig = {
+  encodingBinds: Record<string, AnchorProxy>;
+  encodingDefs: Record<string, EncodingDef | PositionEncodingDef>;
+}
+
 // Define our specific spec type that we know will have encoding
 export type ChartSpec = Partial<UnitSpec<Field>>;
 
@@ -26,6 +64,14 @@ export class BaseChart extends BaseComponent {
   protected width: number;
   protected height: number;
   protected padding: number;
+  public x: any; // this should become an anchorProxy I think 
+  public y: any;
+  public color: any;
+  public size: any;
+  public shape: any;
+  public opacity: any;
+
+  public channelConfigs: SplitConfig;
 
 
   constructor(config: ChartConfig) {
@@ -45,6 +91,62 @@ export class BaseChart extends BaseComponent {
       height: this.height,
       encoding: {}
     };
+
+    const channelConfigs = this.splitChannelConfig(config);
+    console.log('channelConfigs',channelConfigs)
+    this.channelConfigs = channelConfigs;
+
+
+  }
+  private splitChannelConfig(config: ChartConfig): SplitConfig {
+    const result: SplitConfig = {
+      encodingBinds: {},
+      encodingDefs: {}
+    };
+
+    // Process each channel (x, y, color, size, opacity)
+    ['x', 'y', 'color', 'size', 'opacity'].forEach(channel => {
+      const value = config[channel as keyof ChartConfig];
+      if (!value) return;
+
+      if (Array.isArray(value)) {
+        // Handle arrays of values
+        value.forEach(v => this.categorizeValue(v, channel, result));
+      } else {
+        this.categorizeValue(value, channel, result);
+      }
+    });
+
+    return result;
+  }
+
+  private categorizeValue(
+    value: FieldProps | FieldValue,
+    channel: string,
+    result: SplitConfig
+  ) {
+    if (typeof value === 'string') {
+      // It's a FieldName
+      // if its a field Name we need to check what the datatype of the field is 
+
+      // if its a field Name we need to check what the datatype of the field is this.spec.data[0][value]
+      //@ts-ignore as data will always be read in already in notebook so far....
+      const fieldType = typeof this.spec.data.values[0][value] || "undefined";
+      if (fieldType === 'number') {
+        // NOTE: this will not be true if the field is a bind TODO: fix this 
+        result.encodingDefs[channel] = { field: value, type: 'quantitative' };
+      } else if (fieldType === 'string') {
+        result.encodingDefs[channel] = { field: value, type: 'ordinal' };
+      } else {
+        result.encodingDefs[channel] = { field: value, type: 'nominal' };
+      }
+    } else if (typeof value === 'object' && value !== null && 'bind' in value) {
+      // It's an AnchorProxy
+      result.encodingBinds[channel] = value;
+    } else {
+      // It's a ValueDef
+      result.encodingDefs[channel] = { value: value};
+    }
   }
 
   initializeAnchors() {

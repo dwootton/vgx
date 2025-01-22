@@ -1,11 +1,13 @@
 
-import { BaseChart, ChartConfig } from './base';
+import { BaseChart, ChartConfig ,FieldEncodingDef} from './base';
 
 export interface HistogramConfig extends ChartConfig {
     field: string;
   }
 export class Histogram extends BaseChart {
     constructor(config: HistogramConfig) {
+
+      config.x
       super({
         ...config,
         mark: 'bar'
@@ -13,7 +15,7 @@ export class Histogram extends BaseChart {
   
       this.spec.encoding = {
         x: {
-          field: config.field,
+          field: (this.channelConfigs.encodingDefs.x as FieldEncodingDef).field,
           type: 'quantitative',
           bin: true,
         },

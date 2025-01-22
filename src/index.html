@@ -62,6 +62,16 @@
       }));
 
      
+      const sdsda = alx.scatterplot({
+        data: scatterData,
+        x: 'x',
+        y: 'y',
+        width: 400,
+        height: 300
+      })
+
+      
+      
       
 
       // Data for histogram - single array of values
@@ -108,8 +118,8 @@
       // Create visualizations
       const scatter = alx.scatterplot({
         data: scatterData,
-        xField: 'x',
-        yField: 'y',
+        x: 'x',
+        y: 'y',
         width: 400,
         height: 300
       })
@@ -121,13 +131,13 @@
       const drag = alx.drag();
       circle.bind(drag)
 
-      const sp= scatter.bind(circle);
-      console.log('sp',sp)
+      // const sp= scatter.bind(circle);
+      // console.log('sp',sp)
 
       
       const hist = alx.histogram({
         data: histData,
-        field: 'value',
+        x: 'value',
         width: 400,
         height: 300
       })
@@ -179,12 +189,12 @@
       };
 
       await Promise.all([
-        renderChart(sp, 'scatter'),
+        renderChart(scatter, 'scatter'),
         renderChart(hist, 'hist'),
-        renderChart(line, 'line'),
-        renderChart(bar, 'bar'),
-        renderChart(heat, 'heat'),
-        renderChart(pie,'pie')
+        // renderChart(line, 'line'),
+        // renderChart(bar, 'bar'),
+        // renderChart(heat, 'heat'),
+        // renderChart(pie,'pie')
       ]);
     });
   </script>

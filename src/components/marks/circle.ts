@@ -30,6 +30,17 @@ export class Circle extends BaseComponent {
         this.config = config;
         console.log('circle',this.anchors)
         this.initializeAnchors()
+      
+          // Setup channel bindings
+          // Programmatically create all anchor properties
+          this.anchors.forEach(anchor => {
+            Object.defineProperty(this, anchor.id.anchorId, {
+              value: config[anchor.id.anchorId] ?? null,
+              writable: true,
+              enumerable: true,
+              configurable: true
+            });
+          });
     }
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {

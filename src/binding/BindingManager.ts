@@ -2,6 +2,8 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorType } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
+import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent } from "./binding";
+
 interface BindingNode {
     id: string;
     type: string;
@@ -75,6 +77,7 @@ export class BindingManager {
             }
 
             if (Array.isArray(obj)) {
+                //@ts-ignore TODO
                 return obj.map(item => removeUndefinedInSpec(item)).filter(item => item !== undefined);
             }
 
@@ -149,112 +152,178 @@ export class BindingManager {
         return mergedSpec;
     }
 
+    /**
+     * Compiles the binding graph
+     */
     private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        // for each node, go through and gene
+        const { nodes, edges } = bindingGraph;
 
-        const nodes = bindingGraph.nodes;
-        const edges = bindingGraph.edges;
         const compiledComponents:Partial<UnitSpec<Field>>[] = [];
-
-        // for each node, create its compilation context 
         for (const node of nodes.values()) {
-            // get the edges that point to this node
-            const edgeIds = bindingGraph.edges.filter(edge => edge.target.nodeId === node.id);
-            let edges = edgeIds.map(edge => getProxyAnchor(edge, this.getComponent(edge.source.nodeId)));
-
-            
-            // for each edge, expand it (e iteratively go through and expand out any group anchors)
-            edges = edges.flatMap(edge => expandGroupAnchors(edge, edge.component));
-            // dedupe 
-            edges = edges.filter((edge, index, self) =>
-                index === self.findIndex((t) => t.id === edge.id)
-            );
-
-            // now we have a list of all of the inputs for this node. 
-            // for each of these, generate the compilation context
-
-            // go through and group each edge according to its channel name
-            function groupEdgesByChannel(edges: AnchorProxy[]) {
-                const groupedEdges: Map<string, AnchorProxy[]> = new Map();
-                for (const edge of edges) {
-                    const channel = edge.id.anchorId;
-                    if (!groupedEdges.has(channel)) {
-                        groupedEdges.set(channel, []);
-                    }
-                    groupedEdges.get(channel)?.push(edge);
-                }
-                return groupedEdges;
-            }
-
-            const groupedEdges = groupEdgesByChannel(edges);
-
-            const compilationContext:compilationContext = {};
-            console.log('groupedEdges', groupedEdges,edges);
-
-            // for each of these groups, generate the compilation context
-            for (const [channel, edges] of groupedEdges.entries()) {
-
-                // for each of these edges, get the corresponding component and ask for it to provide that compilation context
-                const generatedData:{expr:string,type:AnchorType}[] = [];
-                enum DataSource {
-                    CONTEXT = 'context',
-                    BASE_CONTEXT = 'baseContext',
-                    GENERATED = 'generated'
-                }
-
-                // Compile all edges and group by source type
-                const edgeResults = edges.map(edge => ({
-                    data: edge.compile(),
-                    type: edge.anchorSchema.type
-                }));
-
-                // Process edges in priority order: context > generated > baseContext
-                // Find data sources in priority order
-                const contextData = edgeResults.find(result => result.data.source === DataSource.CONTEXT);
-                const generatedDataResults = edgeResults.filter(result => 
-                    result.data.source !== DataSource.CONTEXT && 
-                    result.data.source !== DataSource.BASE_CONTEXT
-                );
-                const baseContextData = edgeResults.find(result => result.data.source === DataSource.BASE_CONTEXT);
-
-                // Process in priority order: context > generated > baseContext
-                if (contextData) {
-                    // Context data takes highest priority
-                    compilationContext[channel] = contextData.data.value;
-                } else if (generatedDataResults.length > 0) {
-                    // Generated data is second priority
-                    generatedData.push(...generatedDataResults.map(result => ({
-                        expr: result.data.value,
-                        type: result.type
-                    })));
-                    compilationContext[channel] = generatedData.map(data => data.expr).join(',');
-                } else if (baseContextData) {
-                    // Base context is lowest priority
-                    compilationContext[channel] = baseContextData.data.value;
-                }
-
-            }
-
-            const component = this.getComponent(node.id);
-            if(!component){
-                throw new Error(`Component "${node.id}" not added to binding manager`);
-            }
-
-            console.log('compilationContext', compilationContext);
-            const compiledComponent = component.compileComponent(compilationContext);
-
-            compiledComponents.push(compiledComponent);
-
-
-
-            
+            const compiledNode = this.compileNode(node, edges);
+            compiledComponents.push(compiledNode);
         }
-
-
-
-
         return compiledComponents;
     }
+
+    /**
+     * Compiles a node with the given edges
+     */
+    private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+        const edges = this.prepareNodeEdges(node, graphEdges);
+        const compilationContext = this.buildCompilationContext(edges);
+        return this.compileComponentWithContext(node.id, compilationContext);
+    }
+
+   
+    /**
+     * Isolates the edges that point to this node, expands group anchors, and deduplicates
+     */
+    private prepareNodeEdges(node: BindingNode, graphEdges: BindingEdge[]): AnchorProxy[] {
+        const nodeEdges = graphEdges
+            .filter(edge => edge.target.nodeId === node.id)
+            .map(edge => getProxyAnchor(edge, this.getComponent(edge.source.nodeId)));
+
+        const expandedEdges = nodeEdges.flatMap(edge => 
+            expandGroupAnchors(edge, edge.component));
+
+        return deduplicateById(expandedEdges);
+    }
+
+    /**
+     * Groups edges by channel and resolves the value for each channel
+     */
+    private buildCompilationContext(edges: AnchorProxy[]): compilationContext {
+        const groupedEdges = groupEdgesByChannel(edges);
+        const context: compilationContext = {};
+
+        for (const [channel, channelEdges] of groupedEdges) {
+            context[channel] = resolveChannelValue(channelEdges);
+        }
+
+        return context;
+    }
+
+    /**
+     * Compiles a component with the given context
+     */
+    private compileComponentWithContext(nodeId: string, context: compilationContext): Partial<UnitSpec<Field>> {
+        const component = this.getComponent(nodeId);
+        if(!component){
+            throw new Error(`Component "${nodeId}" not added to binding manager`);
+        }
+        validateComponent(component, nodeId);
+        return component.compileComponent(context);
+    }
+
+
+
+    // private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+    //     // for each node, go through and gene
+
+    //     const nodes = bindingGraph.nodes;
+    //     const edges = bindingGraph.edges;
+    //     const compiledComponents:Partial<UnitSpec<Field>>[] = [];
+
+    //     // for each node, create its compilation context 
+    //     for (const node of nodes.values()) {
+    //         // get the edges that point to this node
+    //         const edgeIds = bindingGraph.edges.filter(edge => edge.target.nodeId === node.id);
+    //         let edges = edgeIds.map(edge => getProxyAnchor(edge, this.getComponent(edge.source.nodeId)));
+
+            
+    //         // for each edge, expand it (e iteratively go through and expand out any group anchors)
+    //         edges = edges.flatMap(edge => expandGroupAnchors(edge, edge.component));
+    //         // dedupe 
+    //         edges = edges.filter((edge, index, self) =>
+    //             index === self.findIndex((t) => t.id === edge.id)
+    //         );
+
+    //         // now we have a list of all of the inputs for this node. 
+    //         // for each of these, generate the compilation context
+
+    //         // go through and group each edge according to its channel name
+    //         function groupEdgesByChannel(edges: AnchorProxy[]) {
+    //             const groupedEdges: Map<string, AnchorProxy[]> = new Map();
+    //             for (const edge of edges) {
+    //                 const channel = edge.id.anchorId;
+    //                 if (!groupedEdges.has(channel)) {
+    //                     groupedEdges.set(channel, []);
+    //                 }
+    //                 groupedEdges.get(channel)?.push(edge);
+    //             }
+    //             return groupedEdges;
+    //         }
+
+    //         const groupedEdges = groupEdgesByChannel(edges);
+
+    //         const compilationContext:compilationContext = {};
+    //         console.log('groupedEdges', groupedEdges,edges);
+
+    //         // for each of these groups, generate the compilation context
+    //         for (const [channel, edges] of groupedEdges.entries()) {
+
+    //             // for each of these edges, get the corresponding component and ask for it to provide that compilation context
+    //             const generatedData:{expr:string,type:AnchorType}[] = [];
+    //             enum DataSource {
+    //                 CONTEXT = 'context',
+    //                 BASE_CONTEXT = 'baseContext',
+    //                 GENERATED = 'generated'
+    //             }
+
+    //             // Compile all edges and group by source type
+    //             const edgeResults = edges.map(edge => ({
+    //                 data: edge.compile(),
+    //                 type: edge.anchorSchema.type
+    //             }));
+
+    //             // Process edges in priority order: context > generated > baseContext
+    //             // Find data sources in priority order
+    //             const contextData = edgeResults.find(result => result.data.source === DataSource.CONTEXT);
+    //             const generatedDataResults = edgeResults.filter(result => 
+    //                 result.data.source !== DataSource.CONTEXT && 
+    //                 result.data.source !== DataSource.BASE_CONTEXT
+    //             );
+    //             const baseContextData = edgeResults.find(result => result.data.source === DataSource.BASE_CONTEXT);
+
+    //             // Process in priority order: context > generated > baseContext
+    //             if (contextData) {
+    //                 // Context data takes highest priority
+    //                 compilationContext[channel] = contextData.data.value;
+    //             } else if (generatedDataResults.length > 0) {
+    //                 // Generated data is second priority
+    //                 generatedData.push(...generatedDataResults.map(result => ({
+    //                     expr: result.data.value,
+    //                     type: result.type
+    //                 })));
+    //                 compilationContext[channel] = generatedData.map(data => data.expr).join(',');
+    //             } else if (baseContextData) {
+    //                 // Base context is lowest priority
+    //                 compilationContext[channel] = baseContextData.data.value;
+    //             }
+
+    //         }
+
+    //         const component = this.getComponent(node.id);
+    //         if(!component){
+    //             throw new Error(`Component "${node.id}" not added to binding manager`);
+    //         }
+
+    //         console.log('compilationContext', compilationContext);
+    //         const compiledComponent = component.compileComponent(compilationContext);
+
+    //         compiledComponents.push(compiledComponent);
+
+
+
+            
+    //     }
+
+
+
+
+    //     return compiledComponents;
+    // }
 
 
     // Simplified component management

@@ -39,11 +39,6 @@ export class Scatterplot extends BaseChart  {
 
     };
 
-
-
-    // Setup channel bindings
-   
-
     this.initializeAnchors();
 
   }

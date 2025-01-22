@@ -45,10 +45,16 @@ function findRootComponent(bindingManager: BindingManager, componentId: string):
     return component;
 }
 
+export interface VirtualBindingEdge {
+    channel: string;
+    value: any;
+    source: 'context' | 'baseContext' | 'generated';
+}
 
 export class BindingManager {
     private static instance: BindingManager;
     private bindings: Binding[] = [];
+    private virtualBindings: Map<string, VirtualBindingEdge> = new Map();
     private components: Map<string, BaseComponent> = new Map();
 
     public static getInstance(): BindingManager {
@@ -56,6 +62,10 @@ export class BindingManager {
             BindingManager.instance = new BindingManager();
         }
         return BindingManager.instance;
+    }
+
+    public addVirtualBinding(channel: string, virtualBinding: VirtualBindingEdge): void {
+        this.virtualBindings.set(channel, virtualBinding);
     }
 
     public compile(fromComponentId: string): TopLevelSpec {
@@ -196,6 +206,11 @@ export class BindingManager {
     private buildCompilationContext(edges: AnchorProxy[]): compilationContext {
         const groupedEdges = groupEdgesByChannel(edges);
         const context: compilationContext = {};
+
+        // add the virtual bindings
+        this.virtualBindings.forEach((virtualBinding, channel) => {
+            groupedEdges.get(channel)?.push(virtualBinding);
+        });
 
         for (const [channel, channelEdges] of groupedEdges) {
             context[channel] = resolveChannelValue(channelEdges);

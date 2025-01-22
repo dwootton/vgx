@@ -23,12 +23,12 @@ export const groupBy = <T>(items: T[], keyGetter: (item: T) => string): Map<stri
         groups.get(key)?.push(item);
         return groups;
     }, new Map<string, T[]>());
-
-
+import { VirtualBindingEdge } from "./BindingManager";
+type Edge = AnchorProxy | VirtualBindingEdge;
 /**
  * Groups edges by their channel
  */
-export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, AnchorProxy[]> =>
+export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, Edge[]> =>
     groupBy(edges, edge => edge.id.anchorId);
 
 /**
@@ -62,12 +62,26 @@ const getPrioritizedValue = (
 /**
  * Resolves the value for a channel based on priority rules
  */
-export const resolveChannelValue = (edges: AnchorProxy[]): string => {
-    const edgeResults = edges.map(edge => ({
-        data: edge.compile(),
-        type: edge.anchorSchema.type
-    }));
+export const resolveChannelValue = (edges: Edge[]): string => {
+    const edgeResults = edges.map(edge => {
+        if ('compile' in edge) {
+            return {
+                data: edge.compile(),
+                type: edge.anchorSchema.type
+            };
+        } else {
+            // Handle virtual edge case
+            return {
+                data: {
+                    source: edge.source,
+                    value: edge.value
+                },
+                type: 'virtual' as AnchorType
+            };
+        }
+    });
 
+    console.log('edgeResults', edgeResults);
     return getPrioritizedValue(edgeResults);
 };
 

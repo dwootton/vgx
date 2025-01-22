@@ -5,7 +5,7 @@ import { AnchorValue } from 'vega';
 import { AnchorGroupSchema, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
-import { BindingManager } from '../binding/BindingManager';
+import { BindingManager,VirtualBindingEdge } from '../binding/BindingManager';
 import { compilationContext } from '../binding/binding';
 // import { generateComponentSignalName } from './marks/circle';
 export type BindingTarget = BaseComponent | AnchorProxy;
@@ -28,6 +28,18 @@ export abstract class BaseComponent {
     console.log('config', config);
     const bindings = findBindings(config);
     bindings.length && this.addParameterBindings(bindings);
+  }
+  
+  public addContextBinding(channelName: string, contextValue: any) {
+    // Create a virtual binding edge that represents a context input
+    const virtualEdge: VirtualBindingEdge = {
+      channel: channelName,
+      value: contextValue,
+      source: 'context'
+    };
+
+    // Add to binding manager with high priority
+    this.bindingManager.addVirtualBinding(channelName, virtualEdge);
   }
 
   private addParameterBindings(bindings: { value: BaseComponent | AnchorProxy, key: string }[]) {

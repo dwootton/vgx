@@ -27,19 +27,16 @@ export class Circle extends BaseComponent {
     constructor(config:CircleConfig={}){
         super({...config})
         this.anchors = generateAnchorsFromContext(config,circleBaseContext,this);
+        if (config.x !== undefined) this.addContextBinding('x', config.x);
+        if (config.y !== undefined) this.addContextBinding('y', config.y);
+        if (config.size !== undefined) this.addContextBinding('size', config.size);
+        if (config.color !== undefined) this.addContextBinding('color', config.color);
+        if (config.stroke !== undefined) this.addContextBinding('stroke', config.stroke);
         this.config = config;
         this.initializeAnchors()
+
       
-          // Setup channel bindings
-          // Programmatically create all anchor properties
-          this.anchors.forEach(anchor => {
-            Object.defineProperty(this, anchor.id.anchorId, {
-              value: config[anchor.id.anchorId] ?? null,
-              writable: true,
-              enumerable: true,
-              configurable: true
-            });
-          });
+         
     }
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {

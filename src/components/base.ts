@@ -7,7 +7,7 @@ import { createAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager } from '../binding/BindingManager';
 import { compilationContext } from '../binding/binding';
-import { generateComponentSignalName } from './marks/circle';
+// import { generateComponentSignalName } from './marks/circle';
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;

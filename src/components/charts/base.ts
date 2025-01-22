@@ -19,19 +19,19 @@ export interface ChartConfig {
   // all channels will either be a fieldValue, fieldBinds,
   y: FieldProps | FieldProps[] | undefined;
   x: FieldProps | FieldProps[] | undefined;
-  color: FieldValueProps | FieldValueProps[] ; // not undefined as we will proivide a default
+  color: FieldValueProps | FieldValueProps[] ; // no undefined as we will proivide a default
   size: FieldValueProps | FieldValueProps[] ;
   opacity: FieldValueProps | FieldValueProps[] ; 
 }
+
 
 type FieldBinds = AnchorProxy
 type FieldName = string
 type FieldProps  = FieldName | FieldBinds
 
-import { ExprRef } from 'vega-lite/build/src/expr';
+import type { ExprRef, SignalRef } from 'vega';
 import { Gradient } from 'vega-typings';
-// import { SignalRef} from 'vega-lite/build/src/signal';
-type FieldValue = string | ExprRef | SignalRef | Gradient | null | undefined
+type FieldValue = string | ExprRef | SignalRef | Gradient | null 
 
 type FieldValueProps = FieldProps | FieldValue
 

@@ -1,4 +1,4 @@
-import { BaseChart, ChartConfig } from "./base";
+import { BaseChart, ChartConfig, PositionEncodingDef } from "./base";
 
 export interface LineplotConfig extends ChartConfig {
     xField: string;
@@ -13,8 +13,8 @@ export interface LineplotConfig extends ChartConfig {
       });
   
       this.spec.encoding = {
-        x: this.channelConfigs.encodingDefs.x,
-        y: this.channelConfigs.encodingDefs.y
+        x: this.channelConfigs.encodingDefs.x as PositionEncodingDef,
+        y: this.channelConfigs.encodingDefs.y as PositionEncodingDef
       };
   
       this.initializeAnchors();

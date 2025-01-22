@@ -13,8 +13,8 @@ export interface LineplotConfig extends ChartConfig {
       });
   
       this.spec.encoding = {
-        x: { field: config.xField, type: 'quantitative' },
-        y: { field: config.yField, type: 'quantitative' }
+        x: this.channelConfigs.encodingDefs.x,
+        y: this.channelConfigs.encodingDefs.y
       };
   
       this.initializeAnchors();

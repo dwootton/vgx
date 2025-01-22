@@ -13,17 +13,16 @@ export interface BarchartConfig extends ChartConfig {
         ...config,
         mark: 'bar'
       });
+
+      console.log('this.channelConfigs barchart', this.channelConfigs.encodingDefs.x)
   
       this.spec.encoding = {
-        x: { 
-          field: config.xField, 
-          type: config.xType || 'nominal'
-        },
-        y: { 
-          field: config.yField,
+        x: this.channelConfigs.encodingDefs.x,
+        // y: this.channelConfigs.encodingDefs.y,)
+        y: Object.assign(this.channelConfigs.encodingDefs.y, {
           type: 'quantitative',
           aggregate: config.aggregate || 'mean'
-        }
+        })
       };
       this.initializeAnchors();  
     }

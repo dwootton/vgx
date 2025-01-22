@@ -23,8 +23,8 @@ export interface HeatmapConfig extends ChartConfig {
       //{x: {field: "x", type: "ordinal"}, y: {field: "y", type: "ordinal"}}
       console.log('this.channelConfigs heatmap', this.channelConfigs)
       this.spec.encoding = {
-        // x: this.channelConfigs.encodingDefs.x,
-        // y: this.channelConfigs.encodingDefs.y,
+        x: this.channelConfigs.encodingDefs.x,
+        y: this.channelConfigs.encodingDefs.y,
         // x: {field: "x", type: "nominal"}, y: {field: "y", type: "nominal"},
         // this is already provided, as we assume the color field is not specified (no specification => aggregation)
         color: {

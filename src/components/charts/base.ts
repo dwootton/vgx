@@ -29,8 +29,10 @@ type FieldName = string
 type FieldProps  = FieldName | FieldBinds
 
 import { ExprRef } from 'vega-lite/build/src/expr';
+import { Gradient } from 'vega-typings';
+// import { SignalRef} from 'vega-lite/build/src/signal';
+type FieldValue = string | ExprRef | SignalRef | Gradient | null | undefined
 
-type FieldValue = number | ExprRef | "width" | "height"
 type FieldValueProps = FieldProps | FieldValue
 
 // Base encoding definition for field-based encodings
@@ -93,7 +95,6 @@ export class BaseChart extends BaseComponent {
     };
 
     const channelConfigs = this.splitChannelConfig(config);
-    console.log('channelConfigs',channelConfigs)
     this.channelConfigs = channelConfigs;
 
 
@@ -165,9 +166,7 @@ export class BaseChart extends BaseComponent {
         scaleName = positionChannel; // used for any reference and inversions 
       }
 
-      console.log('about to create anchor',scaleName,() => {
-        return `(domain(${scaleName})[1]+domain(${scaleName})[0])/2`
-      })
+   
       anchors.push({
         'id': scaleName, 'proxy': this.createAnchorProxy({
           id: scaleName,
@@ -198,7 +197,6 @@ export class BaseChart extends BaseComponent {
 
 
   compileComponent(value: any): Partial<UnitSpec<Field>> {
-    console.log('compiling root',value)
     return this.spec;
   }
 

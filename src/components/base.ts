@@ -61,7 +61,6 @@ export abstract class BaseComponent {
   
 
   protected createAnchorProxy(anchor: AnchorSchema,compileFn?:()=>string): AnchorProxy {
-    console.log('about to create anchor',anchor.id,compileFn)
     return createAnchorProxy(this, anchor,compileFn);
   }
 

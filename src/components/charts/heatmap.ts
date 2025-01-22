@@ -14,11 +14,21 @@ export interface HeatmapConfig extends ChartConfig {
         mark: 'rect'
       });
   
+      // {
+      //   field: config.colorField,
+      //   type: 'quantitative',
+      //   aggregate: config.aggregate || 'mean',
+      //   scale: { scheme: 'blues' }
+      // }
+      //{x: {field: "x", type: "ordinal"}, y: {field: "y", type: "ordinal"}}
+      console.log('this.channelConfigs heatmap', this.channelConfigs)
       this.spec.encoding = {
-        x: { field: config.xField, type: 'nominal' },
-        y: { field: config.yField, type: 'nominal' },
+        // x: this.channelConfigs.encodingDefs.x,
+        // y: this.channelConfigs.encodingDefs.y,
+        // x: {field: "x", type: "nominal"}, y: {field: "y", type: "nominal"},
+        // this is already provided, as we assume the color field is not specified (no specification => aggregation)
         color: {
-          field: config.colorField,
+          field: config.color,
           type: 'quantitative',
           aggregate: config.aggregate || 'mean',
           scale: { scheme: 'blues' }

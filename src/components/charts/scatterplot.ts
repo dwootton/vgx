@@ -39,7 +39,6 @@ export class Scatterplot extends BaseChart  {
 
     };
 
-    console.log('this.channelConfigs', this.channelConfigs, this.spec.encoding)
 
 
     // Setup channel bindings

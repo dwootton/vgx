@@ -92,7 +92,6 @@ export class BindingManager {
 
 
 
-        console.log(bindingGraph);
         return removeUndefinedInSpec(mergedSpec);
     }
 
@@ -103,7 +102,6 @@ export class BindingManager {
         };
 
 
-        console.log('specs', specs);
         // First merge specs, handling layers
         const mergedSpec = specs.reduce((merged: any, spec) => {
             // If either has layer/mark, create layer spec
@@ -163,7 +161,6 @@ export class BindingManager {
             // get the edges that point to this node
             const edgeIds = bindingGraph.edges.filter(edge => edge.target.nodeId === node.id);
             let edges = edgeIds.map(edge => getProxyAnchor(edge, this.getComponent(edge.source.nodeId)));
-            console.log('edges', edges);
 
             
             // for each edge, expand it (e iteratively go through and expand out any group anchors)
@@ -180,14 +177,12 @@ export class BindingManager {
             function groupEdgesByChannel(edges: AnchorProxy[]) {
                 const groupedEdges: Map<string, AnchorProxy[]> = new Map();
                 for (const edge of edges) {
-                    console.log('edge', edge);
                     const channel = edge.id.anchorId;
                     if (!groupedEdges.has(channel)) {
                         groupedEdges.set(channel, []);
                     }
                     groupedEdges.get(channel)?.push(edge);
                 }
-                console.log('grouped edges', groupedEdges);
                 return groupedEdges;
             }
 
@@ -197,15 +192,12 @@ export class BindingManager {
 
             // for each of these groups, generate the compilation context
             for (const [channel, edges] of groupedEdges.entries()) {
-                console.log('channel', channel);
-                console.log('edges', edges);
 
                 // for each of these edges, get the corresponding component and ask for it to provide that compilation context
                 const generatedData:{expr:string,type:AnchorType}[] = [];
                 for (const edge of edges) {
                     const edgeData = edge.compile();//component.getData(channel);
                     generatedData.push({expr:edgeData,type:edge.anchorSchema.type});
-                    console.log('generatedData', generatedData);
                 }
 
                 compilationContext[channel] = generatedData.map(data => data.expr).join(',');
@@ -220,13 +212,6 @@ export class BindingManager {
             const compiledComponent = component.compileComponent(compilationContext);
 
             compiledComponents.push(compiledComponent);
-
-
-
-
-
-            console.log('compilationContext', compiledComponent);
-
 
 
             //const compilationContext = {}
@@ -272,7 +257,6 @@ export class BindingManager {
             // const compilationContext = component.compile();
         }
 
-        console.log('compiledComponents', compiledComponents);
 
 
 
@@ -350,7 +334,6 @@ export class BindingManager {
     public printGraph(startComponentId: string): void {
         const { nodes, edges } = this.generateBindingGraph(startComponentId);
 
-        console.log('Nodes:');
         nodes.forEach(node =>
             console.log(`  ${node.id} (${node.type})\n}`)
         );
@@ -398,7 +381,7 @@ export function anchorize<T extends object>(obj: T): T {
                 return function (this: any, target: any) {
                     // Implement binding logic here
                     console.log(`Binding ${String(prop)} to`, target);
-                    // You might want to store this binding information somewhere
+                    
                 };
             }
 

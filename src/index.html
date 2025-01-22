@@ -150,8 +150,8 @@
 
       const line = alx.lineplot({
         data: timeSeriesData,
-        xField: 'time',
-        yField: 'value',
+        x: 'time',
+        y: 'value',
         width: 400,
         height: 300
       })
@@ -167,10 +167,9 @@
 
       const heat = alx.heatmap({
         data: heatmapData,
-        xField: 'x',
-        yField: 'y',
-        colorField: 'value',
-        aggregate: 'mean',
+        x: 'x',
+        y: 'y',
+        color: 'value',
         width: 400,
         height: 300
       })
@@ -184,17 +183,16 @@
       // Render all charts
       const renderChart = async (chart, elementId) => {
         const  vegaLiteSpec  = await chart.compile();
-        console.log(`${elementId} spec:`, vegaLiteSpec); // Debug output
-        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'}).then(console.log).catch(console.warn);
+        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'}).then().catch(console.warn);
       };
 
       await Promise.all([
         renderChart(scatter, 'scatter'),
         renderChart(hist, 'hist'),
-        // renderChart(line, 'line'),
-        // renderChart(bar, 'bar'),
-        // renderChart(heat, 'heat'),
-        // renderChart(pie,'pie')
+        renderChart(line, 'line'),
+        renderChart(bar, 'bar'),
+        renderChart(heat, 'heat'),
+        renderChart(pie,'pie')
       ]);
     });
   </script>

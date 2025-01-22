@@ -25,10 +25,9 @@ export class Circle extends BaseComponent {
     public config: CircleConfig;
 
     constructor(config:CircleConfig={}){
-        super()
+        super({...config})
         this.anchors = generateAnchorsFromContext(circleBaseContext,this);
         this.config = config;
-        console.log('circle',this.anchors)
         this.initializeAnchors()
       
           // Setup channel bindings
@@ -44,6 +43,7 @@ export class Circle extends BaseComponent {
     }
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
+        console.log('inputContext', inputContext)
         return {
             // add param which will always be the value for this component
             "params":[{

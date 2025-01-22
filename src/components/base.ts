@@ -3,7 +3,7 @@ import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
 import { AnchorGroupSchema, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
-import { createAnchorProxy } from '../utils/anchorProxy';
+import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager } from '../binding/BindingManager';
 import { compilationContext } from '../binding/binding';
@@ -20,10 +20,26 @@ export abstract class BaseComponent {
   public id: string;
   public bindingManager: BindingManager;
 
-  constructor() {
+  constructor(config: any) {
     this.id = generateId();
     this.bindingManager = BindingManager.getInstance();
     this.bindingManager.addComponent(this);
+
+    console.log('config', config);
+    const bindings = findBindings(config);
+    bindings.length && this.addParameterBindings(bindings);
+  }
+
+  private addParameterBindings(bindings: { value: BaseComponent | AnchorProxy, key: string }[]) {
+    bindings.forEach(({ value: binding, key }) => {
+      const bindingProperty = key == 'bind' ? '_all' : key;
+      if (isComponent(binding)) {
+        this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
+      } else {
+        console.log('binding', binding, bindingProperty);
+        this.bindingManager.addBinding(this.id, binding.component.id, '_all', bindingProperty);
+      }
+    });
   }
 
   public initializeAnchors() {
@@ -58,10 +74,10 @@ export abstract class BaseComponent {
   }
 
 
-  
 
-  protected createAnchorProxy(anchor: AnchorSchema,compileFn?:()=>string): AnchorProxy {
-    return createAnchorProxy(this, anchor,compileFn);
+
+  protected createAnchorProxy(anchor: AnchorSchema, compileFn?: () => string): AnchorProxy {
+    return createAnchorProxy(this, anchor, compileFn);
   }
 
   abstract compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>>;
@@ -73,3 +89,30 @@ export abstract class BaseComponent {
   }
 }
 
+const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy, key: string }[] => {
+  if (!value) return [];
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => findBindings(item, `${path}[${index}]`));
+  }
+
+  // Only match if value is a Component or AnchorProxy
+  if (isComponent(value)) {
+    return [{ value, key: path }];
+  }
+
+  // Check for AnchorProxy by looking for bind method and anchorSchema property
+  if (isAnchorProxy(value)) {
+    return [{ value, key: path }];
+  }
+
+  // If not a direct match but is an object, check its properties
+  if (typeof value === 'object') {
+    return Object.entries(value).flatMap(([key, v]) =>
+      findBindings(v, path ? `${path}.${key}` : key)
+    );
+  }
+
+  return [];
+};

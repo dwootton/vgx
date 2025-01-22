@@ -50,7 +50,7 @@ type ValueEncodingDef = {
 type EncodingDef = FieldEncodingDef | ValueEncodingDef;
 
 // Specific encoding for positional channels (only allows field-based encodings)
-type PositionEncodingDef = FieldEncodingDef;
+export type PositionEncodingDef = FieldEncodingDef;
 
 
 type SplitConfig = {
@@ -77,7 +77,7 @@ export class BaseChart extends BaseComponent {
 
 
   constructor(config: ChartConfig) {
-    super();
+    super({...config});
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;
@@ -96,6 +96,8 @@ export class BaseChart extends BaseComponent {
 
     const channelConfigs = this.splitChannelConfig(config);
     this.channelConfigs = channelConfigs;
+
+
 
 
   }

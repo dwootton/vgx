@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>ALX Chart Examples</title>
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
@@ -13,17 +14,20 @@
       gap: 20px;
       padding: 20px;
     }
+
     .chart {
       border: 1px solid #ccc;
       padding: 10px;
       border-radius: 4px;
     }
+
     h2 {
       margin: 0 0 10px 0;
       font-family: sans-serif;
     }
   </style>
 </head>
+
 <body>
   <div class="vis-container">
     <div class="chart">
@@ -54,14 +58,14 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      alx=alx.alx
+      alx = alx.alx
       // Generate better sample data
       const scatterData = Array.from({ length: 50 }, () => ({
         x: Math.random() * 100,
         y: Math.random() * 100
       }));
 
-     
+
       const sdsda = alx.scatterplot({
         data: scatterData,
         x: 'x',
@@ -70,9 +74,9 @@
         height: 300
       })
 
-      
-      
-      
+
+
+
 
       // Data for histogram - single array of values
       const histData = Array.from({ length: 200 }, () => ({
@@ -100,10 +104,10 @@
       for (let x of categories) {
         for (let y of ['P', 'Q', 'R', 'S', 'T']) {
           // Create a pattern where values increase with both x and y
-          const baseValue = 
-            (categories.indexOf(x) * 20) + 
+          const baseValue =
+            (categories.indexOf(x) * 20) +
             (['P', 'Q', 'R', 'S', 'T'].indexOf(y) * 15);
-          
+
           // Add multiple entries per cell for aggregation
           for (let i = 0; i < 3; i++) {
             heatmapData.push({
@@ -121,20 +125,23 @@
         x: 'x',
         y: 'y',
         width: 400,
-        height: 300
+        height: 300,
+        bind: alx.circle({
+          x: 200,
+          y: 150
+        })
       })
 
-      const circle = alx.circle({
-        x: 50,
-        y: 50
-      })
-      const drag = alx.drag();
-      circle.bind(drag)
+      // const circle = alx.circle({
+      //   x: 50,
+      //   y: 50
+      // })
+      // const drag = alx.drag();
+      // circle.bind(drag)
 
-      // const sp= scatter.bind(circle);
-      // console.log('sp',sp)
+      // const sp = scatter.bind(circle);
 
-      
+
       const hist = alx.histogram({
         data: histData,
         x: 'value',
@@ -145,7 +152,7 @@
 
 
 
-     
+
 
 
       const line = alx.lineplot({
@@ -175,15 +182,15 @@
       })
 
       const pie = alx.piechart({
-        data:barData,
-        categoryField:'category'
+        data: barData,
+        categoryField: 'category'
       }
       )
 
       // Render all charts
       const renderChart = async (chart, elementId) => {
-        const  vegaLiteSpec  = await chart.compile();
-        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'}).then().catch(console.warn);
+        const vegaLiteSpec = await chart.compile();
+        vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then().catch(console.warn);
       };
 
       await Promise.all([
@@ -192,9 +199,10 @@
         renderChart(line, 'line'),
         renderChart(bar, 'bar'),
         renderChart(heat, 'heat'),
-        renderChart(pie,'pie')
+        renderChart(pie, 'pie')
       ]);
     });
   </script>
 </body>
+
 </html>

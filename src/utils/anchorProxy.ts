@@ -8,7 +8,9 @@ import { generateComponentSignalName } from "./component";
 import { generateParams } from "./compilation"
 
 
-
+export function isAnchorProxy(value: any): value is AnchorProxy {
+  return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
+}
 
 export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: () => string): AnchorProxy {
   const bindFn = (target: BindingTarget) => {

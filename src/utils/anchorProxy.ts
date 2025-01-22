@@ -8,9 +8,11 @@ import { generateComponentSignalName } from "./component";
 import { generateParams } from "./compilation"
 
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema,compileFn?:()=>string): AnchorProxy {
+
+
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: () => string): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
-    const targetAnchor = isComponent(target) 
+    const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
       : target;
 
@@ -23,9 +25,9 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     return targetAnchor.component;
   };
 
-  if(!compileFn && anchor.type != 'group'){
+  if (!compileFn && anchor.type != 'group') {
     throw new Error(`Compile function is required for an anchor proxy ${anchor.id} ${component.id}`)
-  } 
+  }
 
   return {
     id: { componentId: component.id, anchorId: anchor.id },
@@ -38,20 +40,20 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
 //TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 
 
-export function generateAnchorsFromContext(context: Record<AnchorType, any>, component:BaseComponent, metaContext:any={}) {
-    const anchors = new Map<string, AnchorProxy>();
-  
-    console.log('meta',metaContext)
-    Object.entries(context).forEach(([key, value]) => {
-      const anchorSchema = {
-        id: `${key}`,
-        type: key as AnchorType,
-        interactive: metaContext[key]?.interactive || false
-      }
-      const compileFn= () => {
-        return `${generateComponentSignalName(component.id)}.${key}`;
-      }
-      anchors.set(key, createAnchorProxy(component,anchorSchema,compileFn));
-    });
-    return anchors;
-  }
+export function generateAnchorsFromContext(context: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
+  const anchors = new Map<string, AnchorProxy>();
+
+  console.log('meta', metaContext)
+  Object.entries(context).forEach(([key, value]) => {
+    const anchorSchema = {
+      id: `${key}`,
+      type: key as AnchorType,
+      interactive: metaContext[key]?.interactive || false
+    }
+    const compileFn = () => {
+      return `${generateComponentSignalName(component.id)}.${key}`;
+    }
+    anchors.set(key, createAnchorProxy(component, anchorSchema, compileFn));
+  });
+  return anchors;
+}

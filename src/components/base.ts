@@ -30,12 +30,12 @@ export abstract class BaseComponent {
     bindings.length && this.addParameterBindings(bindings);
   }
   
-  public addContextBinding(channelName: string, contextValue: any) {
+  public addContextBinding(channelName: string, contextValue: any, contextType: 'context' | 'baseContext' = 'context') {
     // Create a virtual binding edge that represents a context input
     const virtualEdge: VirtualBindingEdge = {
       channel: channelName,
       value: contextValue,
-      source: 'context'
+      source: contextType
     };
 
     // Add to binding manager with high priority

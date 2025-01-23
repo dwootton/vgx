@@ -161,6 +161,7 @@ export class BaseChart extends BaseComponent {
 
     Object.entries(this.spec.encoding).forEach(([key, encoding]) => {
       let scaleName = key;
+      console.log('scaleName', scaleName)
 
       // fields like x1, x2 should go to x
       if (isPositionChannel(key)) {
@@ -178,7 +179,17 @@ export class BaseChart extends BaseComponent {
           console.log('in proxy', scaleName)
           return {
             source: 'baseContext',
-            value: `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`
+            value: {
+              'scale': scaleName,
+              'scaleType': 'quantitative',
+              'fieldName': 'tester',
+              'initialValue': `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`,
+              'constraints': {
+                'type': 'minMax',
+                'min': `range('${scaleName}')[0]`,
+                'max': `range('${scaleName}')[1]`
+              }
+            }
           }
         })
       })

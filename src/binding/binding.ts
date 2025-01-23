@@ -1,4 +1,4 @@
-import { AnchorProxy, AnchorType } from "../types/anchors";
+import { AnchorProxy, AnchorType, PositionValueSchema, ValueSchema } from "../types/anchors";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
 
 export type compilationContext = any;
@@ -52,38 +52,41 @@ type Edge = AnchorProxy | VirtualBindingEdge;
 export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, Edge[]> =>
     groupBy(edges, edge => edge.id.anchorId);
 
-/**
- * Gets value based on priority: context > generated > baseContext
- */
-const getPrioritizedValue = (
-    edgeResults: Array<{ data: { source: string; value: string }, type: AnchorType }>
-): string => {
-    const contextData = edgeResults.find(result => 
-        result.data.source === 'context');
-    
-    if (contextData) {
-        return contextData.data.value;
+
+export type EdgeResult = {
+    data: { source: string; value: ValueSchema };
+    type: AnchorType;
+  };
+
+import { normalizeEdgeResult, resolveValueSchema } from "./channelResolution";
+export const getPrioritizedValue = (
+    edgeResults: EdgeResult[]
+  ): PositionValueSchema | number | string => {
+    // Normalize edge results (only for numeric encodings)
+    const normalizedResults = edgeResults.map(normalizeEdgeResult);
+    console.log('normalizedResults', normalizedResults)
+  
+    // Resolve the entire value schema
+    const resolvedSchema = resolveValueSchema(normalizedResults);
+    console.log('resolvedSchema', resolvedSchema)
+
+  
+    // If the resolved schema has only fieldValue, return it directly
+    if (
+      Object.keys(resolvedSchema).length === 1 &&
+      resolvedSchema.fieldValue !== undefined
+    ) {
+      return resolvedSchema.fieldValue;
     }
-
-    const generatedData = edgeResults.filter(result => 
-        !['context', 'baseContext'].includes(result.data.source));
-    
-    if (generatedData.length) {
-        return generatedData
-            .map(result => result.data.value)
-            .join(',');
-    }
-
-    const baseContextData = edgeResults.find(result => 
-        result.data.source === 'baseContext');
-    
-    return baseContextData?.data.value ?? '';
-};
-
+  
+    // Otherwise, return the full resolved schema
+    return resolvedSchema;
+  };
+  
 /**
  * Resolves the value for a channel based on priority rules
  */
-export const resolveChannelValue = (edges: Edge[]): string => {
+export const resolveChannelValue = (edges: Edge[]): PositionValueSchema | number | string => {
     const edgeResults = edges.map(edge => {
         if ('compile' in edge) {
             return {

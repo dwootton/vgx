@@ -35,10 +35,15 @@ export class Circle extends BaseComponent {
             }
         });
         
+        Object.entries(circleBaseContext).forEach(([key, value]) => {
+            if (config[key as keyof CircleConfig] === undefined) {
+                this.addContextBinding(key, value, 'baseContext');
+            }
+        });
+
+
         this.config = config;
         this.initializeAnchors()
-
-      
          
     }
 

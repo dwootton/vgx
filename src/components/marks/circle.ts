@@ -23,15 +23,18 @@ type CircleConfig = {
 
 export class Circle extends BaseComponent {
     public config: CircleConfig;
+    static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
 
     constructor(config:CircleConfig={}){
         super({...config})
         this.anchors = generateAnchorsFromContext(config,circleBaseContext,this);
-        if (config.x !== undefined) this.addContextBinding('x', config.x);
-        if (config.y !== undefined) this.addContextBinding('y', config.y);
-        if (config.size !== undefined) this.addContextBinding('size', config.size);
-        if (config.color !== undefined) this.addContextBinding('color', config.color);
-        if (config.stroke !== undefined) this.addContextBinding('stroke', config.stroke);
+
+        Circle.bindableProperties.forEach(prop => {
+            if (config[prop] !== undefined) {
+                this.addContextBinding(prop, config[prop]);
+            }
+        });
+        
         this.config = config;
         this.initializeAnchors()
 

@@ -1,8 +1,29 @@
 import { AnchorProxy, AnchorType } from "../types/anchors";
-
+import { TopLevelSpec } from "vega-lite/build/src/spec";
 
 export type compilationContext = any;
 
+
+export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
+    if (!obj || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(item => removeUndefinedInSpec(item)).filter(item => item !== undefined) as any;
+    }
+
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === undefined) continue;
+
+        const cleanValue = removeUndefinedInSpec(value);
+        if (cleanValue !== undefined) {
+            result[key] = cleanValue;
+        }
+    }
+    return result;
+}
 /**
  * Deduplicates items based on their ID
  */

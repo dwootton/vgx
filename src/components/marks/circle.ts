@@ -48,32 +48,32 @@ export class Circle extends BaseComponent {
     }
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        console.log('inputContext', inputContext)
+        console.log('inputContext', inputContext, this.id)
         return {
             // add param which will always be the value for this component
             "params":[{
                 "name":generateComponentSignalName(this.id),
                 //@ts-ignore, this is acceptable because params can take expr strings
-                "expr":generateParams(inputContext)
-                
+                "expr":`{'x':${inputContext.x.fieldValue},'y':${inputContext.y.fieldValue}}`
             }],
             "data":inputContext.data || circleBaseContext.data,
             "mark":{
                 "type":"circle",
-                "size":{
-                    "expr":inputContext.size || circleBaseContext.size
+                "size": {
+                    "expr": inputContext.size || circleBaseContext.size
                 },
-                "x":{
-                    "expr":inputContext.x || circleBaseContext.x
+                "x": {
+                    "expr": `clamp(scale('${inputContext.x.scale}',${inputContext.x.fieldValue}), ${inputContext.x.constraints.min}, ${inputContext.x.constraints.max})`
                 },
-                "y":{
-                    "expr":inputContext.y || circleBaseContext.y
+                "y": {
+                    // remember that y needs to be inverted (lower is higher)
+                    "expr": `clamp(scale('${inputContext.y.scale}',${inputContext.y.fieldValue}), ${inputContext.y.constraints.max}, ${inputContext.y.constraints.min})`
                 },
-                "color":{
-                    "expr":inputContext.color || circleBaseContext.color
+                "color": {
+                    "expr": inputContext.color || circleBaseContext.color
                 },
-                "stroke":{
-                    "expr":inputContext.stroke || circleBaseContext.stroke
+                stroke: {
+                    "expr": inputContext.stroke || circleBaseContext.stroke
                 }
             }
         }

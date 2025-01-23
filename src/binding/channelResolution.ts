@@ -66,13 +66,13 @@ export const resolveValueSchema = (edgeResults: EdgeResult[]): PositionValueSche
   };
 
 
-type PriorityOrder = ('context' | 'generated' | 'baseContext')[];
+type PriorityOrder = ('context' | 'generated' | 'baseContext' | 'encoding')[];
 
 const priorityRules: Record<keyof PositionValueSchema, PriorityOrder> = {
-  scale: ['context', 'generated', 'baseContext'],
-  scaleType: ['context', 'generated', 'baseContext'],
-  fieldName: ['context', 'generated', 'baseContext'],
-  constraints: ['context', 'generated', 'baseContext'],
-  fieldValue: ['generated', 'context', 'baseContext'],
-  initialValue: ['context', 'generated', 'baseContext'],
+  scale: [ 'encoding','generated','context', 'baseContext'],
+  scaleType: ['encoding','generated', 'context', 'baseContext'],
+  fieldName: ['encoding','generated', 'context', 'baseContext'],
+  constraints: ['encoding','generated', 'context', 'baseContext'],
+  fieldValue: ['generated', 'context', 'encoding', 'baseContext'],
+  initialValue: [ 'context', 'generated','encoding', 'baseContext'],
 };

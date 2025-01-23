@@ -178,7 +178,7 @@ export class BaseChart extends BaseComponent {
         }, () => {
           console.log('in proxy', scaleName)
           return {
-            source: 'baseContext',
+            source: 'encoding',
             value: {
               'scale': scaleName,
               'scaleType': 'quantitative',

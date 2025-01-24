@@ -43,7 +43,7 @@ export class Drag extends BaseComponent {
                         { type: "pointerup" }
                     ]
                 },
-                update: "{x:x(),y:y()}"
+                update: `{x:scale('${inputContext.x.scale}',${inputContext.x.fieldValue}),y:scale('${inputContext.y.scale}',${inputContext.y.fieldValue})}`
             },
             {
                 "events": {

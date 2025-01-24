@@ -63,9 +63,9 @@ const resolvePositionValue = (
       if (result) {
         const value = result.data.value;
 
-        if(positionValueType === "fieldValue") debugLogIfMatch(edgeResults, 'y', "fieldValue", value, source, result);
+        if(positionValueType === "scale") debugLogIfMatch(edgeResults, 'y', "scale", value, source, result);
         if (typeof value === 'object' && value !== null && positionValueType in value) {
-          if(positionValueType === "fieldValue" ) consoleIfMatch(edgeResults, value, source, result);
+          if(positionValueType === "scale" ) consoleIfMatch(edgeResults, value, source, result);
           return value[positionValueType];
         }
       }

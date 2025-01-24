@@ -2,7 +2,7 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorType } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { resolveSuperNodes,compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
+import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
 import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
 
 interface BindingNode {
@@ -218,7 +218,9 @@ export class SpecCompiler {
     }
 
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
-        const edges = this.prepareEdges(graphEdges).filter(edge => edge.component.id === node.id)
+
+        const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id )
+        const edges = this.prepareEdges(filteredEdges)
 
         console.log('edges', edges, "for node", node.id)
 
@@ -243,7 +245,9 @@ export class SpecCompiler {
         );
         console.log('expandedEdges', expandedEdges)
 
-        return deduplicateById(expandedEdges);
+        const deduped= deduplicateById(expandedEdges);
+        console.log('deduped', deduped)
+        return deduped;
     }
 
     /**

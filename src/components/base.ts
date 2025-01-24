@@ -56,8 +56,8 @@ export abstract class BaseComponent {
         binding.anchors.forEach((anchor) => {
           //@ts-ignore
           if(anchor.anchorSchema.interactive){
-            console.log('INTERRRRRACTIVE', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+            console.log('bindingManager', this.bindingManager);
           }
         })
       }
@@ -77,7 +77,8 @@ export abstract class BaseComponent {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
         binding.anchors.forEach((anchor) => {
           if(anchor.anchorSchema.interactive){
-            console.log('adding interactive in component', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
+            console.log('bindingManager', this.bindingManager);
+
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
           }
         })
@@ -85,6 +86,8 @@ export abstract class BaseComponent {
       } else {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if(binding.anchorSchema.interactive){
+          console.log('bindingManager', this.bindingManager);
+
           this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }
@@ -130,7 +133,7 @@ export abstract class BaseComponent {
 
 
 
-  protected createAnchorProxy(anchor: AnchorSchema, compileFn?: () => {source:string,value:any}): AnchorProxy {
+  protected createAnchorProxy(anchor: AnchorSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
     return createAnchorProxy(this, anchor, compileFn);
   }
 

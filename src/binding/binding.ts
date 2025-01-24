@@ -27,9 +27,9 @@ export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
 /**
  * Deduplicates items based on their ID
  */
-export const deduplicateById = <T extends { id: any }>(items: T[]): T[] => 
+export const deduplicateById = (items: AnchorProxy[]): AnchorProxy[] => 
     items.filter((item, index, self) =>
-        index === self.findIndex((t) => t.id === item.id)
+        index === self.findIndex((t) => t.id.anchorId === item.id.anchorId && t.id.componentId === item.id.componentId)
     );
 
 /**
@@ -77,6 +77,7 @@ export const getPrioritizedValue = (
 /**
  * Resolves the value for a channel based on priority rules
  */
+
 export const resolveChannelValue = (edges: Edge[]): PositionValueSchema | number | string => {
     const edgeResults = edges.map(edge => {
         if ('compile' in edge) {
@@ -96,7 +97,8 @@ export const resolveChannelValue = (edges: Edge[]): PositionValueSchema | number
         }
     });
 
-    return getPrioritizedValue(edgeResults);
+    const prioritizedValue = getPrioritizedValue(edgeResults);
+    return prioritizedValue;
 };
 
 // utils/validationUtils.ts
@@ -126,3 +128,64 @@ export const logComponentInfo = (edges: Map<string, AnchorProxy[]>, bindingManag
         });
     });
 };
+
+
+import { BindingEdge } from "./BindingManager";
+
+export const detectBidirectionalLinks = (edges: BindingEdge[]): Map<string, string> => {
+    const bidirectionalPairs = new Map<string, string>();
+  
+    // Create a map to track edges for quick lookup
+    const edgeMap = new Map<string, Set<string>>();
+    for (const edge of edges) {
+      const { source, target } = edge;
+      if (!edgeMap.has(source.nodeId)) {
+        edgeMap.set(source.nodeId, new Set());
+      }
+      edgeMap.get(source.nodeId)!.add(target.nodeId);
+    }
+  
+    // Check for bidirectional links
+    for (const [sourceId, targets] of edgeMap) {
+      for (const targetId of targets) {
+        if (edgeMap.get(targetId)?.has(sourceId)) {
+          // Found a bidirectional link between sourceId and targetId
+          bidirectionalPairs.set(sourceId, targetId);
+          bidirectionalPairs.set(targetId, sourceId);
+        }
+      }
+    }
+  
+    return bidirectionalPairs;
+  };
+  export const createSuperNodeMap = (bidirectionalPairs: Map<string, string>): Map<string, string> => {
+    const superNodeMap = new Map<string, string>();
+    const visited = new Set<string>();
+  
+    for (const [nodeId, pairedNodeId] of bidirectionalPairs) {
+      if (!visited.has(nodeId)) {
+        // Create a new super node ID
+        const superNodeId = `super_${nodeId}`;
+  
+        // Map both nodes to the same super node
+        superNodeMap.set(nodeId, superNodeId);
+        superNodeMap.set(pairedNodeId, superNodeId);
+  
+        // Mark both nodes as visited
+        visited.add(nodeId);
+        visited.add(pairedNodeId);
+      }
+    }
+  
+    return superNodeMap;
+  };
+
+  export const detectAndMergeSuperNodes = (edges: BindingEdge[]): Map<string, string> => {
+    // Step 1: Detect bidirectional links
+    const bidirectionalPairs = detectBidirectionalLinks(edges);
+  
+    // Step 2: Merge bidirectional links into super nodes
+    const superNodeMap = createSuperNodeMap(bidirectionalPairs);
+  
+    return superNodeMap;
+  };

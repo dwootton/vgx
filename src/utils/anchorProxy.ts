@@ -12,7 +12,7 @@ export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: () => {source:string,value:any}): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -90,6 +90,8 @@ export function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent |
           const childProxy = component.getAnchor(childAnchor);
           edges.push(childProxy);
       });
+  } else {
+    edges.push(edge);
   }
   return edges;
 }

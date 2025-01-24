@@ -50,7 +50,6 @@ export class Circle extends BaseComponent {
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        console.log('inputContext', inputContext, this.id)
         return {
             // add param which will always be the value for this component
             "params":[{

@@ -138,7 +138,9 @@
         data: histData,
         x: 'value',
         width: 400,
-        height: 300
+        height: 300,
+        
+        
       })
 
 
@@ -189,7 +191,7 @@
 
       await Promise.all([
         renderChart(scatter, 'scatter'),
-        // renderChart(hist, 'hist'),
+         renderChart(hist, 'hist'),
         // renderChart(line, 'line'),
         // renderChart(bar, 'bar'),
         // renderChart(heat, 'heat'),

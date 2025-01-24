@@ -57,27 +57,16 @@ export abstract class BaseComponent {
           //@ts-ignore
           if(anchor.anchorSchema.interactive){
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
-            console.log('bindingManager', this.bindingManager);
           }
         })
       }
 
-        // // go through all anchors, and if any are interactive, add a binding to the inverse
-        // this.anchors.forEach((anchor) => {
-        //   console.log('all anchors enum',anchor)
-        //   //@ts-ignore
-        //   if(anchor.anchorSchema.interactive){
-        //     console.log('adding interactive', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
-        //     this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
-        //   }
-        // })
       }
       
       if(isComponent(binding)){
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
         binding.anchors.forEach((anchor) => {
           if(anchor.anchorSchema.interactive){
-            console.log('bindingManager', this.bindingManager);
 
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
           }
@@ -86,7 +75,6 @@ export abstract class BaseComponent {
       } else {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if(binding.anchorSchema.interactive){
-          console.log('bindingManager', this.bindingManager);
 
           this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
         }

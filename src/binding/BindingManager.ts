@@ -142,9 +142,6 @@ export class GraphManager {
 
             addNode(component);
 
-
-            console.log('target bindings for component',componentId, bindingManager.getTargetBindingsForComponent(componentId))
-
             bindingManager.getSourceBindingsForComponent(componentId).forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
 
@@ -225,12 +222,10 @@ export class SpecCompiler {
         const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id )
         const edges = this.prepareEdges(filteredEdges)
 
-        console.log('edges', edges, "for node", node.id)
 
         const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(graphEdges);
-        let pseudoNodeId = superNodeMap.get(node.id) || node.id;
-        console.log('nodeId', pseudoNodeId)
-        let compilationContext = {nodeId: pseudoNodeId};
+
+        let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
 
         compilationContext = this.buildCompilationContext(edges,compilationContext);
         
@@ -242,15 +237,11 @@ export class SpecCompiler {
         const anchorProxies = graphEdges
             .map(edge => getProxyAnchor(edge, this.getBindingManager().getComponent(edge.source.nodeId)));
 
-            console.log('nodeEdges', anchorProxies)
         const expandedEdges = anchorProxies.flatMap(anchorProxy =>
             expandGroupAnchors(anchorProxy, anchorProxy.component)
         );
-        console.log('expandedEdges', expandedEdges)
 
-        const deduped= deduplicateById(expandedEdges);
-        console.log('deduped', deduped)
-        return deduped;
+        return deduplicateById(expandedEdges);
     }
 
     /**
@@ -266,7 +257,7 @@ export class SpecCompiler {
         
         // to log component name
         logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
-        
+
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
         });

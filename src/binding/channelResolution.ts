@@ -102,7 +102,6 @@ const debugLogIfMatch = (
       console.log('Value:', value);
       console.log('Source:', source);
       console.log('Result:', result);
-      console.log('all EdgeResults', edgeResults);
       console.log('is it in',value,'positionValueType',positionValueType,'in value?', positionValueType in value)
 
       console.log('=================');

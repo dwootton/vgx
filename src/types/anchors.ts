@@ -23,6 +23,7 @@ export interface AnchorId {
 export interface AnchorSchema {
     id: string;
     type: AnchorType;
+    interactive: boolean;
 }
 
 
@@ -31,6 +32,7 @@ export interface AnchorGroupSchema {
     id: string;
     type: 'group';
     children: Map<string, AnchorOrGroupSchema>;
+    interactive: boolean;
 }
 
 export interface AnchorProxy {

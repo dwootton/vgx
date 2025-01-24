@@ -212,9 +212,11 @@ export class BaseChart extends BaseComponent {
 
 
   compileComponent(value: any): Partial<UnitSpec<Field>> {
-    // add 2 params to the spec 
+    // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
+      //@ts-ignore
       {"name": "xrange", "expr": "{'min':range('x')[0],'max':range('x')[1]}"},
+      //@ts-ignore
       {"name": "yrange", "expr": "{'min':range('y')[1],'max':range('y')[0]}"},
     ]
 

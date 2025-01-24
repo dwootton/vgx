@@ -45,6 +45,10 @@ export class BindingManager {
 
 
 
+    public getComponents(): Map<string, BaseComponent> {
+        return this.components;
+    }
+
     public getComponent(id: string): BaseComponent | undefined {
         return this.components.get(id);
     }
@@ -191,9 +195,8 @@ export class SpecCompiler {
             throw new Error(`Component "${fromComponentId}" not found.`);
         }
 
+        // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
-
-
        
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(bindingGraph);
@@ -224,7 +227,7 @@ export class SpecCompiler {
 
         console.log('edges', edges, "for node", node.id)
 
-        const superNodeMap :Map<string, string>= detectAndMergeSuperNodes(graphEdges);
+        const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(graphEdges);
         let pseudoNodeId = superNodeMap.get(node.id) || node.id;
         console.log('nodeId', pseudoNodeId)
         let compilationContext = {nodeId: pseudoNodeId};
@@ -259,13 +262,11 @@ export class SpecCompiler {
      * @returns 
      */
     private buildCompilationContext(edges: AnchorProxy[], context: compilationContext): compilationContext {
-        console.log('edges', edges)
         const groupedEdges = groupEdgesByChannel(edges);
         
         // to log component name
-        // logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
+        logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
         
-
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
         });

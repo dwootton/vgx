@@ -39,11 +39,11 @@ export class Drag extends BaseComponent {
                 events: {
                     type: 'pointermove',
                     between: [
-                        { type: "pointerdown", "markname": inputContext.targetElementId},
+                        { type: "pointerdown", "markname": inputContext.targetNodeId},
                         { type: "pointerup" }
                     ]
                 },
-                update: `{x:scale('${inputContext.x.scale}',${inputContext.x.fieldValue}),y:scale('${inputContext.y.scale}',${inputContext.y.fieldValue})}`
+                update: `{'x': x(), 'y': y() }`
             },
             {
                 "events": {

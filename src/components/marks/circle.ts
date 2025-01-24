@@ -47,6 +47,8 @@ export class Circle extends BaseComponent {
          
     }
 
+    
+
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         console.log('inputContext', inputContext, this.id)
         return {
@@ -63,11 +65,11 @@ export class Circle extends BaseComponent {
                     "expr": inputContext.size || circleBaseContext.size
                 },
                 "x": {
-                    "expr": `clamp(scale('${inputContext.x.scale}',${inputContext.x.fieldValue}), ${inputContext.x.constraints.min}, ${inputContext.x.constraints.max})`
+                    "expr": `clamp(${inputContext.x.fieldValue}, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
                 },
                 "y": {
                     // remember that y needs to be inverted (lower is higher)
-                    "expr": `clamp(scale('${inputContext.y.scale}',${inputContext.y.fieldValue}), ${inputContext.y.constraints.max}, ${inputContext.y.constraints.min})`
+                    "expr": `clamp(${inputContext.y.fieldValue}, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
                 },
                 "color": {
                     "expr": inputContext.color || circleBaseContext.color

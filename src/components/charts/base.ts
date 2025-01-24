@@ -212,6 +212,12 @@ export class BaseChart extends BaseComponent {
 
 
   compileComponent(value: any): Partial<UnitSpec<Field>> {
+    // add 2 params to the spec 
+    this.spec.params = [
+      {"name": "xrange", "expr": "{'min':range('x')[0],'max':range('x')[1]}"},
+      {"name": "yrange", "expr": "{'min':range('y')[1],'max':range('y')[0]}"},
+    ]
+
     return this.spec;
   }
 

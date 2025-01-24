@@ -2,12 +2,15 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorType } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
+import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
+import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
+
 interface BindingNode {
     id: string;
     type: string;
 }
 
-interface BindingEdge {
+export interface BindingEdge {
     source: { nodeId: string; anchorId: string; };
     target: { nodeId: string; anchorId: string; };
 }
@@ -24,30 +27,42 @@ interface BindingGraph {
     edges: BindingEdge[];
 }
 
-
-function findRootComponent(bindingManager: BindingManager, componentId: string): BaseComponent {
-    const bindings = bindingManager.getBindingsForComponent(componentId);
-
-    const sourceBindings = bindings.filter(binding => binding.targetId === componentId);
-    for (const binding of sourceBindings) {
-        // if the called component is the target of the binding, then we need to find the source of the binding
-        if (binding.targetId === componentId) {
-            const sourceId = binding.sourceId;
-            return findRootComponent(bindingManager, sourceId);
-        }
-    }
-    const component = bindingManager.getComponent(componentId);
-    if (!component) {
-        throw new Error(`Component "${componentId}" not added to binding manager`);
-    }
-    return component;
+export interface VirtualBindingEdge {
+    channel: string;
+    value: any;
+    source: 'context' | 'baseContext' | 'generated';
 }
 
 
 export class BindingManager {
     private static instance: BindingManager;
-    private bindings: Binding[] = [];
+
+    private graphManager: GraphManager;
+    private specCompiler: SpecCompiler;
     private components: Map<string, BaseComponent> = new Map();
+    private virtualBindings: Map<string, VirtualBindingEdge> = new Map();
+    private bindings: Binding[] = [];
+
+
+
+    public getComponents(): Map<string, BaseComponent> {
+        return this.components;
+    }
+
+    public getComponent(id: string): BaseComponent | undefined {
+        return this.components.get(id);
+    }
+
+    public compile(fromComponentId: string): TopLevelSpec {
+        return this.specCompiler.compile(fromComponentId);
+    }
+
+   
+    private constructor() {
+        // Initialize dependencies lazily
+        this.graphManager = new GraphManager( ()=>this);
+        this.specCompiler = new SpecCompiler(this.graphManager, ()=>this);
+    }
 
     public static getInstance(): BindingManager {
         if (!BindingManager.instance) {
@@ -56,255 +71,58 @@ export class BindingManager {
         return BindingManager.instance;
     }
 
-    public compile(fromComponentId: string): TopLevelSpec {
-
-        const rootComponent = this.getComponent(fromComponentId);
-        if(!rootComponent){
-            throw new Error(`Component "${fromComponentId}" not added to binding manager`);
-        }
-
-        const bindingGraph = this.generateBindingGraph(rootComponent.id);
-
-        const compiledSpecs = this.compileBindingGraph(bindingGraph);
-
-        const mergedSpec = this.mergeSpecs(compiledSpecs);
-
-        function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
-            if (!obj || typeof obj !== 'object') {
-                return obj;
-            }
-
-            if (Array.isArray(obj)) {
-                return obj.map(item => removeUndefinedInSpec(item)).filter(item => item !== undefined);
-            }
-
-            const result: any = {};
-            for (const [key, value] of Object.entries(obj)) {
-                if (value === undefined) continue;
-                
-                const cleanValue = removeUndefinedInSpec(value);
-                if (cleanValue !== undefined) {
-                    result[key] = cleanValue;
-                }
-            }
-            return result;
-        }
-
-
-
-        console.log(bindingGraph);
-        return removeUndefinedInSpec(mergedSpec);
-    }
-
-    private mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
-        // Helper to check if spec has layer/mark
-        const hasLayerOrMark = (spec: any) => {
-            return spec.layer || spec.mark;
-        };
-
-
-        console.log('specs', specs);
-        // First merge specs, handling layers
-        const mergedSpec = specs.reduce((merged: any, spec) => {
-            // If either has layer/mark, create layer spec
-            if (hasLayerOrMark(merged) && hasLayerOrMark(spec)) {
-                return {
-                    layer: [
-                        merged,
-                        spec
-                    ]
-                };
-            }
-
-            // Otherwise merge normally
-            return {
-                ...merged,
-                ...spec,
-                // Concatenate params if they exist
-                params: [
-                    ...(merged.params || []),
-                    ...(spec.params || [])
-                ]
-            };
-        }, {});
-
-        // Move all params to top level
-        const params: any[] = [];
-        const moveParamsToTop = (obj: any) => {
-            if (!obj || typeof obj !== 'object') return;
-            
-            if (obj.params && Array.isArray(obj.params)) {
-                params.push(...obj.params);
-                delete obj.params;
-            }
-            
-            Object.values(obj).forEach(value => {
-                moveParamsToTop(value);
-            });
-        };
-
-        moveParamsToTop(mergedSpec);
-        if (params.length > 0) {
-            mergedSpec.params = params;
-        }
-
-        return mergedSpec;
-    }
-
-    private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        // for each node, go through and gene
-
-        const nodes = bindingGraph.nodes;
-        const edges = bindingGraph.edges;
-        const compiledComponents:Partial<UnitSpec<Field>>[] = [];
-
-        // for each node, create its compilation context 
-        for (const node of nodes.values()) {
-            // get the edges that point to this node
-            const edgeIds = bindingGraph.edges.filter(edge => edge.target.nodeId === node.id);
-            let edges = edgeIds.map(edge => getProxyAnchor(edge, this.getComponent(edge.source.nodeId)));
-            console.log('edges', edges);
-
-            
-            // for each edge, expand it (e iteratively go through and expand out any group anchors)
-            edges = edges.flatMap(edge => expandGroupAnchors(edge, edge.component));
-            // dedupe 
-            edges = edges.filter((edge, index, self) =>
-                index === self.findIndex((t) => t.id === edge.id)
-            );
-
-            // now we have a list of all of the inputs for this node. 
-            // for each of these, generate the compilation context
-
-            // go through and group each edge according to its channel name
-            function groupEdgesByChannel(edges: AnchorProxy[]) {
-                const groupedEdges: Map<string, AnchorProxy[]> = new Map();
-                for (const edge of edges) {
-                    console.log('edge', edge);
-                    const channel = edge.id.anchorId;
-                    if (!groupedEdges.has(channel)) {
-                        groupedEdges.set(channel, []);
-                    }
-                    groupedEdges.get(channel)?.push(edge);
-                }
-                console.log('grouped edges', groupedEdges);
-                return groupedEdges;
-            }
-
-            const groupedEdges = groupEdgesByChannel(edges);
-
-            const compilationContext:compilationContext = {};
-
-            // for each of these groups, generate the compilation context
-            for (const [channel, edges] of groupedEdges.entries()) {
-                console.log('channel', channel);
-                console.log('edges', edges);
-
-                // for each of these edges, get the corresponding component and ask for it to provide that compilation context
-                const generatedData:{expr:string,type:AnchorType}[] = [];
-                for (const edge of edges) {
-                    const edgeData = edge.compile();//component.getData(channel);
-                    generatedData.push({expr:edgeData,type:edge.anchorSchema.type});
-                    console.log('generatedData', generatedData);
-                }
-
-                compilationContext[channel] = generatedData.map(data => data.expr).join(',');
-
-            }
-
-            const component = this.getComponent(node.id);
-            if(!component){
-                throw new Error(`Component "${node.id}" not added to binding manager`);
-            }
-
-            const compiledComponent = component.compileComponent(compilationContext);
-
-            compiledComponents.push(compiledComponent);
-
-
-
-
-
-            console.log('compilationContext', compiledComponent);
-
-
-
-            //const compilationContext = {}
-            // get the anchorSchema for each of the edges 
-
-            const anchorSchemas: AnchorGroupSchema[] = [];
-
-            // function expandEdges(edges: BindingEdge[]) {
-            //     // go through each edge, get the anchor shcema, and then apply the correct bindings to any group anchors
-            //     for (const edge of edges) {
-            //         const sourceComponent = this.getComponent(edge.source.nodeId);
-            //         if (!sourceComponent) {
-            //             throw new Error(`Component "${edge.source.nodeId}" not added to binding manager`);
-            //         }
-            //         const sourceAnchor = edge.source.anchorId;
-            //         const anchorProxy = sourceComponent.getAnchor(sourceAnchor);
-            //         const anchorSchema = anchorProxy.anchorSchema;
-            //         /
-            //         console.log('anchorSchema', anchorSchema);
-            //         if (anchorSchema) {
-            //             anchorSchemas.push(anchorSchema);
-            //         }
-            //     }
-            // }
-            
-
-            // for each edge, get the corresponding component and ask for it to provide that compilation context
-
-
-
-            // for each edge, get the corresponding component and ask for it to provide that compilation context
-
-            // got hrough and resolve group anchors 
-            
-
-
-
-            
-            
-            // if (!component) {
-            //     throw new Error(`Component "${node.id}" not added to binding manager`);
-            // }
-            // const compilationContext = component.compile();
-        }
-
-        console.log('compiledComponents', compiledComponents);
-
-
-
-        return compiledComponents;
-    }
-
-
-    // Simplified component management
-    public getComponent(id: string): BaseComponent | undefined {
-        return this.components.get(id);
-    }
-
     public addComponent(component: BaseComponent): void {
         this.components.set(component.id, component);
     }
 
-    // Simplified binding management
-    public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
-        this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
+    public addVirtualBinding(channel: string, virtualBinding: VirtualBindingEdge): void {
+        this.virtualBindings.set(channel, virtualBinding);
     }
+
+    public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        // Add the original binding
+        this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
+                
+    };
+       
+    public getBindings(): Binding[] {
+        return this.bindings;
+    }
+    
 
     public getBindingsForComponent(componentId: string): Binding[] {
         return this.bindings.filter(binding =>
             binding.sourceId === componentId || binding.targetId === componentId
         );
     }
+    public getTargetBindingsForComponent(componentId: string): Binding[] {
+        return this.bindings.filter(binding =>
+            binding.targetId === componentId
+        );
+    }
+    public getSourceBindingsForComponent(componentId: string): Binding[] {
+        return this.bindings.filter(binding =>
+            binding.sourceId === componentId
+        );
+    }
 
-    // Graph generation
+    public getVirtualBindings(): Map<string, VirtualBindingEdge> {
+        return this.virtualBindings;
+    }
+}
+
+
+export class GraphManager {
+    constructor(
+        private getBindingManager: () => BindingManager // Getter for BindingManager
+    ) {}
+
     public generateBindingGraph(startComponentId: string): BindingGraph {
         const nodes = new Map<string, BindingNode>();
         const edges: BindingEdge[] = [];
         const visited = new Set<string>();
+        const bindingManager = this.getBindingManager(); // Access BindingManager when needed
+        
 
         const addNode = (component: BaseComponent) => {
             if (!nodes.has(component.id)) {
@@ -319,16 +137,16 @@ export class BindingManager {
             if (visited.has(componentId)) return;
             visited.add(componentId);
 
-            const component = this.getComponent(componentId);
+            const component = bindingManager.getComponent(componentId);
             if (!component) return;
 
             addNode(component);
 
-            this.getBindingsForComponent(componentId).forEach(binding => {
+            bindingManager.getSourceBindingsForComponent(componentId).forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
 
                 [sourceId, targetId].forEach(id => {
-                    const comp = this.getComponent(id);
+                    const comp = bindingManager.getComponent(id);
                     if (comp) addNode(comp);
                 });
 
@@ -346,11 +164,9 @@ export class BindingManager {
         return { nodes, edges };
     }
 
-    // Debug helper
     public printGraph(startComponentId: string): void {
         const { nodes, edges } = this.generateBindingGraph(startComponentId);
 
-        console.log('Nodes:');
         nodes.forEach(node =>
             console.log(`  ${node.id} (${node.type})\n}`)
         );
@@ -361,55 +177,187 @@ export class BindingManager {
         );
     }
 }
-function getProxyAnchor(edge: BindingEdge, sourceComponent: BaseComponent | undefined) {
-    if (!sourceComponent) {
-        throw new Error(`Component "${edge.source.nodeId}" not added to binding manager`);
-    }
-    const sourceAnchor = edge.source.anchorId;
-    return sourceComponent.getAnchor(sourceAnchor);
-}
 
 
-function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent | undefined) {
-    if (!component) {
-        throw new Error(`Component "${edge.id}" not added to binding manager`);
-    }
-    // for each edge, expand it (e iteratively go through and expand out any group anchors)
-    const edges: AnchorProxy[] =[];
-    const anchorSchema = edge.anchorSchema;
-    if (anchorSchema.type === 'group') {
-        // get the children of the group
-        const children = (anchorSchema as AnchorGroupSchema).children;
-        // for each child, get the proxy anchor and add it to the edges
-        children.forEach(child => {
-            console.log('child', child,children);
-            const childAnchor = child.id;
-            const childProxy = component.getAnchor(childAnchor);
-            edges.push(childProxy);
-        });
-    }
-    return edges;
-}
-// Function to make properties bindable
-export function anchorize<T extends object>(obj: T): T {
-    const handler: ProxyHandler<T> = {
-        get(target: T, prop: string | symbol): any {
-            if (prop === 'bind') {
-                return function (this: any, target: any) {
-                    // Implement binding logic here
-                    console.log(`Binding ${String(prop)} to`, target);
-                    // You might want to store this binding information somewhere
-                };
-            }
+export class SpecCompiler {
+    constructor(
+        private graphManager: GraphManager,
+        private getBindingManager: () => BindingManager // Getter for BindingManager
+    ) {}
 
-            const value = target[prop as keyof T];
-            if (typeof value === 'object' && value !== null) {
-                return new Proxy(value as object, handler) as any;
-            }
+    public compile(fromComponentId: string): TopLevelSpec {
 
-            return value;
+        const rootComponent = this.getBindingManager().getComponent(fromComponentId);
+        if (!rootComponent) {
+            throw new Error(`Component "${fromComponentId}" not found.`);
         }
+
+        // specific binding graph for this tree
+        let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
+       
+        // Compile the updated graph
+        const compiledSpecs = this.compileBindingGraph(bindingGraph);
+
+        //const compiledSpecs = this.compileBindingGraph(bindingGraph);
+        const mergedSpec = mergeSpecs(compiledSpecs);
+
+        return removeUndefinedInSpec(mergedSpec);
+    }
+    
+
+    private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+        const { nodes, edges } = bindingGraph;
+        const compiledComponents: Partial<UnitSpec<Field>>[] = [];
+
+        for (const node of nodes.values()) {
+            const compiledNode = this.compileNode(node, edges);
+            compiledComponents.push(compiledNode);
+        }
+
+        return compiledComponents;
+    }
+
+    private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+
+        const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id )
+        const edges = this.prepareEdges(filteredEdges)
+
+
+        const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(graphEdges);
+
+        let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
+
+        compilationContext = this.buildCompilationContext(edges,compilationContext);
+        
+        return this.compileComponentWithContext(node.id, compilationContext);
+    }
+
+   
+    private prepareEdges(graphEdges: BindingEdge[]): AnchorProxy[] {
+        const anchorProxies = graphEdges
+            .map(edge => getProxyAnchor(edge, this.getBindingManager().getComponent(edge.source.nodeId)));
+
+        const expandedEdges = anchorProxies.flatMap(anchorProxy =>
+            expandGroupAnchors(anchorProxy, anchorProxy.component)
+        );
+
+        return deduplicateById(expandedEdges);
+    }
+
+    /**
+     * Compilation context is the object that is provided to each component during 
+     * its compile process. It is generated by grouping each incoming edge by its
+     * type, compiling the edge's value,then resolving the provided information. 
+     * 
+     * @param edges - the incoming anchors that provide information to this node
+     * @returns 
+     */
+    private buildCompilationContext(edges: AnchorProxy[], context: compilationContext): compilationContext {
+        const groupedEdges = groupEdgesByChannel(edges);
+        
+        // to log component name
+        logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
+
+        this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
+            groupedEdges.get(channel)?.push(virtualBinding);
+        });
+
+        for (const [channel, channelEdges] of groupedEdges) {
+            // Get the component for this channel if it exists
+            context[channel] = resolveChannelValue(channelEdges,context.nodeId);
+        }
+
+        // determine if this is a super node, and then add it to the context
+
+        return context;
+    }
+
+    private compileComponentWithContext(nodeId: string, context: compilationContext): Partial<UnitSpec<Field>> {
+        const component = this.getBindingManager().getComponent(nodeId);
+        if (!component) {
+            throw new Error(`Component "${nodeId}" not found.`);
+        }
+        validateComponent(component, nodeId);
+        return component.compileComponent(context);
+    }
+
+    
+}
+
+function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
+    // Helper to check if spec has layer/mark
+    const hasLayerOrMark = (spec: any) => {
+        return spec.layer || spec.mark;
     };
 
-    return new Proxy(obj, handler);
+
+    // First merge specs, handling layers
+    const mergedSpec = specs.reduce((merged: any, spec) => {
+        // If either has layer/mark, create layer spec
+        if (hasLayerOrMark(merged) && hasLayerOrMark(spec)) {
+            return {
+                layer: [
+                    merged,
+                    spec
+                ]
+            };
+        }
+
+        // Otherwise merge normally
+        return {
+            ...merged,
+            ...spec,
+            // Concatenate params if they exist
+            params: [
+                ...(merged.params || []),
+                ...(spec.params || [])
+            ]
+        };
+    }, {});
+
+    // Move all params to top level
+    const params: any[] = [];
+    const moveParamsToTop = (obj: any) => {
+        if (!obj || typeof obj !== 'object') return;
+        
+        if (obj.params && Array.isArray(obj.params)) {
+            params.push(...obj.params);
+            delete obj.params;
+        }
+        
+        Object.values(obj).forEach(value => {
+            moveParamsToTop(value);
+        });
+    };
+
+    moveParamsToTop(mergedSpec);
+    if (params.length > 0) {
+
+        mergedSpec.params = mergeParams(params);
+    }
+
+    return mergedSpec;
 }
+
+function mergeParams(params: any[]): any[] {
+    const paramsByName = new Map<string, any>();
+    
+    // Group params by name
+    params.forEach(param => {
+        if (!param.name) return;
+        
+        if (paramsByName.has(param.name)) {
+            // Merge with existing param
+            const existing = paramsByName.get(param.name);
+            paramsByName.set(param.name, {
+                ...existing,
+                ...param
+            });
+        } else {
+            paramsByName.set(param.name, param);
+        }
+    });
+
+    return Array.from(paramsByName.values());
+}
+

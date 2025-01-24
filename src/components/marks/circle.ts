@@ -23,41 +23,58 @@ type CircleConfig = {
 
 export class Circle extends BaseComponent {
     public config: CircleConfig;
+    static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
 
     constructor(config:CircleConfig={}){
-        super()
-        this.anchors = generateAnchorsFromContext(circleBaseContext,this);
+        super({...config})
+        this.anchors = generateAnchorsFromContext(config,circleBaseContext,this);
+
+        Circle.bindableProperties.forEach(prop => {
+            if (config[prop] !== undefined) {
+                this.addContextBinding(prop, config[prop]);
+            }
+        });
+        
+        Object.entries(circleBaseContext).forEach(([key, value]) => {
+            if (config[key as keyof CircleConfig] === undefined) {
+                this.addContextBinding(key, value, 'baseContext');
+            }
+        });
+
+
         this.config = config;
-        console.log('circle',this.anchors)
         this.initializeAnchors()
+         
     }
+
+    
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         return {
             // add param which will always be the value for this component
             "params":[{
-                "name":generateComponentSignalName(this.id),
+                "name":generateComponentSignalName(inputContext.nodeId),
                 //@ts-ignore, this is acceptable because params can take expr strings
-                "expr":generateParams(inputContext)
-                
+                "expr":`{'x':${inputContext.x.fieldValue},'y':${inputContext.y.fieldValue}}`
             }],
             "data":inputContext.data || circleBaseContext.data,
             "mark":{
                 "type":"circle",
-                "size":{
-                    "expr":inputContext.size || circleBaseContext.size
+                "size": {
+                    "expr": inputContext.size || circleBaseContext.size
                 },
-                "x":{
-                    "expr":inputContext.x || circleBaseContext.x
+                "x": {
+                    "expr": `clamp(${inputContext.x.fieldValue}, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
                 },
-                "y":{
-                    "expr":inputContext.y || circleBaseContext.y
+                "y": {
+                    // remember that y needs to be inverted (lower is higher)
+                    "expr": `clamp(${inputContext.y.fieldValue}, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
                 },
-                "color":{
-                    "expr":inputContext.color || circleBaseContext.color
+                "color": {
+                    "expr": inputContext.color || circleBaseContext.color
                 },
-                "stroke":{
-                    "expr":inputContext.stroke || circleBaseContext.stroke
+                stroke: {
+                    "expr": inputContext.stroke || circleBaseContext.stroke
                 }
             }
         }

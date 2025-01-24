@@ -23,6 +23,7 @@ export interface AnchorId {
 export interface AnchorSchema {
     id: string;
     type: AnchorType;
+    interactive: boolean;
 }
 
 
@@ -31,6 +32,7 @@ export interface AnchorGroupSchema {
     id: string;
     type: 'group';
     children: Map<string, AnchorOrGroupSchema>;
+    interactive: boolean;
 }
 
 export interface AnchorProxy {
@@ -38,7 +40,7 @@ export interface AnchorProxy {
   id: AnchorId;
   anchorSchema: AnchorOrGroupSchema;
   bind: (target: AnchorProxy) => BaseComponent;
-  compile: () => string; // produces a expr string
+  compile: (nodeId?: string) => {source:string,value:any}; // produces a expr string
 }
 
 // brush.sides.top 
@@ -46,3 +48,50 @@ export interface AnchorProxy {
 // sides.top -> get the anchor proxy for top
   
 export type AnchorOrGroupSchema = AnchorSchema | AnchorGroupSchema;
+
+import { NumericEncodingConstraint,CategoricalEncodingConstraint } from './constraints';
+
+// when x is passed down to a component, then scale becomes the encoding constraint (adds constraint + initial value (middle))
+//
+type PriorityOrder = ('context' | 'generated' | 'baseContext')[];
+
+const priorityRules: Record<keyof ValueSchema, PriorityOrder> = {
+  initialValue: ['context', 'generated', 'baseContext'],
+  fieldValue: ['generated', 'context', 'baseContext'],
+  scale: ['context', 'generated', 'baseContext'],
+  fieldName: ['context', 'generated', 'baseContext'],
+  constraints: ['context', 'generated', 'baseContext'],
+};
+
+
+
+
+export type NumericPositionValueSchema = {
+  'scale':string, // this is the scale name, used in expr to get the domian
+  'scaleType': 'quantitative',
+  'fieldName':string, // this is the field name, used in expr to get the value if datum[fieldName]
+  'constraints': NumericEncodingConstraint,
+  'fieldValue': number,
+  'initialValue': number,
+}
+
+
+export type CategoricalPositionValueSchema = {
+  'scale':string, // this is the scale name, used in expr to get the domian
+  'scaleType': 'ordinal' | 'nominal',
+  'fieldName':string, // this is the field name, used in expr to get the value if datum[fieldName]
+  'constraints': CategoricalEncodingConstraint,
+  'fieldValue': string,
+  'initialValue': string,
+}
+
+export type PositionValueSchema = NumericPositionValueSchema | CategoricalPositionValueSchema;
+
+export type ValueSchema = PositionValueSchema | string | number;
+
+
+
+
+
+
+// Interaction design: how do I specify that clicking on a bar should set that field as the sort order?

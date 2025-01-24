@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>ALX Chart Examples</title>
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
@@ -13,17 +14,20 @@
       gap: 20px;
       padding: 20px;
     }
+
     .chart {
       border: 1px solid #ccc;
       padding: 10px;
       border-radius: 4px;
     }
+
     h2 {
       margin: 0 0 10px 0;
       font-family: sans-serif;
     }
   </style>
 </head>
+
 <body>
   <div class="vis-container">
     <div class="chart">
@@ -54,15 +58,16 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      alx=alx.alx
+      alx = alx.alx
       // Generate better sample data
       const scatterData = Array.from({ length: 50 }, () => ({
         x: Math.random() * 100,
         y: Math.random() * 100
       }));
 
-     
-      
+
+
+
 
       // Data for histogram - single array of values
       const histData = Array.from({ length: 200 }, () => ({
@@ -90,10 +95,10 @@
       for (let x of categories) {
         for (let y of ['P', 'Q', 'R', 'S', 'T']) {
           // Create a pattern where values increase with both x and y
-          const baseValue = 
-            (categories.indexOf(x) * 20) + 
+          const baseValue =
+            (categories.indexOf(x) * 20) +
             (['P', 'Q', 'R', 'S', 'T'].indexOf(y) * 15);
-          
+
           // Add multiple entries per cell for aggregation
           for (let i = 0; i < 3; i++) {
             heatmapData.push({
@@ -108,48 +113,42 @@
       // Create visualizations
       const scatter = alx.scatterplot({
         data: scatterData,
-        xField: 'x',
-        yField: 'y',
+        x: 'x',
+        y: 'y',
         width: 400,
-        height: 300
+        height: 300,
+        bind: alx.circle({
+          x: 20,
+          y: 60,
+          bind: alx.drag()
+        })
       })
 
-      const circle = alx.circle({
-        x: 50,
-        y: 50
-      })
-      const drag = alx.drag();
-      circle.bind(drag)
-
-      const sp= scatter.bind(circle);
-      console.log('sp',sp)
-
-      
       const hist = alx.histogram({
         data: histData,
-        field: 'value',
+        x: 'value',
         width: 400,
-        height: 300
+        height: 300,
       })
 
 
 
 
-     
+
 
 
       const line = alx.lineplot({
         data: timeSeriesData,
-        xField: 'time',
-        yField: 'value',
+        x: 'time',
+        y: 'value',
         width: 400,
         height: 300
       })
 
       const bar = alx.barchart({
         data: barData,
-        xField: 'category',
-        yField: 'value',
+        x: 'category',
+        y: 'value',
         aggregate: 'mean',
         width: 400,
         height: 300
@@ -157,36 +156,37 @@
 
       const heat = alx.heatmap({
         data: heatmapData,
-        xField: 'x',
-        yField: 'y',
-        colorField: 'value',
-        aggregate: 'mean',
+        x: 'x',
+        y: 'y',
+        color: 'value',
         width: 400,
         height: 300
       })
 
       const pie = alx.piechart({
-        data:barData,
-        categoryField:'category'
+        data: barData,
+        categoryField: 'category'
       }
       )
 
       // Render all charts
       const renderChart = async (chart, elementId) => {
-        const  vegaLiteSpec  = await chart.compile();
-        console.log(`${elementId} spec:`, vegaLiteSpec); // Debug output
-        vegaEmbed(`#${elementId}`, vegaLiteSpec,{renderer:'svg'}).then(console.log).catch(console.warn);
+        const vegaLiteSpec = await chart.compile();
+        console.log('vlspec', vegaLiteSpec)
+
+        vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then(console.log).catch(console.warn);
       };
 
       await Promise.all([
-        renderChart(sp, 'scatter'),
-        renderChart(hist, 'hist'),
-        renderChart(line, 'line'),
-        renderChart(bar, 'bar'),
-        renderChart(heat, 'heat'),
-        renderChart(pie,'pie')
+        renderChart(scatter, 'scatter'),
+         renderChart(hist, 'hist'),
+        // renderChart(line, 'line'),
+        // renderChart(bar, 'bar'),
+        // renderChart(heat, 'heat'),
+        // renderChart(pie, 'pie')
       ]);
     });
   </script>
 </body>
+
 </html>

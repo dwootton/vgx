@@ -23,39 +23,39 @@ export class Drag extends BaseComponent {
     public config: DragConfig;
 
     constructor(config: DragConfig = {}) {
-        super();
-        this.anchors = generateAnchorsFromContext(dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
+        super(config);
+        this.anchors = generateAnchorsFromContext(config,dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
         this.config = config;
-        console.log('drag', this.anchors);
         this.initializeAnchors();
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
+        const nodeId = inputContext.nodeId || this.id;
         // if inputContext,
         const signal = {
-            name: this.id,
+            name: nodeId,
             value: dragBaseContext,
             on: [{
                 events: {
                     type: 'pointermove',
                     between: [
-                        { type: "pointerdown", "markname": inputContext.targetElementId},
+                        { type: "pointerdown", "markname": inputContext.targetNodeId},
                         { type: "pointerup" }
                     ]
                 },
-                update: "{x:x(),y:y()}"
+                update: `{'x': x(), 'y': y() }`
             },
             {
                 "events": {
                     "type": "pointerdown",
                 },
-                "update": `merge(${this.id},{start:{x:x(),y:y()}})`
+                "update": `merge(${nodeId},{start:{x:x(),y:y()}})`
             },
             {
                 "events": {
                     "type": "pointerup",
                 },
-                "update": `merge(${this.id},{stop:{x:x(),y:y()}})`
+                "update": `merge(${nodeId},{stop:{x:x(),y:y()}})`
             }]
         };
 
@@ -63,9 +63,9 @@ export class Drag extends BaseComponent {
 
         return {
             params: [{
-                name: generateComponentSignalName(this.id),
+                name: generateComponentSignalName(nodeId),
                 //@ts-ignore, this is acceptable because params can take expr strings
-                expr: generateParams(inputContext)
+                expr: `{x:${inputContext.x.fieldValue},y:${inputContext.y.fieldValue}}`//generateParams(inputContext)
                 //@ts-ignore, this is acceptable because params can take expr strings
             }, signal]
         };

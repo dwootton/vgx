@@ -1,4 +1,4 @@
-import { BaseChart, ChartConfig } from './base';
+import { BaseChart, ChartConfig, PositionEncodingDef } from './base';
 
 export interface BarchartConfig extends ChartConfig {
     xField: string;
@@ -13,17 +13,16 @@ export interface BarchartConfig extends ChartConfig {
         ...config,
         mark: 'bar'
       });
+
+      console.log('this.channelConfigs barchart', this.channelConfigs.encodingDefs.x)
   
+      
       this.spec.encoding = {
-        x: { 
-          field: config.xField, 
-          type: config.xType || 'nominal'
-        },
-        y: { 
-          field: config.yField,
+        x: this.channelConfigs.encodingDefs.x as PositionEncodingDef,
+        y: Object.assign(this.channelConfigs.encodingDefs.y, {
           type: 'quantitative',
           aggregate: config.aggregate || 'mean'
-        }
+        }) as PositionEncodingDef
       };
       this.initializeAnchors();  
     }

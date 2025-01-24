@@ -1,25 +1,51 @@
-import { BaseChart,ChartConfig } from './base';
+import { AnchorProxy } from 'types/anchors';
+import { BaseChart,ChartConfig, PositionEncodingDef } from './base';
 
-export interface ScatterplotConfig extends ChartConfig {
-  xField: string;
-  yField: string;
+
+
+const ScatterplotConfig = {
+  "x":null,
+  "y":null,
 }
 
-export class Scatterplot extends BaseChart {
+// I want to be able to access if the x should be input and output 
+
+// chart inputs and chart outputs:
+
+
+export interface ScatterplotConfig extends ChartConfig {
+
+}
+
+// maybe we'll have the BaseChart handle all of the splitting logic.
+
+
+
+export class Scatterplot extends BaseChart  {
+
   constructor(config: ScatterplotConfig) {
     super({
       ...config,
       mark: 'point'
     });
 
+    //  filter the config to be separated by field, value, and bindings 
+   
+
+
     this.spec.encoding = {
-      x: { field: config.xField, type: 'quantitative' },
-      y: { field: config.yField, type: 'quantitative' }
+      x: this.channelConfigs.encodingDefs.x as PositionEncodingDef,
+      y: this.channelConfigs.encodingDefs.y as PositionEncodingDef,
+
     };
 
     this.initializeAnchors();
 
-
   }
-}
+
+  
+  
+} ;
+
+
 

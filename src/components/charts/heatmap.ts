@@ -1,9 +1,9 @@
-import { BaseChart, ChartConfig } from './base';
+import { BaseChart, ChartConfig, PositionEncodingDef } from './base';
 
 export interface HeatmapConfig extends ChartConfig {
-    xField: string;
-    yField: string;
-    colorField: string;
+    x: string;
+    y: string;
+    color: string;
     aggregate?: 'count' | 'sum' | 'mean';
   }
   
@@ -14,11 +14,12 @@ export interface HeatmapConfig extends ChartConfig {
         mark: 'rect'
       });
   
+      console.log('this.channelConfigs heatmap', this.channelConfigs)
       this.spec.encoding = {
-        x: { field: config.xField, type: 'nominal' },
-        y: { field: config.yField, type: 'nominal' },
+        x: this.channelConfigs.encodingDefs.x as PositionEncodingDef,
+        y: this.channelConfigs.encodingDefs.y as PositionEncodingDef,
         color: {
-          field: config.colorField,
+          field: config.color,
           type: 'quantitative',
           aggregate: config.aggregate || 'mean',
           scale: { scheme: 'blues' }

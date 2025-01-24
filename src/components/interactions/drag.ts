@@ -30,9 +30,10 @@ export class Drag extends BaseComponent {
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
+        const nodeId = inputContext.nodeId || this.id;
         // if inputContext,
         const signal = {
-            name: this.id,
+            name: nodeId,
             value: dragBaseContext,
             on: [{
                 events: {
@@ -48,13 +49,13 @@ export class Drag extends BaseComponent {
                 "events": {
                     "type": "pointerdown",
                 },
-                "update": `merge(${this.id},{start:{x:x(),y:y()}})`
+                "update": `merge(${nodeId},{start:{x:x(),y:y()}})`
             },
             {
                 "events": {
                     "type": "pointerup",
                 },
-                "update": `merge(${this.id},{stop:{x:x(),y:y()}})`
+                "update": `merge(${nodeId},{stop:{x:x(),y:y()}})`
             }]
         };
 
@@ -62,7 +63,7 @@ export class Drag extends BaseComponent {
 
         return {
             params: [{
-                name: generateComponentSignalName(this.id),
+                name: generateComponentSignalName(nodeId),
                 //@ts-ignore, this is acceptable because params can take expr strings
                 expr: `{x:${inputContext.x.fieldValue},y:${inputContext.y.fieldValue}}`//generateParams(inputContext)
                 //@ts-ignore, this is acceptable because params can take expr strings

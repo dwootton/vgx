@@ -52,7 +52,7 @@ export class Circle extends BaseComponent {
         return {
             // add param which will always be the value for this component
             "params":[{
-                "name":generateComponentSignalName(this.id),
+                "name":generateComponentSignalName(inputContext.nodeId),
                 //@ts-ignore, this is acceptable because params can take expr strings
                 "expr":`{'x':${inputContext.x.fieldValue},'y':${inputContext.y.fieldValue}}`
             }],

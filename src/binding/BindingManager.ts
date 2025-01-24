@@ -222,11 +222,13 @@ export class SpecCompiler {
 
         console.log('edges', edges, "for node", node.id)
 
-        const compilationContext = this.buildCompilationContext(edges);
         const superNodeMap :Map<string, string>= detectAndMergeSuperNodes(graphEdges);
         let pseudoNodeId = superNodeMap.get(node.id) || node.id;
         console.log('nodeId', pseudoNodeId)
-        compilationContext.nodeId = pseudoNodeId;
+        let compilationContext = {nodeId: pseudoNodeId};
+
+        compilationContext = this.buildCompilationContext(edges,compilationContext);
+        
         return this.compileComponentWithContext(node.id, compilationContext);
     }
 
@@ -252,14 +254,13 @@ export class SpecCompiler {
      * @param edges - the incoming anchors that provide information to this node
      * @returns 
      */
-    private buildCompilationContext(edges: AnchorProxy[]): compilationContext {
+    private buildCompilationContext(edges: AnchorProxy[], context: compilationContext): compilationContext {
         console.log('edges', edges)
         const groupedEdges = groupEdgesByChannel(edges);
         
         // to log component name
         // logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
         
-        const context: compilationContext = {};
 
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
@@ -267,7 +268,7 @@ export class SpecCompiler {
 
         for (const [channel, channelEdges] of groupedEdges) {
             // Get the component for this channel if it exists
-            context[channel] = resolveChannelValue(channelEdges);
+            context[channel] = resolveChannelValue(channelEdges,context.nodeId);
         }
 
         // determine if this is a super node, and then add it to the context
@@ -335,9 +336,32 @@ function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
 
     moveParamsToTop(mergedSpec);
     if (params.length > 0) {
-        mergedSpec.params = params;
+
+        mergedSpec.params = mergeParams(params);
     }
 
     return mergedSpec;
+}
+
+function mergeParams(params: any[]): any[] {
+    const paramsByName = new Map<string, any>();
+    
+    // Group params by name
+    params.forEach(param => {
+        if (!param.name) return;
+        
+        if (paramsByName.has(param.name)) {
+            // Merge with existing param
+            const existing = paramsByName.get(param.name);
+            paramsByName.set(param.name, {
+                ...existing,
+                ...param
+            });
+        } else {
+            paramsByName.set(param.name, param);
+        }
+    });
+
+    return Array.from(paramsByName.values());
 }
 

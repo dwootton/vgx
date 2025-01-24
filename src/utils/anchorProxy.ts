@@ -53,9 +53,11 @@ export function generateAnchorsFromContext(context: Record<AnchorType, any>, bas
       interactive: metaContext[key]?.interactive || false
     }
 
-    const compileFn = () => {
-      
-        value =  {fieldValue:`${generateComponentSignalName(component.id)}.${key}`};
+    const compileFn = (nodeId?: string) => {
+      if (!nodeId) {
+        nodeId = component.id
+      }
+        value =  {fieldValue:`${(nodeId)}.${key}`};
         return {source:'generated',value}
       
     }

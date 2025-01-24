@@ -78,11 +78,12 @@ export const getPrioritizedValue = (
  * Resolves the value for a channel based on priority rules
  */
 
-export const resolveChannelValue = (edges: Edge[]): PositionValueSchema | number | string => {
+export const resolveChannelValue = (edges: Edge[], nodeId: string): PositionValueSchema | number | string => {
+    
     const edgeResults = edges.map(edge => {
         if ('compile' in edge) {
             return {
-                data: edge.compile(),
+                data: edge.compile(nodeId),
                 type: edge.anchorSchema.type
             };
         } else {

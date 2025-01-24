@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
+import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager,VirtualBindingEdge } from '../binding/BindingManager';
@@ -25,7 +25,6 @@ export abstract class BaseComponent {
     this.bindingManager = BindingManager.getInstance();
     this.bindingManager.addComponent(this);
 
-    console.log('config', config);
     const bindings = findBindings(config);
     bindings.length && this.addParameterBindings(bindings);
   }
@@ -43,14 +42,57 @@ export abstract class BaseComponent {
   }
 
   private addParameterBindings(bindings: { value: BaseComponent | AnchorProxy, key: string }[]) {
+    function getTargetId(binding: BaseComponent | AnchorProxy): string {
+      return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
+    }
+    
     bindings.forEach(({ value: binding, key }) => {
       const bindingProperty = key == 'bind' ? '_all' : key;
-      if (isComponent(binding)) {
-        this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
-      } else {
-        console.log('binding', binding, bindingProperty);
-        this.bindingManager.addBinding(this.id, binding.component.id, '_all', bindingProperty);
+
+      if(bindingProperty === '_all'){
+
+        // go through all target anchors, and if any are interactive, add a binding to the inverse
+        if(isComponent(binding)){
+        binding.anchors.forEach((anchor) => {
+          //@ts-ignore
+          if(anchor.anchorSchema.interactive){
+            console.log('INTERRRRRACTIVE', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
+            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+          }
+        })
       }
+
+        // // go through all anchors, and if any are interactive, add a binding to the inverse
+        // this.anchors.forEach((anchor) => {
+        //   console.log('all anchors enum',anchor)
+        //   //@ts-ignore
+        //   if(anchor.anchorSchema.interactive){
+        //     console.log('adding interactive', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
+        //     this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+        //   }
+        // })
+      }
+      
+      if(isComponent(binding)){
+        this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
+        binding.anchors.forEach((anchor) => {
+          if(anchor.anchorSchema.interactive){
+            console.log('adding interactive in component', getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId)
+            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+          }
+        })
+       
+      } else {
+        this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
+        if(binding.anchorSchema.interactive){
+          this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
+        }
+      }
+      
+
+       
+
+     
     });
   }
 

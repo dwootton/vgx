@@ -45,18 +45,18 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
 export function generateAnchorsFromContext(context: Record<AnchorType, any>, baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
   const anchors = new Map<string, AnchorProxy>();
 
-  console.log('meta', metaContext)
+  
   Object.entries(baseContext).forEach(([key, value]) => {
     const anchorSchema = {
       id: `${key}`,
       type: key as AnchorType,
-      interactive: baseContext[key]?.interactive || false
+      interactive: metaContext[key]?.interactive || false
     }
+
     const compileFn = () => {
-      console.log('in base compileFn', context)
       
-        value =  `${generateComponentSignalName(component.id)}.${key}`;
-        return {source:'baseContext',value}
+        value =  {fieldValue:`${generateComponentSignalName(component.id)}.${key}`};
+        return {source:'generated',value}
       
     }
     anchors.set(key, createAnchorProxy(component, anchorSchema, compileFn));
@@ -86,7 +86,6 @@ export function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent |
       const children = (anchorSchema as AnchorGroupSchema).children;
       // for each child, get the proxy anchor and add it to the edges
       children.forEach(child => {
-          console.log('child', child,children);
           const childAnchor = child.id;
           const childProxy = component.getAnchor(childAnchor);
           edges.push(childProxy);

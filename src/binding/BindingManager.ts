@@ -2,8 +2,9 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorType } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec } from "./binding";
+import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo} from "./binding";
 import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
+
 interface BindingNode {
     id: string;
     type: string;
@@ -75,8 +76,13 @@ export class BindingManager {
     }
 
     public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        // Add the original binding
         this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
-    }
+        console.log('added binding', sourceId, targetId, sourceAnchor, targetAnchor)
+                
+    };
+       
+    
 
     public getBindingsForComponent(componentId: string): Binding[] {
         return this.bindings.filter(binding =>
@@ -211,15 +217,24 @@ export class SpecCompiler {
 
     private buildCompilationContext(edges: AnchorProxy[]): compilationContext {
         const groupedEdges = groupEdgesByChannel(edges);
+        
+        // to log component name
+        // logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
+        
         const context: compilationContext = {};
 
+        console.log('binding manager', this.getBindingManager())
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
         });
 
         for (const [channel, channelEdges] of groupedEdges) {
+            // Get the component for this channel if it exists
+       
             context[channel] = resolveChannelValue(channelEdges);
         }
+
+        console.log('context', context)
 
         return context;
     }

@@ -161,7 +161,6 @@ export class BaseChart extends BaseComponent {
 
     Object.entries(this.spec.encoding).forEach(([key, encoding]) => {
       let scaleName = key;
-      console.log('scaleName', scaleName)
 
       // fields like x1, x2 should go to x
       if (isPositionChannel(key)) {
@@ -176,7 +175,6 @@ export class BaseChart extends BaseComponent {
           type: 'scale',
           
         }, () => {
-          console.log('in proxy', scaleName)
           return {
             source: 'encoding',
             value: {

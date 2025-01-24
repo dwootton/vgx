@@ -26,7 +26,6 @@ export class Drag extends BaseComponent {
         super(config);
         this.anchors = generateAnchorsFromContext(config,dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
         this.config = config;
-        console.log('drag', this.anchors);
         this.initializeAnchors();
     }
 
@@ -65,7 +64,7 @@ export class Drag extends BaseComponent {
             params: [{
                 name: generateComponentSignalName(this.id),
                 //@ts-ignore, this is acceptable because params can take expr strings
-                expr: generateParams(inputContext)
+                expr: `{x:${inputContext.x.fieldValue},y:${inputContext.y.fieldValue}}`//generateParams(inputContext)
                 //@ts-ignore, this is acceptable because params can take expr strings
             }, signal]
         };

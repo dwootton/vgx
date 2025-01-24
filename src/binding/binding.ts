@@ -1,6 +1,6 @@
 import { AnchorProxy, AnchorType, PositionValueSchema, ValueSchema } from "../types/anchors";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-
+import { BindingManager } from "./BindingManager";
 export type compilationContext = any;
 
 
@@ -64,20 +64,11 @@ export const getPrioritizedValue = (
   ): PositionValueSchema | number | string => {
     // Normalize edge results (only for numeric encodings)
     const normalizedResults = edgeResults.map(normalizeEdgeResult);
-    console.log('normalizedResults', normalizedResults)
   
     // Resolve the entire value schema
     const resolvedSchema = resolveValueSchema(normalizedResults);
-    console.log('resolvedSchema', resolvedSchema)
+    // if 
 
-  
-    // If the resolved schema has only fieldValue, return it directly
-    if (
-      Object.keys(resolvedSchema).length === 1 &&
-      resolvedSchema.fieldValue !== undefined
-    ) {
-      return resolvedSchema.fieldValue;
-    }
   
     // Otherwise, return the full resolved schema
     return resolvedSchema;
@@ -105,7 +96,6 @@ export const resolveChannelValue = (edges: Edge[]): PositionValueSchema | number
         }
     });
 
-    console.log('edgeResults', edgeResults);
     return getPrioritizedValue(edgeResults);
 };
 
@@ -117,4 +107,22 @@ export const validateComponent = (component: any, nodeId: string): void => {
     if (!component) {
         throw new Error(`Component "${nodeId}" not added to binding manager`);
     }
+};
+
+
+/**
+ * Logs component info for debugging
+ */
+export const logComponentInfo = (edges: Map<string, AnchorProxy[]>, bindingManager: BindingManager) => {
+    edges.forEach((edgeList) => {
+        (edgeList as AnchorProxy[]).forEach((edge) => {
+            if (edge.id) {
+                console.log('Component ID:', edge.component.id);
+                const component = bindingManager.getComponent(edge.component.id);
+                if (component) {
+                    console.log('Component:', component);
+                }
+            }
+        });
+    });
 };

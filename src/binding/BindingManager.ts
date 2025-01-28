@@ -4,6 +4,11 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
 import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
+import { VariableParameter } from "vega-lite/build/src/parameter";
+import {TopLevelSelectionParameter} from "vega-lite/build/src/selection"
+
+type Parameter = VariableParameter | TopLevelSelectionParameter
+
 
 interface BindingNode {
     id: string;
@@ -316,13 +321,24 @@ function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
     }, {});
 
     // Move all params to top level
-    const params: any[] = [];
+    const params: (Parameter)[] = [];
     const moveParamsToTop = (obj: any) => {
         if (!obj || typeof obj !== 'object') return;
         
         if (obj.params && Array.isArray(obj.params)) {
-            params.push(...obj.params);
-            delete obj.params;
+            // Only move params that don't have select property
+            const paramsToMove = obj.params.filter((param:Parameter) => !('select' in param));
+            const paramsToKeep = obj.params.filter((param:Parameter) => 'select' in param);
+            
+            if (paramsToMove.length > 0) {
+                params.push(...paramsToMove);
+            }
+            
+            if (paramsToKeep.length > 0) {
+                obj.params = paramsToKeep;
+            } else {
+                delete obj.params;
+            }
         }
         
         Object.values(obj).forEach(value => {

@@ -5,15 +5,14 @@
 //Rect brush is defined as [x1,x2,y1,y2]
 
 
-
+// TODO fix issue
 import { BaseComponent } from "../base";
-import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
+import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
-import { AnchorProxy, AnchorType } from "types/anchors";
+import {  AnchorType } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
-import { generateParams } from "../../utils/compilation";
 
 export const brushBaseContext: Record<AnchorType, any> = {
     x: null,
@@ -56,17 +55,18 @@ export class Brush extends BaseComponent {
     static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
 
     constructor(config:BrushConfig={}){
+        
         super({...config})
-        this.anchors = generateAnchorsFromContext(config, circleBaseContext,this);
+        this.anchors = generateAnchorsFromContext(config, brushBaseContext,this);
 
-        Circle.bindableProperties.forEach(prop => {
+        Brush.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {
                 this.addContextBinding(prop, config[prop]);
             }
         });
         
-        Object.entries(circleBaseContext).forEach(([key, value]) => {
-            if (config[key as keyof CircleConfig] === undefined) {
+        Object.entries(brushBaseContext).forEach(([key, value]) => {
+            if (config[key as keyof BrushConfig] === undefined) {
                 this.addContextBinding(key, value, 'baseContext');
             }
         });
@@ -74,33 +74,51 @@ export class Brush extends BaseComponent {
 
         this.config = config;
         this.initializeAnchors()
+        console.log('made brush!',this)
          
     }
 
+    // generation of the brush signal should come from binding. That is, we should not create and use it in here. 
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
+        console.log('compiling brush')
+        //TODO split rect into 4 sides such that we can do this like bind x sides diff than y sides...
+        const brushName = `${inputContext.nodeId}_brush`;
+
+        // brush but then change the movement of it?
+
+        const signalName = generateComponentSignalName(inputContext.nodeId)
+
         return {
             // add param which will always be the value for this component
             "params":[{
-                "name":`${inputContext.nodeId}_brush`,
-                //@ts-ignore, this is acceptable because params can take expr strings
-                "select":{"type":"interval"}
+                "name":`${brushName}`, // TODO, move this up to the corresponding chart spec
+                "select":{"type":"interval", "mark":undefined}
             },{
                 "name":generateComponentSignalName(inputContext.nodeId),
+                //TODO handle unidimensional or other channel brushes!!!!
                 //@ts-ignore, this is acceptable because params can take expr strings
-                "expr":`{'x':${inputContext.x.fieldValue},'y':${inputContext.y.fieldValue}}`
+                // "expr":`{'x':${brushName}_x[0],'x2':${brushName}_x[1],'y':'x2':${brushName}_y[1],'y2':${brushName}_y[1]}`
+                "expr":`{'x':${brushName}_x[0],'x2':${brushName}_x[1]}`
             }],
             "data":inputContext.data || brushBaseContext.data,
             "mark":{
-                "type":"circle",
+                "type":"rect",
                 "x": {
-                    "expr": `clamp(${inputContext.x.fieldValue}, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
+                    "expr": `clamp(${signalName}.x, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
                 },
-                "y": {
+                "x2": {
                     // remember that y needs to be inverted (lower is higher)
-                    "expr": `clamp(${inputContext.y.fieldValue}, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
+                    "expr": `clamp(${signalName}.x2, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
                 },
+                // "y": {
+                //     "expr": `clamp(${signalName}.y, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
+                // },
+                // "y2": {
+                //     // remember that y needs to be inverted (lower is higher)
+                //     "expr": `clamp(${signalName}.y2, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
+                // },
                 "color": {
                     "expr": inputContext.color || brushBaseContext.color
                 },

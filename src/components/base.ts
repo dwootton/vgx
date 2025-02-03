@@ -79,10 +79,6 @@ export abstract class BaseComponent {
           this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }
-      
-
-       
-
      
     });
   }
@@ -91,6 +87,7 @@ export abstract class BaseComponent {
     const allAnchor: AnchorGroupSchema = {
       id: '_all',
       type: 'group',
+      interactive: false, 
       // map through all anchors and add their schemas to the children
       children: new Map(Array.from(this.anchors.entries()).map(([key, anchor]) => [key, anchor.anchorSchema]))
     };

@@ -173,13 +173,14 @@
 
       // Render all charts
       const renderChart = async (chart, elementId) => {
+        console.log('chart2', chart)
         const vegaLiteSpec = await chart.compile();
 
         vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then(console.log).catch(console.warn);
       };
 
       await Promise.all([
-        renderChart(scatter, 'scatter'),
+        // renderChart(scatter, 'scatter'),
          renderChart(hist, 'hist'),
         // renderChart(line, 'line'),
         // renderChart(bar, 'bar'),

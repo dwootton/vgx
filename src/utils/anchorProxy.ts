@@ -89,7 +89,7 @@ export function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent |
       // for each child, get the proxy anchor and add it to the edges
       console.log('children', children)
       children.forEach(anchorId => {
-          console.log('anchorId', anchorId, component)
+        console.log('component', component, 'anchorId', anchorId)
           const childProxy = component.getAnchor(anchorId);
           console.log('childProxy', childProxy)
           edges.push(childProxy);

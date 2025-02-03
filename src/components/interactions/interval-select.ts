@@ -90,6 +90,7 @@ export class IntervalSelect extends BaseComponent {
                 }
             }, {
                 name: generateComponentSignalName(inputContext.nodeId),
+                // @ts-ignore allow as params can have expr
                 expr: `{
                     x1: ${brushName}_x[0],
                     x2: ${brushName}_x[1],

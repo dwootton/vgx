@@ -40,6 +40,8 @@ export class IntervalSelect extends BaseComponent {
         const generatedProxyAnchors= generateAnchorsFromContext( brushBaseContext, this);
         
         const rectAnchors = generateRectAnchors(this);
+
+        console.log('rect anchors',rectAnchors)
         
         this.anchors = new Map([...generatedProxyAnchors, ...rectAnchors]);
         

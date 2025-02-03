@@ -1,7 +1,7 @@
 import { BindingTarget } from "../components/base";
 import { isComponent } from "./component";
 
-import { AnchorSchema, AnchorProxy, AnchorType, AnchorGroupSchema } from '../types/anchors';
+import {  AnchorProxy, AnchorType, AnchorGroupSchema, AnchorOrGroupSchema } from '../types/anchors';
 import { BaseComponent } from '../components/base';
 import { BindingManager, BindingEdge } from '../binding/BindingManager';
 import { generateComponentSignalName } from "./component";
@@ -13,7 +13,7 @@ export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorOrGroupSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -31,14 +31,15 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
   if (!compileFn && anchor.type != 'group') {
     throw new Error(`Compile function is required for an anchor proxy ${anchor.id} ${component.id}`)
   }
-
-  return {
+  const proxy = {
     id: { componentId: component.id, anchorId: anchor.id },
     component,
     bind: bindFn,
     anchorSchema: anchor,
     compile: compileFn || (() => ({source:'baseContext',value:''}))
   };
+  // console.log('anchorProxy', proxy);
+  return proxy;
 }
 //TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 

@@ -27,6 +27,7 @@ type RectAnchorConfig = {
 import { AnchorProxy } from "../../types/anchors";
 export function generateRectAnchors(component: BaseComponent): Map<string, AnchorProxy>{
     const anchors = new Map<string, AnchorOrGroupSchema>();
+    console.log('in generateRectAnchors', component);
     
     // Individual coordinate anchors
     ['x1', 'x2', 'y1', 'y2'].forEach(coord => {
@@ -84,8 +85,13 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
     // });
 
     const proxies = new Map<string, AnchorProxy>();
-    Object.entries(anchors).forEach(([key, schema]) => {
-        proxies.set(key, generateProxyFromSchema(schema, component));
+    console.log('anchors', anchors);
+    // Convert Map to array of entries before using forEach
+    Array.from(anchors.entries()).forEach(([key, schema]) => {
+        console.log('in map', key, schema);
+        const proxy = generateProxyFromSchema(schema, component);
+        console.log('proxy', proxy);
+        proxies.set(key, proxy);
     });
     return proxies;
 }

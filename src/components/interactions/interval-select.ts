@@ -50,14 +50,13 @@ export class IntervalSelect extends BaseComponent {
     }
 
     private createGroupAnchor(groupName: string, children: string[]) {
-        const childAnchors = children.map(child => this.anchors.get(child));
         this.anchors.set(groupName, {
             id: { componentId: this.id, anchorId: groupName },
             component: this,
             anchorSchema: {
                 id: groupName,
                 type: 'group',
-                children: childAnchors,
+                children: children,
                 interactive: true // Selection anchors are always interactive
             },
             bind: (target: any) => {

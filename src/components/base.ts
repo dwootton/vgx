@@ -88,8 +88,8 @@ export abstract class BaseComponent {
       id: '_all',
       type: 'group',
       interactive: false, 
-      // map through all anchors and add their schemas to the children
-      children: new Map(Array.from(this.anchors.entries()).map(([key, anchor]) => [key, anchor.anchorSchema]))
+      // map through all anchors  dand add their schemas to the children
+      children: Array.from(this.anchors.keys())
     };
     this.anchors.set('_all', this.createAnchorProxy(allAnchor));
   }

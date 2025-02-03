@@ -74,7 +74,6 @@ export class Brush extends BaseComponent {
 
         this.config = config;
         this.initializeAnchors()
-        console.log('made brush!',this)
          
     }
 
@@ -82,7 +81,6 @@ export class Brush extends BaseComponent {
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        console.log('compiling brush')
         //TODO split rect into 4 sides such that we can do this like bind x sides diff than y sides...
         const brushName = `${inputContext.nodeId}_brush`;
 

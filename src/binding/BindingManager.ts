@@ -196,12 +196,10 @@ export class SpecCompiler {
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
         }
-        console.log('rootComponent',rootComponent)
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
        
-        console.log('bindingGraph',bindingGraph)
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(bindingGraph);
 
@@ -217,7 +215,6 @@ export class SpecCompiler {
         const compiledComponents: Partial<UnitSpec<Field>>[] = [];
 
         for (const node of nodes.values()) {
-            console.log('node',node)
             const compiledNode = this.compileNode(node, edges);
             compiledComponents.push(compiledNode);
         }
@@ -236,9 +233,9 @@ export class SpecCompiler {
         let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
 
         compilationContext = this.buildCompilationContext(edges,compilationContext);
+        console.log('compilationContext',compilationContext)
         
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
-        console.log('compiledSpec',compiledSpec, node.id)
         return compiledSpec;
     }
 
@@ -266,7 +263,7 @@ export class SpecCompiler {
         const groupedEdges = groupEdgesByChannel(edges);
         
         // to log component name
-        logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
+        // logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
 
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);

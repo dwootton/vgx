@@ -192,7 +192,6 @@ export class BaseChart extends BaseComponent {
         })
       })
     })
-    console.log('chart anchors',anchors)
 
     // for each anchor, add it
     anchors.forEach((anchor) => {

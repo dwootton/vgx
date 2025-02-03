@@ -14,7 +14,6 @@ export interface BarchartConfig extends ChartConfig {
         mark: 'bar'
       });
 
-      console.log('this.channelConfigs barchart', this.channelConfigs.encodingDefs.x)
   
       
       this.spec.encoding = {

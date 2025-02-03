@@ -2,6 +2,10 @@ import { BaseComponent } from "../components/base";
 import { AnchorProxy } from "../types/anchors";
 import { AnchorGroupSchema } from "../types/anchors";
 
+// TODO: issue is that these bindings appear to be binding to weird source anchors (for example, )
+// source nod2, target node 1 (rect->interval) and node2->node 0, bind.composite.child[0].... gotta figure that out
+// probably some issue with the group unpacking, and its iterating over all exposed properties of the component.
+
 export function createGroupAnchor(
     component: BaseComponent,
     groupName: string,
@@ -20,9 +24,12 @@ export function createGroupAnchor(
             interactive
         } as AnchorGroupSchema,
         bind: (target: any) => {
-            children.forEach(child => 
+            console.log('bind', target)
+            children.forEach(child => {
+                console.log('child', child)
                 child?.bind(target)
-            );
+            });
+            console.log('component', component)
             return component;
         },
         compile: (nodeId?: string) => ({

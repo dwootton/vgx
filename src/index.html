@@ -110,26 +110,26 @@
         }
       }
 
-      // Create visualizations
-      const scatter = alx.scatterplot({
-        data: scatterData,
-        x: 'x',
-        y: 'y',
-        width: 400,
-        height: 300,
-        bind: alx.circle({
-          x: 20,
-          y: 60,
-          bind: alx.drag()
-        })
-      })
+      // // Create visualizations
+      // const scatter = alx.scatterplot({
+      //   data: scatterData,
+      //   x: 'x',
+      //   y: 'y',
+      //   width: 400,
+      //   height: 300,
+      //   bind: alx.circle({
+      //     x: 20,
+      //     y: 60,
+      //     bind: alx.drag()
+      //   })
+      // })
 
       const hist = alx.histogram({
         data: histData,
         x: 'value',
         width: 400,
         height: 300,
-        bind: alx.brush({name:'brush'})
+        bind: alx.brush2({name:'brush'})
       })
 
 
@@ -138,38 +138,38 @@
 
 
 
-      const line = alx.lineplot({
-        data: timeSeriesData,
-        x: 'time',
-        y: 'value',
-        width: 400,
-        height: 300
-      })
+      // const line = alx.lineplot({
+      //   data: timeSeriesData,
+      //   x: 'time',
+      //   y: 'value',
+      //   width: 400,
+      //   height: 300
+      // })
 
-      const bar = alx.barchart({
-        data: barData,
-        x: 'category',
-        y: 'value',
-        aggregate: 'mean',
-        width: 400,
-        height: 300,
-        bind: alx.brush({name:'brush'})
-      })
+      // const bar = alx.barchart({
+      //   data: barData,
+      //   x: 'category',
+      //   y: 'value',
+      //   aggregate: 'mean',
+      //   width: 400,
+      //   height: 300,
+      //   bind: alx.brush({name:'brush'})
+      // })
 
-      const heat = alx.heatmap({
-        data: heatmapData,
-        x: 'x',
-        y: 'y',
-        color: 'value',
-        width: 400,
-        height: 300
-      })
+      // const heat = alx.heatmap({
+      //   data: heatmapData,
+      //   x: 'x',
+      //   y: 'y',
+      //   color: 'value',
+      //   width: 400,
+      //   height: 300
+      // })
 
-      const pie = alx.piechart({
-        data: barData,
-        categoryField: 'category'
-      }
-      )
+      // const pie = alx.piechart({
+      //   data: barData,
+      //   categoryField: 'category'
+      // }
+      // )
 
       // Render all charts
       const renderChart = async (chart, elementId) => {

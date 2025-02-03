@@ -45,12 +45,16 @@ export abstract class BaseComponent {
     function getTargetId(binding: BaseComponent | AnchorProxy): string {
       return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
     }
+    console.log('bindings', bindings)
     
+
     bindings.forEach(({ value: binding, key }) => {
       const bindingProperty = key == 'bind' ? '_all' : key;
+      console.log('bindingProperty', bindingProperty)
 
       if(bindingProperty === '_all'){
 
+        console.log('binding all', binding)
         // go through all target anchors, and if any are interactive, add a binding to the inverse
         if(isComponent(binding)){
         binding.anchors.forEach((anchor) => {
@@ -64,18 +68,21 @@ export abstract class BaseComponent {
       }
       
       if(isComponent(binding)){
+        console.log('binding', binding)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
         binding.anchors.forEach((anchor) => {
           if(anchor.anchorSchema.interactive){
+            console.log('interactive2', binding)
 
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
           }
         })
        
       } else {
+        console.log('not component', binding)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if(binding.anchorSchema.interactive){
-
+          console.log('interactive', binding)
           this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }

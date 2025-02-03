@@ -67,6 +67,7 @@ export class BindingManager {
         // Initialize dependencies lazily
         this.graphManager = new GraphManager( ()=>this);
         this.specCompiler = new SpecCompiler(this.graphManager, ()=>this);
+        console.log('BindingManager initialized',this)
     }
 
     public static getInstance(): BindingManager {
@@ -234,6 +235,7 @@ export class SpecCompiler {
 
         compilationContext = this.buildCompilationContext(edges,compilationContext);
         console.log('compilationContext',compilationContext)
+
         
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
         return compiledSpec;

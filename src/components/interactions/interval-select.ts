@@ -13,6 +13,8 @@ import {  AnchorType } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 
+
+
 export const brushBaseContext: Record<AnchorType, any> = {
     x: null,
     y: null,
@@ -31,6 +33,7 @@ export class IntervalSelect extends BaseComponent {
 
     constructor(config: BrushConfig = {}){
         super({...config});
+        console.log('IntervalSelect constructor', this, config)
         
         // Create individual coordinate anchors
         this.anchors = generateAnchorsFromContext(config, brushBaseContext, this);
@@ -41,7 +44,7 @@ export class IntervalSelect extends BaseComponent {
 
         IntervalSelect.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {
-                this.addContextBinding(prop, config[prop]);
+                //this.addContextBinding(prop, config[prop]);
             }
         });
 

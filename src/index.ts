@@ -1,6 +1,6 @@
 import { Scatterplot, LinePlot, BarChart, Heatmap ,Histogram, PieChart} from './components/charts';
 import { Circle } from './components/marks';
-import { Drag } from './components/interactions';
+import { Brush, Drag } from './components/interactions';
 
 export const alx = {
   scatterplot: (config: any) => new Scatterplot(config),
@@ -10,5 +10,6 @@ export const alx = {
   heatmap: (config: any) => new Heatmap(config),
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
-  drag: (config:any)=> new Drag(config)
+  drag: (config:any)=> new Drag(config),
+  brush: (config:any)=> new Brush(config)
 };

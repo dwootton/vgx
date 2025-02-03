@@ -86,7 +86,7 @@ export class BaseChart extends BaseComponent {
     this.spec = {
       name: this.id,
       title: config.title,
-      data: { values: config.data },
+      data: { values: config.data , name:'baseChartData'},
       mark: config.mark,
       //@ts-ignore
       width: this.width,
@@ -173,7 +173,7 @@ export class BaseChart extends BaseComponent {
         'id': scaleName, 'proxy': this.createAnchorProxy({
           id: scaleName,
           type: 'scale',
-          
+          interactive:false
         }, () => {
           return {
             source: 'encoding',
@@ -192,6 +192,7 @@ export class BaseChart extends BaseComponent {
         })
       })
     })
+    console.log('chart anchors',anchors)
 
     // for each anchor, add it
     anchors.forEach((anchor) => {

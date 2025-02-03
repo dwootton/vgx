@@ -4,6 +4,11 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
 import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
+import { VariableParameter } from "vega-lite/build/src/parameter";
+import {TopLevelSelectionParameter} from "vega-lite/build/src/selection"
+
+type Parameter = VariableParameter | TopLevelSelectionParameter
+
 
 interface BindingNode {
     id: string;
@@ -191,15 +196,17 @@ export class SpecCompiler {
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
         }
+        console.log('rootComponent',rootComponent)
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
        
+        console.log('bindingGraph',bindingGraph)
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(bindingGraph);
 
         //const compiledSpecs = this.compileBindingGraph(bindingGraph);
-        const mergedSpec = mergeSpecs(compiledSpecs);
+        const mergedSpec = mergeSpecs(compiledSpecs,  rootComponent.id);
 
         return removeUndefinedInSpec(mergedSpec);
     }
@@ -210,6 +217,7 @@ export class SpecCompiler {
         const compiledComponents: Partial<UnitSpec<Field>>[] = [];
 
         for (const node of nodes.values()) {
+            console.log('node',node)
             const compiledNode = this.compileNode(node, edges);
             compiledComponents.push(compiledNode);
         }
@@ -229,7 +237,9 @@ export class SpecCompiler {
 
         compilationContext = this.buildCompilationContext(edges,compilationContext);
         
-        return this.compileComponentWithContext(node.id, compilationContext);
+        const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
+        console.log('compiledSpec',compiledSpec, node.id)
+        return compiledSpec;
     }
 
    
@@ -284,7 +294,7 @@ export class SpecCompiler {
     
 }
 
-function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
+function  mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): TopLevelSpec {
     // Helper to check if spec has layer/mark
     const hasLayerOrMark = (spec: any) => {
         return spec.layer || spec.mark;
@@ -316,12 +326,50 @@ function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
     }, {});
 
     // Move all params to top level
-    const params: any[] = [];
+    const params: (Parameter)[] = [];
+    const selectParams: (Parameter)[] = [];
+
+    // Function to find base chart layer by rootComponentId
+    const findBaseChartLayer = (obj: any): any | null => {
+        if (!obj || typeof obj !== 'object') return null;
+        
+        if (obj.name === rootComponentId) return obj;
+        
+        for (const value of Object.values(obj)) {
+            const result = findBaseChartLayer(value);
+            if (result) return result;
+        }
+        
+        return null;
+    };
+
+    // Function to move params to top level
     const moveParamsToTop = (obj: any) => {
         if (!obj || typeof obj !== 'object') return;
         
         if (obj.params && Array.isArray(obj.params)) {
-            params.push(...obj.params);
+            // Split params into select and non-select
+            const [selectParamsArr, nonSelectParamsArr] = obj.params.reduce(
+                ([select, nonSelect]: [Parameter[], Parameter[]], param: Parameter) => {
+                    if ('select' in param) {
+                        select.push(param);
+                    } else {
+                        nonSelect.push(param);
+                    }
+                    return [select, nonSelect];
+                },
+                [[], []]
+            );
+            
+            // Add to respective arrays
+            if (nonSelectParamsArr.length > 0) {
+                params.push(...nonSelectParamsArr);
+            }
+            if (selectParamsArr.length > 0) {
+                selectParams.push(...selectParamsArr);
+            }
+            
+            // Remove params from original location
             delete obj.params;
         }
         
@@ -330,7 +378,14 @@ function  mergeSpecs(specs: Partial<UnitSpec<Field>>[]): TopLevelSpec {
         });
     };
 
+    // Move params to their destinations
     moveParamsToTop(mergedSpec);
+
+    // Add select params to base chart
+    const baseChartLayer = findBaseChartLayer(mergedSpec);
+    if (baseChartLayer && selectParams.length > 0) {
+        baseChartLayer.params = selectParams;
+    }
     if (params.length > 0) {
 
         mergedSpec.params = mergeParams(params);

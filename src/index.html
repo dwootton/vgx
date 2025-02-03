@@ -129,6 +129,7 @@
         x: 'value',
         width: 400,
         height: 300,
+        bind: alx.brush({name:'brush'})
       })
 
 
@@ -151,7 +152,8 @@
         y: 'value',
         aggregate: 'mean',
         width: 400,
-        height: 300
+        height: 300,
+        bind: alx.brush({name:'brush'})
       })
 
       const heat = alx.heatmap({
@@ -173,6 +175,7 @@
       const renderChart = async (chart, elementId) => {
         const vegaLiteSpec = await chart.compile();
         console.log('vlspec', vegaLiteSpec)
+        console.log('vlspec.marks',JSON.stringify(vegaLiteSpec,null,2))
 
         vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then(console.log).catch(console.warn);
       };

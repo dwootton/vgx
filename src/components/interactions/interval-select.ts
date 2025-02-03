@@ -9,13 +9,14 @@ import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
-import {  AnchorType } from "types/anchors";
+import {  AnchorIdentifer } from "../../types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
+import { generateRectAnchors } from "../../utils/anchorGeneration/rectAnchors";
 
 
 
-export const brushBaseContext: Record<AnchorType, any> = {
+export const brushBaseContext: Record<AnchorIdentifer, any> = {
     x: null,
     y: null,
     color: "'transparent'", // in vega, color needs to be a string in the expression
@@ -36,7 +37,11 @@ export class IntervalSelect extends BaseComponent {
         console.log('IntervalSelect constructor', this, config)
         
         // Create individual coordinate anchors
-        this.anchors = generateAnchorsFromContext(config, brushBaseContext, this);
+        const generatedProxyAnchors= generateAnchorsFromContext( brushBaseContext, this);
+        
+        const rectAnchors = generateRectAnchors(this);
+        
+        this.anchors = new Map([...generatedProxyAnchors, ...rectAnchors]);
         
         // Create group anchors
         this.createGroupAnchor('x', ['x1', 'x2']);

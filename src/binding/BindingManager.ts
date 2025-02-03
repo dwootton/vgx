@@ -1,5 +1,5 @@
 import { BaseComponent } from "components/base";
-import { AnchorGroupSchema, AnchorProxy, AnchorType } from "types/anchors";
+import { AnchorGroupSchema, AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";

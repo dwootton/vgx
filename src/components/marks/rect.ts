@@ -2,12 +2,12 @@ import { BaseComponent } from "../base";
 import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
-import { AnchorProxy, AnchorType } from "types/anchors";
+import { AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 
-export const rectBaseContext: Record<AnchorType, any> = {
+export const rectBaseContext: Record<AnchorIdentifer, any> = {
     x1: null,
     x2: null,
     y1: null,
@@ -29,7 +29,7 @@ export class Rect extends BaseComponent {
 
     constructor(config:RectConfig={}){
         super({...config})
-        this.anchors = generateAnchorsFromContext(config,rectBaseContext,this);
+        this.anchors = generateAnchorsFromContext(rectBaseContext,this);
 
         Rect.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {

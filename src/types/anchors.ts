@@ -5,24 +5,35 @@ export interface AnchorId {
   anchorId: string; // TODO this needs to be randomized and cant be the actual id of the schema 
 }
 
-export type GeometricAnchorType = 'point' | 'line' | 'area' | 'path';
-export type ScaleAnchorType = "scale"
-export type ChannelAnchorType = 'x' | 'y' | 'x2' | 'y2' | 'color' | 'size' | 'shape';
-export type SelectionAnchorType = 'PointSelection' | 'IntervalSelection' | 'LassoSelection';
-export type DataAnchorType = 'data'; // note: this can take multiple forms, but it represents the internals
-export type OtherAnchorTypes = string;
+export type GeometricAnchorIdentifer = 'point' | 'line' | 'area' | 'path';
+export type ScaleAnchorIdentifer = "scale"
+export type SelectionAnchorIdentifer = 'PointSelection' | 'IntervalSelection' | 'LassoSelection';
+export type DataAnchorIdentifer = 'data'; // note: this can take multiple forms, but it represents the internals
+export type OtherAnchorIdentifers = string;
 
-export type AnchorType = GeometricAnchorType | ChannelAnchorType | SelectionAnchorType | ScaleAnchorType | OtherAnchorTypes;
 
-// AnchorTypes correspond to all of the different 
+// this is the name of the anchor such as "top" or "left", or "x1"
+export type AnchorIdentifer = GeometricAnchorIdentifer | SelectionAnchorIdentifer | ScaleAnchorIdentifer | OtherAnchorIdentifers;
+
+// this is the general type of the anchor data. For example, "x1" anchor would be a encoding anchor.
+export type AnchorType = 'group' | 'encoding';
+export type ChannelType = 'x' | 'y' | 'color' | 'size' | 'shape';
+// Anchor Id correspond to all of the different 
 export interface AnchorId {
   componentId: string;
   anchorId: string; // TODO this needs to be randomized and cant be the actual id of the schema 
 }
 
-export interface AnchorSchema {
+export interface InfoAnchorSchema {
     id: string;
-    type: AnchorType;
+    type: 'otherInfo';
+    interactive: boolean;
+}
+
+export interface EncodingAnchorSchema {
+    id: string;
+    type: 'encoding';
+    channel: ChannelType;
     interactive: boolean;
 }
 
@@ -34,6 +45,9 @@ export interface AnchorGroupSchema {
     children: string[];
     interactive: boolean;
 }
+
+export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;
+export type AnchorOrGroupSchema = AnchorSchema | AnchorGroupSchema;
 
 export interface AnchorProxy {
   component: BaseComponent;
@@ -47,7 +61,6 @@ export interface AnchorProxy {
 // brush.sides-> get the anchor proxy for sides
 // sides.top -> get the anchor proxy for top
   
-export type AnchorOrGroupSchema = AnchorSchema | AnchorGroupSchema;
 
 import { NumericEncodingConstraint,CategoricalEncodingConstraint } from './constraints';
 

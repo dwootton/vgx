@@ -2,12 +2,12 @@ import { BaseComponent } from "../base";
 import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
-import { AnchorProxy, AnchorType } from "types/anchors";
+import { AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 
-export const circleBaseContext: Record<AnchorType, any> = {
+export const circleBaseContext: Record<AnchorIdentifer, any> = {
     x: null,
     y: null,
     size: 200,
@@ -27,7 +27,7 @@ export class Circle extends BaseComponent {
 
     constructor(config:CircleConfig={}){
         super({...config})
-        this.anchors = generateAnchorsFromContext(config,circleBaseContext,this);
+        this.anchors = generateAnchorsFromContext(circleBaseContext,this);
 
         Circle.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {

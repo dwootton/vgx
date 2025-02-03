@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
+import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorIdentifer, AnchorOrGroupSchema } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager,VirtualBindingEdge } from '../binding/BindingManager';
@@ -116,6 +116,7 @@ export abstract class BaseComponent {
   // Protected method to get anchor (used by bind)
   public getAnchor(id: string): AnchorProxy {
     const anchor = this.anchors.get(id);
+    console.log('anchor', anchor, this.anchors, id)
     if (!anchor) {
       throw new Error(`Anchor "${id}" not found`);
     }

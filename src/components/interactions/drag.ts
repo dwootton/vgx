@@ -2,15 +2,15 @@ import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
-import { AnchorType } from "types/anchors";
+import { AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 
-export const dragBaseContext: Record<AnchorType, any> = {
+export const dragBaseContext: Record<AnchorIdentifer, any> = {
     targetElementId: null,
-    start: { x: 0, y: 0 },
-    stop: { x: 0, y: 0 },
+    // start: { x: 0, y: 0 },
+    // stop: { x: 0, y: 0 },
     x: 0,
     y: 0,
     markName: null
@@ -25,7 +25,7 @@ export class Drag extends BaseComponent {
 
     constructor(config: DragConfig = {}) {
         super(config);
-        this.anchors = generateAnchorsFromContext(config,dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
+        this.anchors = generateAnchorsFromContext(dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
         this.config = config;
         this.initializeAnchors();
     }

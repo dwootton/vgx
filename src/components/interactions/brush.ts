@@ -9,12 +9,12 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import {compilationContext} from '../../binding/binding';
-import {  AnchorType } from "types/anchors";
+import { compilationContext } from '../../binding/binding';
+import {  AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 
-export const brushBaseContext: Record<AnchorType, any> = {
+export const brushBaseContext: Record<AnchorIdentifer, any> = {
     x: null,
     y: null,
     color: "'transparent'", // in vega, color needs to be a string in the expression
@@ -33,7 +33,7 @@ export class Brush extends BaseComponent {
     constructor(config:BrushConfig={}){
         
         super({...config})
-        this.anchors = generateAnchorsFromContext(config, brushBaseContext,this);
+        this.anchors = generateAnchorsFromContext( brushBaseContext,this);
 
         Brush.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {

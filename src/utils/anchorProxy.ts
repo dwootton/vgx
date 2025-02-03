@@ -6,6 +6,7 @@ import { BaseComponent } from '../components/base';
 import { BindingManager, BindingEdge } from '../binding/BindingManager';
 import { generateComponentSignalName } from "./component";
 import { generateParams } from "./compilation"
+import { isChannel } from "vega-lite/build/src/channel";
 
 
 export function isAnchorProxy(value: any): value is AnchorProxy {
@@ -42,14 +43,20 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
 //TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 
 
-export function generateAnchorsFromContext(context: Record<AnchorType, any>, baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
+
+
+export function generateAnchorsFromContext( baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
   const anchors = new Map<string, AnchorProxy>();
 
   
   Object.entries(baseContext).forEach(([key, value]) => {
+
+    //if key is a channel value, then list as encoding, else list as info
+    const anchorType = isChannel(key) ? 'encoding' : 'info';
+
     const anchorSchema = {
       id: `${key}`,
-      type: key as AnchorType,
+      type: anchorType,
       interactive: metaContext[key]?.interactive || false
     }
 

@@ -1,4 +1,4 @@
-import { AnchorProxy, AnchorType, PositionValueSchema, ValueSchema } from "../types/anchors";
+import { AnchorProxy, AnchorIdentifer, PositionValueSchema, ValueSchema } from "../types/anchors";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
 import { BindingManager } from "./BindingManager";
 export type compilationContext = any;
@@ -55,10 +55,11 @@ export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, Edge[]> =
 
 export type EdgeResult = {
     data: { source: string; value: ValueSchema };
-    type: AnchorType;
+    type: AnchorIdentifer;
   };
 
 import { normalizeEdgeResult, resolveValueSchema } from "./channelResolution";
+
 export const getPrioritizedValue = (
     edgeResults: EdgeResult[]
   ): PositionValueSchema | number | string => {
@@ -93,7 +94,7 @@ export const resolveChannelValue = (edges: Edge[], nodeId: string): PositionValu
                     source: edge.source,
                     value: edge.value
                 },
-                type: 'virtual' as AnchorType
+                type: 'virtual' as AnchorIdentifer
             };
         }
     });

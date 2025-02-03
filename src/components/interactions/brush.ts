@@ -26,30 +26,6 @@ type BrushConfig = {
     [K in keyof typeof brushBaseContext]?: typeof brushBaseContext[K]
 }
 
-
-// point.x -> {xVal}
-// brush.x -> (x1,x2)
-// lasso.x -> [x,x,x,x,x,x,x,x,x,x]
-//lasso.x.bind(vgx.drag_point)// each one should constraint the drag point to the lasso value 
-// when 
-
-// creates, arrays of params. 
-// brush.x.bind(vgx.line) 
-// constraint()
-/* 
-Brush.x-> [x1,x2]
-
-
-*/
-
-function generateSides() {
-
-}
-
-function generateRectProperties(){
-    return ['']
-}
-
 export class Brush extends BaseComponent {
     public config: BrushConfig;
     static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;

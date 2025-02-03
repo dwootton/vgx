@@ -31,7 +31,7 @@ export interface AnchorSchema {
 export interface AnchorGroupSchema {
     id: string;
     type: 'group';
-    children: Map<string, AnchorOrGroupSchema>;
+    children: string[];
     interactive: boolean;
 }
 

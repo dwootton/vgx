@@ -102,7 +102,7 @@ const debugLogIfMatch = (
       console.log('Value:', value);
       console.log('Source:', source);
       console.log('Result:', result);
-      console.log('is it in',value,'positionValueType',positionValueType,'in value?', positionValueType in value)
+      console.log('is it in',value,'positionValueType',positionValueType,'in value?', value && positionValueType in value)
 
       console.log('=================');
     }
@@ -134,5 +134,5 @@ const priorityRules: Record<keyof PositionValueSchema, PriorityOrder> = {
   fieldName: ['encoding','generated', 'context', 'baseContext'],
   constraints: ['encoding','generated', 'context', 'baseContext'],
   fieldValue: ['generated', 'context', 'encoding', 'baseContext'],
-  initialValue: [ 'context', 'generated','encoding', 'baseContext'],
+  initialValue: ['context', 'generated','encoding', 'baseContext'],
 };

@@ -41,6 +41,8 @@ export class Circle extends BaseComponent {
             }
         });
 
+        this.addContextBinding('markName', this.id+"_marks", 'baseContext');
+
 
         this.config = config;
         this.initializeAnchors()

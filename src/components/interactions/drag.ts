@@ -12,7 +12,8 @@ export const dragBaseContext: Record<AnchorType, any> = {
     start: { x: 0, y: 0 },
     stop: { x: 0, y: 0 },
     x: 0,
-    y: 0
+    y: 0,
+    markName: null
 }
 
 type DragConfig = {
@@ -39,7 +40,7 @@ export class Drag extends BaseComponent {
                 events: {
                     type: 'pointermove',
                     between: [
-                        { type: "pointerdown", "markname": inputContext.targetNodeId},
+                        { type: "pointerdown", "markname": inputContext.markName},
                         { type: "pointerup" }
                     ]
                 },

@@ -2,11 +2,12 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext, deduplicateById, groupEdgesByChannel, resolveChannelValue, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes} from "./binding";
+import { compilationContext, deduplicateById, groupEdgesByAnchorId, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes,  resolveAnchorValue} from "./binding";
 import {getProxyAnchor,expandGroupAnchors} from '../utils/anchorProxy';
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import {TopLevelSelectionParameter} from "vega-lite/build/src/selection"
-
+import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+import {Edge} from "./binding"
 type Parameter = VariableParameter | TopLevelSelectionParameter
 
 
@@ -54,8 +55,12 @@ export class BindingManager {
         return this.components;
     }
 
-    public getComponent(id: string): BaseComponent | undefined {
-        return this.components.get(id);
+    public getComponent(id: string): BaseComponent {
+        const component = this.components.get(id);
+        if (!component) {
+            throw new Error(`Component "${id}" not found.`);
+        }
+        return component;
     }
 
     public compile(fromComponentId: string): TopLevelSpec {
@@ -223,18 +228,37 @@ export class SpecCompiler {
         return compiledComponents;
     }
 
+    
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
 
         const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id )
-        const edges = this.prepareEdges(filteredEdges)
+        const incomingAnchors : AnchorProxy[] = this.prepareEdges(filteredEdges)
 
 
         const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(graphEdges);
 
         let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
 
-        compilationContext = this.buildCompilationContext(edges,compilationContext);
+        let component = this.getBindingManager().getComponent(node.id);
+
+        
+
+        console.log('compiling ', component)
+
+        // for each of component's anchors, we need to produce a group of the edges that are associated with that anchor
+
+        // we need to then resolve the value of each of the edges in the group
+
+        this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
+
+
+
+        
+        //compilationContext = this.buildCompilationContext(edges,compilationContext);
         console.log('compilationContext',compilationContext)
+
+        // at this point compilationContext will have a grouped and ordered list of corresponding values. 
+        
 
         
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
@@ -262,7 +286,7 @@ export class SpecCompiler {
      * @returns 
      */
     private buildCompilationContext(edges: AnchorProxy[], context: compilationContext): compilationContext {
-        const groupedEdges = groupEdgesByChannel(edges);
+        const groupedEdges = groupEdgesByAnchorId(edges);
         
         // to log component name
         // logComponentInfo(groupedEdges as Map<string, AnchorProxy[]>, this.getBindingManager());
@@ -281,12 +305,98 @@ export class SpecCompiler {
         return context;
     }
 
+    private buildPersonalizedCompilationContext(component: BaseComponent, edges: AnchorProxy[], compilationContext: compilationContext): compilationContext {
+        // for each of component's anchors, we need to produce a group of the edges that are associated with that anchor
+        
+        const anchors = component.getAnchors();
+       
+
+        const groupedEdges = groupEdgesByAnchorId(edges);
+
+        this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
+            groupedEdges.get(channel)?.push(virtualBinding);
+        });
+
+        console.log('personalized groupedEdges', groupedEdges)
+        console.log('personalized anchors',anchors)
+
+        
+
+        // filter to only the anchors that are in the component.
+        const anchorMatchedEdges = new Map<string, Edge[]>();
+        
+        // Only keep edge groups where the anchor ID exists in component's anchors
+        for (const [anchorId, edges] of groupedEdges.entries()) {
+            if (anchors.some(anchor => anchor.id.anchorId === anchorId)) {
+                anchorMatchedEdges.set(anchorId, edges);
+            }
+        }
+
+
+        // point.x needs to be able to have all of the edges that are x resolve to it.
+        // brush.x1 needs to have only the edges that are x1 resolve to it. 
+        // these aren't necessarily 
+
+        const channelMatchedEdges = new Map<string, Edge[]>();
+        // For each edge group, check if it represents a channel encoding
+        for (const [anchorId, edges] of groupedEdges.entries()) {
+            const channel = getChannelFromEncoding(anchorId);
+            if (channel) {
+                channelMatchedEdges.set(anchorId, edges);
+            }
+        }
+
+        // Merge channel and anchor matched edges
+        // If an anchor already exists in anchorMatchedEdges, append any additional channel edges
+        // Otherwise add the channel edges as a new entry
+        for (const [channelId, edges] of channelMatchedEdges.entries()) {
+            if (anchorMatchedEdges.has(channelId)) {
+                const existingEdges = anchorMatchedEdges.get(channelId) || [];
+                anchorMatchedEdges.set(channelId, [...existingEdges, ...edges]);
+            } else {
+                anchorMatchedEdges.set(channelId, edges);
+            }
+        }
+
+
+
+
+
+        // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
+        for (const [anchorId, edges] of anchorMatchedEdges.entries()) {
+            const resolvedValue = resolveAnchorValue(edges, compilationContext.nodeId);
+            console.log('resolvedValue',resolvedValue)
+            compilationContext[anchorId] = resolvedValue;
+        }
+
+        console.log('compilationContext',compilationContext)
+        
+        return compilationContext
+
+        // TODO, channel edges have second priorty. 
+        // for example, if a brush.left : drag_line, then we need to resolve brush.x1 (left), to drag_line.x, 
+        // so if none of the edges have a direct map, then we use channel edges to resolve the value
+        
+
+
+
+        //console.log('personalized anchorMatchedEdges',anchorMatchedEdges)
+        // console.log('personalized filteredChannelEdges',filteredChannelEdges)
+
+
+        // we need to then resolve the value of each of the edges in the group
+
+        // we need to then add the resolved value to the compilationContext
+    }
+
+
     private compileComponentWithContext(nodeId: string, context: compilationContext): Partial<UnitSpec<Field>> {
         const component = this.getBindingManager().getComponent(nodeId);
         if (!component) {
             throw new Error(`Component "${nodeId}" not found.`);
         }
         validateComponent(component, nodeId);
+        
         return component.compileComponent(context);
     }
 

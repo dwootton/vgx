@@ -45,11 +45,11 @@ export const groupBy = <T>(items: T[], keyGetter: (item: T) => string): Map<stri
         return groups;
     }, new Map<string, T[]>());
 import { VirtualBindingEdge } from "./BindingManager";
-type Edge = AnchorProxy | VirtualBindingEdge;
+export type Edge = AnchorProxy | VirtualBindingEdge;
 /**
  * Groups edges by their channel
  */
-export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, Edge[]> =>
+export const groupEdgesByAnchorId = (edges: AnchorProxy[]): Map<string, Edge[]> =>
     groupBy(edges, edge => edge.id.anchorId);
 
 
@@ -79,14 +79,17 @@ export const getPrioritizedValue = (
  * Resolves the value for a channel based on priority rules
  */
 
-export const resolveChannelValue = (edges: Edge[], nodeId: string): PositionValueSchema | number | string => {
+export const resolveAnchorValue = (edges: Edge[], nodeId: string): PositionValueSchema | number | string => {
     
     const edgeResults = edges.map(edge => {
         if ('compile' in edge) {
-            return {
+            const result = {
                 data: edge.compile(nodeId),
                 type: edge.anchorSchema.type
             };
+            console.log('edgeResults',result, edge, nodeId)
+            return result
+
         } else {
             // Handle virtual edge case
             return {
@@ -160,6 +163,7 @@ export const detectBidirectionalLinks = (edges: BindingEdge[]): Map<string, stri
   
     return bidirectionalPairs;
   };
+
   export const createSuperNodeMap = (bidirectionalPairs: Map<string, string>): Map<string, string> => {
     const superNodeMap = new Map<string, string>();
     const visited = new Set<string>();

@@ -1,8 +1,7 @@
 import { createAnchorProxy } from "../../utils/anchorProxy";
 import { BaseComponent } from "../../components/base";
 import {  AnchorOrGroupSchema, ChannelType } from "../../types/anchors";
-
-function getChannelFromEncoding(encoding: string): ChannelType {
+export function getChannelFromEncoding(encoding: string): ChannelType {
 
     const channelMap: Record<string, ChannelType> = {
         "x1": "x",
@@ -16,6 +15,7 @@ function getChannelFromEncoding(encoding: string): ChannelType {
     
     return channelMap[encoding]
 }
+
 
 type RectAnchorConfig = {
     x1: number;

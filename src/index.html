@@ -175,6 +175,7 @@
       const renderChart = async (chart, elementId) => {
         console.log('chart2', chart)
         const vegaLiteSpec = await chart.compile();
+        console.log('vegaLiteSpec', vegaLiteSpec)
 
         vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then(console.log).catch(console.warn);
       };

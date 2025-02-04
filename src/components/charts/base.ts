@@ -4,10 +4,9 @@ import { UnitSpec, GenericUnitSpec } from 'vega-lite/build/src/spec/unit';
 import { Encoding } from 'vega-lite/build/src/encoding';
 import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
-
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
-import { AnchorProxy } from 'types/anchors';
+import { AnchorProxy, ChannelType } from 'types/anchors';
 
 export interface ChartConfig {
   data: any[];
@@ -166,14 +165,14 @@ export class BaseChart extends BaseComponent {
       if (isPositionChannel(key)) {
         const positionChannel = getMainRangeChannel(key as PositionChannel);
         scaleName = positionChannel; // used for any reference and inversions 
-      }
-
+      } 
    
       anchors.push({
         'id': scaleName, 'proxy': this.createAnchorProxy({
           id: scaleName,
-          type: 'scale',
-          interactive:false
+          type: 'encoding',
+          interactive:false,
+          channel: scaleName as ChannelType
         }, () => {
           return {
             source: 'encoding',

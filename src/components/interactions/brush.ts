@@ -28,12 +28,12 @@ type BrushConfig = {
 
 export class Brush extends BaseComponent {
     public config: BrushConfig;
-    static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
+    static bindableProperties = ['x', 'y'] as const;
 
     constructor(config:BrushConfig={}){
         
         super({...config})
-        this.anchors = generateAnchorsFromContext( brushBaseContext,this);
+        this.anchors = generateAnchorsFromContext(brushBaseContext,this);
 
         Brush.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {

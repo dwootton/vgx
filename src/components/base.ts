@@ -123,6 +123,10 @@ export abstract class BaseComponent {
     return anchor;
   }
 
+  public getAnchors(): AnchorProxy[] {
+    return Array.from(this.anchors.values());
+  }
+
 
 
 

@@ -4,7 +4,7 @@ import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
     constructor() {
-        const rect= new Rect();
+        const rect = new Rect({y1:0, y2:100});
         const intervalSelect = new IntervalSelect();
         
         // Set up internal bindings
@@ -14,11 +14,14 @@ export class Brush {
             'x', 'x'
         );
 
-        BindingManager.getInstance().addBinding(
-            intervalSelect.id,
-            rect.id,
-            'y', 'y'
-        );
+        // commenting out for now as y
+        // BindingManager.getInstance().addBinding(
+        //     intervalSelect.id,
+        //     rect.id,
+        //     'y', 'y'
+        // );
+
+        //const intervalDrag = new Drag(); TODO: add drag to brush body
 
         return intervalSelect;
     }

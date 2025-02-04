@@ -61,9 +61,10 @@ export class Rect extends BaseComponent {
                 expr: `{
                     x1: ${inputContext.x1.fieldValue},
                     x2: ${inputContext.x2.fieldValue},
-                    y1: ${inputContext.y1.fieldValue},
-                    y2: ${inputContext.y2.fieldValue}
+                  
                 }`
+                //  y1: ${inputContext.y1.fieldValue},
+                //y2: ${inputContext.y2.fieldValue}
             }],
             data: inputContext.data || rectBaseContext.data,
             mark: {
@@ -74,12 +75,12 @@ export class Rect extends BaseComponent {
                 x2: {
                     expr: `clamp(${inputContext.x2.fieldValue}, ${inputContext.x2.scale}range.min, ${inputContext.x2.scale}range.max)`
                 },
-                y: {
-                    expr: `clamp(${inputContext.y1.fieldValue}, ${inputContext.y1.scale}range.min, ${inputContext.y1.scale}range.max)`
-                },
-                y2: {
-                    expr: `clamp(${inputContext.y2.fieldValue}, ${inputContext.y2.scale}range.min, ${inputContext.y2.scale}range.max)`
-                },
+                // y: {
+                //     expr: `clamp(${inputContext.y1.fieldValue}, ${inputContext.y1.scale}range.min, ${inputContext.y1.scale}range.max)`
+                // },
+                // y2: {
+                //     expr: `clamp(${inputContext.y2.fieldValue}, ${inputContext.y2.scale}range.min, ${inputContext.y2.scale}range.max)`
+                // },
                 color: {
                     expr: inputContext.color || rectBaseContext.color
                 },

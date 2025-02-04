@@ -4,6 +4,8 @@ import {  AnchorOrGroupSchema, ChannelType } from "../../types/anchors";
 export function getChannelFromEncoding(encoding: string): ChannelType {
 
     const channelMap: Record<string, ChannelType> = {
+        "x": "x",
+        "y": "y",
         "x1": "x",
         "y1": "y",
         "x2": "x",

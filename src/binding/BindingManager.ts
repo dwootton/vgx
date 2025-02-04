@@ -124,6 +124,7 @@ export class BindingManager {
 
 
 export class GraphManager {
+
     constructor(
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) {}
@@ -196,6 +197,10 @@ export class SpecCompiler {
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) {}
 
+    private hierarchyEdges: Map<string, BindingEdge[]> = new Map();
+
+
+    // note: component Id will always be called from the root component
     public compile(fromComponentId: string): TopLevelSpec {
 
         const rootComponent = this.getBindingManager().getComponent(fromComponentId);
@@ -220,6 +225,9 @@ export class SpecCompiler {
         const { nodes, edges } = bindingGraph;
         const compiledComponents: Partial<UnitSpec<Field>>[] = [];
 
+
+
+
         for (const node of nodes.values()) {
             const compiledNode = this.compileNode(node, edges);
             compiledComponents.push(compiledNode);
@@ -243,15 +251,73 @@ export class SpecCompiler {
 
         
 
-        compilationContext=this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
+        compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
+
+        compilationContext = this.scalePropagation(node.id,compilationContext);
 
 
         // at this point compilationContext will have a grouped and ordered list of corresponding values. 
         
 
-        
+        console.log('compilationContext',compilationContext)
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
         return compiledSpec;
+    }
+
+    private findRootNode(nodeId: string): string {
+        const bindingManager = this.getBindingManager();
+        // search up the binding graph until we find the root node
+        let currentId = nodeId;
+        // while (bindingManager.getSourceBindingsForComponent(currentId).length > 0) {
+        //     console.log('currentId',currentId)
+        //     currentId = bindingManager.getTargetBindingsForComponent(currentId)[0].sourceId;
+        // }
+        return currentId;
+    }
+
+    private scalePropagation(nodeId: string, compilationContext: compilationContext): compilationContext {
+        // Find root node by traversing up the binding graph
+        console.log('scale Propagation',compilationContext)
+        const rootNodeId = 'node_2' //this.findRootNode(nodeId);
+        if (!rootNodeId) return compilationContext;
+
+        const rootComponent = this.getBindingManager().getComponent('node_2');
+        if (!rootComponent) return compilationContext;
+        console.log('rootComponent',rootComponent)
+
+        // For each key in compilation context
+        for (const [key, value] of Object.entries(compilationContext)) {
+            if (key === 'nodeId') continue;
+            // Get all anchors from root component
+            const rootAnchors = rootComponent.getAnchors();
+            
+            // Try to find matching anchor by id or channel name
+            const rootAnchor = rootAnchors.find(anchor => {
+                const anchorId = anchor.id.anchorId;
+                const channelName = getChannelFromEncoding(key);
+                console.log('anchorId',anchorId)
+                console.log('channelName',channelName)
+                console.log('key',key)
+                return anchorId === key || channelName === anchorId;
+            });
+            console.log('rootAnchor',rootAnchor)
+            if (!rootAnchor) continue;
+            console.log('rootAnchor',rootAnchor)
+
+            // Compile the root anchor's value
+            const compiledValue = rootAnchor.compile?.(rootNodeId);
+            if (!compiledValue) continue;
+            console.log('compiledValue',compiledValue)
+            // Add scale and scaleType from root to current context if they exist
+            if (compiledValue.value?.scale) {
+                compilationContext[key].scale = compiledValue.value.scale;
+            }
+            if (compiledValue.value?.scaleType) {
+                compilationContext[key].scaleType = compiledValue.value.scaleType;
+            }
+        }
+        console.log('scale Propagation',compilationContext)
+        return compilationContext;
     }
 
    
@@ -353,6 +419,25 @@ export class SpecCompiler {
             compilationContext[anchorId] = resolvedValue;
         }
 
+
+            // Add scale propagation from parent components
+        const hierarchyAncestors = this.getHierarchyAncestors(compilationContext.nodeId);
+        console.log('hierarchyAncestors',hierarchyAncestors)
+
+        hierarchyAncestors.forEach(ancestorId => {
+            const ancestorSpec = this.compileComponentWithContext(ancestorId, compilationContext);
+            Object.entries(ancestorSpec.encoding || {}).forEach(([channel, enc]) => {
+                console.log('channel',channel)
+                if (!compilationContext[channel]?.scale ) {
+                    compilationContext[channel] = {
+                        ...compilationContext[channel],
+                        scale: enc?.scale,
+                        scaleType: enc?.scale?.type
+                    };
+                }
+            });
+        });
+
         
         return compilationContext
 
@@ -370,6 +455,22 @@ export class SpecCompiler {
         // we need to then resolve the value of each of the edges in the group
 
         // we need to then add the resolved value to the compilationContext
+    }
+
+
+    private getHierarchyAncestors(nodeId: string): string[] {
+        const ancestors: string[] = [];
+        let currentId = nodeId;
+        
+        while (this.hierarchyEdges.has(currentId)) {
+            const edges = this.hierarchyEdges.get(currentId)!;
+            edges.forEach(edge => {
+                ancestors.push(edge.source.nodeId);
+                currentId = edge.source.nodeId;
+            });
+        }
+        
+        return ancestors;
     }
 
 

@@ -243,19 +243,8 @@ export class SpecCompiler {
 
         
 
-        console.log('compiling ', component)
+        compilationContext=this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
 
-        // for each of component's anchors, we need to produce a group of the edges that are associated with that anchor
-
-        // we need to then resolve the value of each of the edges in the group
-
-        this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
-
-
-
-        
-        //compilationContext = this.buildCompilationContext(edges,compilationContext);
-        console.log('compilationContext',compilationContext)
 
         // at this point compilationContext will have a grouped and ordered list of corresponding values. 
         
@@ -316,10 +305,6 @@ export class SpecCompiler {
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
         });
-
-        console.log('personalized groupedEdges', groupedEdges)
-        console.log('personalized anchors',anchors)
-
         
 
         // filter to only the anchors that are in the component.
@@ -365,11 +350,9 @@ export class SpecCompiler {
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of anchorMatchedEdges.entries()) {
             const resolvedValue = resolveAnchorValue(edges, compilationContext.nodeId);
-            console.log('resolvedValue',resolvedValue)
             compilationContext[anchorId] = resolvedValue;
         }
 
-        console.log('compilationContext',compilationContext)
         
         return compilationContext
 

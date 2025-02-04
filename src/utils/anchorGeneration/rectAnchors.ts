@@ -85,12 +85,9 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
     // });
 
     const proxies = new Map<string, AnchorProxy>();
-    console.log('anchors', anchors);
     // Convert Map to array of entries before using forEach
     Array.from(anchors.entries()).forEach(([key, schema]) => {
-        console.log('in map', key, schema);
         const proxy = generateProxyFromSchema(schema, component);
-        console.log('proxy', proxy);
         proxies.set(key, proxy);
     });
     return proxies;

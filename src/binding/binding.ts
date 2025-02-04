@@ -87,7 +87,6 @@ export const resolveAnchorValue = (edges: Edge[], nodeId: string): PositionValue
                 data: edge.compile(nodeId),
                 type: edge.anchorSchema.type
             };
-            console.log('edgeResults',result, edge, nodeId)
             return result
 
         } else {

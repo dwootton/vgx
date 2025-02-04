@@ -24,12 +24,9 @@ export function createGroupAnchor(
             interactive
         } as AnchorGroupSchema,
         bind: (target: any) => {
-            console.log('bind', target)
             children.forEach(child => {
-                console.log('child', child)
                 child?.bind(target)
             });
-            console.log('component', component)
             return component;
         },
         compile: (nodeId?: string) => ({

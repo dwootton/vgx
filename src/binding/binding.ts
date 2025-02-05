@@ -101,6 +101,7 @@ export const resolveAnchorValue = (edges: Edge[], nodeId: string): PositionValue
         }
     });
 
+    console.log('edgeResults',edgeResults)
     const prioritizedValue = getPrioritizedValue(edgeResults);
     return prioritizedValue;
 };

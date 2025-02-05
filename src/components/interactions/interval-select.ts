@@ -96,7 +96,7 @@ export class IntervalSelect extends BaseComponent {
                     mark: { fill: "transparent", stroke: "firebrick" }
                 }
             }, {
-                name: generateComponentSignalName(inputContext.nodeId),
+                name: (inputContext.nodeId),
                 // @ts-ignore allow as params can have expr
                 expr: `{
                     x1: ${brushName}_x[0],

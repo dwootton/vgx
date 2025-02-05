@@ -55,17 +55,19 @@ export class Rect extends BaseComponent {
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         return {
-            params: [{
-                name: generateComponentSignalName(inputContext.nodeId),
-                //@ts-ignore, this is acceptable because params can take expr strings
-                expr: `{
-                    x1: ${inputContext.x1.fieldValue},
-                    x2: ${inputContext.x2.fieldValue},
+            params: [
+            //     {
+            //     // name: generateComponentSignalName(inputContext.nodeId),
+            //     // //@ts-ignore, this is acceptable because params can take expr strings
+            //     // expr: `{
+            //     //     x1: ${inputContext.x1.fieldValue},
+            //     //     x2: ${inputContext.x2.fieldValue},
                   
-                }`
-                //  y1: ${inputContext.y1.fieldValue},
-                //y2: ${inputContext.y2.fieldValue}
-            }],
+            //     // }`
+            //     //  y1: ${inputContext.y1.fieldValue},
+            //     //y2: ${inputContext.y2.fieldValue}
+            // }
+        ],
             data: inputContext.data || rectBaseContext.data,
             mark: {
                 type: "rect",

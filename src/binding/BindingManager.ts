@@ -63,6 +63,10 @@ export class BindingManager {
         return component;
     }
 
+    public getGraphManager(): GraphManager {
+        return this.graphManager;
+    }
+
     public compile(fromComponentId: string): TopLevelSpec {
         return this.specCompiler.compile(fromComponentId);
     }
@@ -176,6 +180,15 @@ export class GraphManager {
         return { nodes, edges };
     }
 
+    private superNodes: Map<string, string> = new Map();
+    public setSuperNodes(superNodeMap: Map<string, string>): void {
+        this.superNodes = superNodeMap;
+    }
+
+    public getSuperNodes(): Map<string, string> {
+        return this.superNodes;
+    }
+
     public printGraph(startComponentId: string): void {
         const { nodes, edges } = this.generateBindingGraph(startComponentId);
 
@@ -220,10 +233,14 @@ export class SpecCompiler {
         return removeUndefinedInSpec(mergedSpec);
     }
     
+    
 
     private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
         const compiledComponents: Partial<UnitSpec<Field>>[] = [];
+
+        const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(edges);
+        this.graphManager.setSuperNodes(superNodeMap);
 
 
 
@@ -243,14 +260,16 @@ export class SpecCompiler {
         const incomingAnchors : AnchorProxy[] = this.prepareEdges(filteredEdges)
 
 
-        const superNodeMap : Map<string, string>= detectAndMergeSuperNodes(graphEdges);
+        const superNodeMap : Map<string, string>= this.graphManager.getSuperNodes();
 
         let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
+        console.log('supernode map',superNodeMap, compilationContext)
 
         let component = this.getBindingManager().getComponent(node.id);
 
         
 
+        console.log('incomingAnchors',incomingAnchors, component)
         compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
 
         compilationContext = this.scalePropagation(node.id,compilationContext);
@@ -283,7 +302,6 @@ export class SpecCompiler {
 
         const rootComponent = this.getBindingManager().getComponent('node_2');
         if (!rootComponent) return compilationContext;
-        console.log('rootComponent',rootComponent)
 
         // For each key in compilation context
         for (const [key, value] of Object.entries(compilationContext)) {
@@ -295,19 +313,14 @@ export class SpecCompiler {
             const rootAnchor = rootAnchors.find(anchor => {
                 const anchorId = anchor.id.anchorId;
                 const channelName = getChannelFromEncoding(key);
-                console.log('anchorId',anchorId)
-                console.log('channelName',channelName)
-                console.log('key',key)
+
                 return anchorId === key || channelName === anchorId;
             });
-            console.log('rootAnchor',rootAnchor)
             if (!rootAnchor) continue;
-            console.log('rootAnchor',rootAnchor)
 
             // Compile the root anchor's value
             const compiledValue = rootAnchor.compile?.(rootNodeId);
             if (!compiledValue) continue;
-            console.log('compiledValue',compiledValue)
             // Add scale and scaleType from root to current context if they exist
             if (compiledValue.value?.scale) {
                 compilationContext[key].scale = compiledValue.value.scale;
@@ -316,7 +329,6 @@ export class SpecCompiler {
                 compilationContext[key].scaleType = compiledValue.value.scaleType;
             }
         }
-        console.log('scale Propagation',compilationContext)
         return compilationContext;
     }
 
@@ -368,6 +380,8 @@ export class SpecCompiler {
 
         const groupedEdges = groupEdgesByAnchorId(edges);
 
+        console.log('groupedEdges',groupedEdges)
+
         this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
             groupedEdges.get(channel)?.push(virtualBinding);
         });
@@ -408,6 +422,8 @@ export class SpecCompiler {
                 anchorMatchedEdges.set(channelId, edges);
             }
         }
+
+        console.log('anchorMatchedEdges',anchorMatchedEdges)
 
 
 

@@ -57,6 +57,13 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
         interactive: true
     });
 
+    // anchors.set('markname', {
+    //     id: 'markname',
+    //     type: 'info',  // TODO fix this to be a non encoding anchor
+    //     children: ['markname'],
+    //     interactive: true
+    // });
+
     function generateProxyFromSchema(schema: AnchorOrGroupSchema, component: BaseComponent, metaContext: any = {}) {
         // compile functions turn the proxy anchor into a compiled anchor (like {fieldValue:#, scaleName:'x'....})
         

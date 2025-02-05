@@ -9,6 +9,8 @@ import { generateParams } from "../../utils/compilation";
 
 export const dragBaseContext: Record<AnchorIdentifer, any> = {
     targetElementId: null,
+    x1: 0,
+    y1: 0,
     // start: { x: 0, y: 0 },
     // stop: { x: 0, y: 0 },
     x: 0,
@@ -44,13 +46,13 @@ export class Drag extends BaseComponent {
                         { type: "pointerup" }
                     ]
                 },
-                update: `{'x': x(), 'y': y() }`
+                update: `merge(${nodeId},{'x': x(), 'y': y() })`
             },
             {
                 "events": {
                     "type": "pointerdown",
                 },
-                "update": `merge(${nodeId},{start:{x:x(),y:y()}})`
+                "update": `merge(${nodeId},{x1:x(),y1:y()})`
             },
             {
                 "events": {
@@ -63,12 +65,15 @@ export class Drag extends BaseComponent {
        // if 
 
         return {
-            params: [{
-                name: generateComponentSignalName(nodeId),
-                //@ts-ignore, this is acceptable because params can take expr strings
-                expr: `{x:${inputContext.x.fieldValue},y:${inputContext.y.fieldValue}}`//generateParams(inputContext)
-                //@ts-ignore, this is acceptable because params can take expr strings
-            }, signal]
+            //@ts-ignore, this is acceptable because params can take expr strings
+            params: [signal]
+            //     {
+            //     name: generateComponentSignalName(nodeId),
+            //     //@ts-ignore, this is acceptable because params can take expr strings
+            //     expr: `{x:${inputContext.x.fieldValue},y:${inputContext.y.fieldValue}}`//generateParams(inputContext)
+            //     //@ts-ignore, this is acceptable because params can take expr strings
+            // },]
+             
         };
     }
 }

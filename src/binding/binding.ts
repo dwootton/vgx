@@ -1,6 +1,6 @@
 import { AnchorProxy, AnchorIdentifer, PositionValueSchema, ValueSchema } from "../types/anchors";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-import { BindingManager } from "./BindingManager";
+import { BindingManager, Edge } from "./BindingManager";
 export type compilationContext = any;
 
 
@@ -44,13 +44,6 @@ export const groupBy = <T>(items: T[], keyGetter: (item: T) => string): Map<stri
         groups.get(key)?.push(item);
         return groups;
     }, new Map<string, T[]>());
-import { VirtualBindingEdge } from "./BindingManager";
-export type Edge = AnchorProxy | VirtualBindingEdge;
-/**
- * Groups edges by their channel
- */
-export const groupEdgesByAnchorId = (edges: AnchorProxy[]): Map<string, Edge[]> =>
-    groupBy(edges, edge => edge.id.anchorId);
 
 
 export type EdgeResult = {
@@ -82,10 +75,13 @@ export const getPrioritizedValue = (
 export const resolveAnchorValue = (edges: Edge[], nodeIdMap: Map<string, string>): PositionValueSchema | number | string => {
     
     const edgeResults = edges.map(edge => {
-        if ('compile' in edge) {
+       
+        if ('anchorProxy' in edge) {
+            const anchor = edge.anchorProxy;
+            
             const result = {
-                data: edge.compile(nodeIdMap.get(edge.id.componentId)),
-                type: edge.anchorSchema.type
+                data: anchor.compile(nodeIdMap.get(anchor.id.componentId)),
+                type: anchor.anchorSchema.type
             };
             return result
 

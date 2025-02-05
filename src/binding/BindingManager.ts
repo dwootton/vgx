@@ -428,10 +428,11 @@ export class SpecCompiler {
 
 
 
-
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of anchorMatchedEdges.entries()) {
-            const resolvedValue = resolveAnchorValue(edges, compilationContext.nodeId);
+            console.log('node id from cc ',compilationContext.nodeId)
+            const superNodeMap : Map<string, string>= this.graphManager.getSuperNodes();
+            const resolvedValue = resolveAnchorValue(edges, superNodeMap);
             compilationContext[anchorId] = resolvedValue;
         }
 

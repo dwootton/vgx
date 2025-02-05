@@ -60,14 +60,11 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
     function generateProxyFromSchema(schema: AnchorOrGroupSchema, component: BaseComponent, metaContext: any = {}) {
         // compile functions turn the proxy anchor into a compiled anchor (like {fieldValue:#, scaleName:'x'....})
         
-        const compileFn = () => {
-
-            const bindingManager = BindingManager.getInstance();
-            const graphManager = bindingManager.getGraphManager();
-            const superNodes = graphManager.getSuperNodes();
+        const compileFn = (nodeId?: string) => {
+            console.log('nodeId',nodeId,'component.id', component.id)
             // at this point, I'll want the super node resolution to occur at the bindingGraph level vs. at the compile time. 
             // 
-            let nodeId = superNodes.get(component.id) || component.id;
+            nodeId = nodeId || component.id;
            
              // get the bindingGraph
              // check to see if nodeId is in superNodes, if so, then get the superNodeId, else use nodeId

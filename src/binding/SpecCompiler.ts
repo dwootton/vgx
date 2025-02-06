@@ -7,7 +7,7 @@ import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-
+import { BaseChart } from "../components/charts/base";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 
 interface AnchorEdge {
@@ -18,13 +18,12 @@ interface AnchorEdge {
 export type Edge = AnchorEdge | VirtualBindingEdge;
 type Parameter = VariableParameter | TopLevelSelectionParameter
 
+// The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
         private graphManager: GraphManager,
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
-
-    private hierarchyEdges: Map<string, BindingEdge[]> = new Map();
 
 
     // note: component Id will always be called from the root component
@@ -115,18 +114,39 @@ export class SpecCompiler {
 
     private findRootNode(nodeId: string): string {
         const bindingManager = this.getBindingManager();
-        // search up the binding graph until we find the root node
         let currentId = nodeId;
-        // while (bindingManager.getSourceBindingsForComponent(currentId).length > 0) {
-        //     console.log('currentId',currentId)
-        //     currentId = bindingManager.getTargetBindingsForComponent(currentId)[0].sourceId;
-        // }
+        
+        // Keep traversing up until we find a BaseChart component
+        const visited = new Set<string>();
+        while (true) {
+            if (visited.has(currentId)) {
+                // We've detected a cycle, return the current node
+                break;
+            }
+            visited.add(currentId);
+            
+            const currentComponent = bindingManager.getComponent(currentId);
+            // If this is a BaseChart component, we've found our root
+            if (currentComponent instanceof BaseChart) {
+                break;
+            }
+            
+            const incomingBindings = bindingManager.getBindingsForComponent(currentId, 'target');
+            if (incomingBindings.length === 0) {
+                break;
+            }
+            // Take the first incoming binding's source as the next node to check
+            currentId = incomingBindings[0].sourceId;
+        }
+
         return currentId;
     }
 
     private scalePropagation(nodeId: string, compilationContext: compilationContext): compilationContext {
         // Find root node by traversing up the binding graph
-        const rootNodeId = 'node_3' //this.findRootNode(nodeId);
+        const rootNodeId = this.findRootNode(nodeId)//'node_3' //this.findRootNode(nodeId);
+
+        console.log('rootNodeId', rootNodeId)
         if (!rootNodeId) return compilationContext;
 
         const rootComponent = this.getBindingManager().getComponent(rootNodeId);
@@ -225,26 +245,7 @@ export class SpecCompiler {
         });
     }
 
-    // private prepareEdges(graphEdges: BindingEdge[]): AnchorProxy[] {
-    //     const anchorProxies = graphEdges
-    //         .map(edge => getProxyAnchor(edge, this.getBindingManager().getComponent(edge.source.nodeId)));
-
-    //     const expandedEdges = anchorProxies.flatMap(anchorProxy =>
-    //         expandGroupAnchors(anchorProxy, anchorProxy.component)
-    //     );
-
-    //     return deduplicateById(expandedEdges);
-    // }
-
-
     private buildPersonalizedCompilationContext(component: BaseComponent, edges: AnchorEdge[], compilationContext: compilationContext): compilationContext {
-        // for each of component's anchors, we need to produce a group of the edges that are associated with that anchor
-
-        const anchors = component.getAnchors();
-
-
-        // group based on targetAnchorId
-
         const groupedEdges = edges.reduce((acc, edge) => {
             const targetAnchorId = edge.originalEdge.target.anchorId;
             if (!acc.has(targetAnchorId)) {
@@ -255,23 +256,6 @@ export class SpecCompiler {
         }, new Map<string, Edge[]>());
 
 
-        // filter out incompatible edges
-        // for each property make sure that the 
-
-
-
-
-        // this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
-        //     if (!groupedEdges.has(channel)) {
-        //         groupedEdges.set(channel, []);
-        //     }
-        //     groupedEdges.get(channel)?.push(virtualBinding);
-        // });
-
-
-
-
-
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of groupedEdges.entries()) {
             const superNodeMap: Map<string, string> = this.graphManager.getSuperNodeMap();
@@ -279,57 +263,9 @@ export class SpecCompiler {
             compilationContext[anchorId] = resolvedValue;
         }
 
-
-        // Add scale propagation from parent components
-        const hierarchyAncestors = this.getHierarchyAncestors(compilationContext.nodeId);
-
-        hierarchyAncestors.forEach(ancestorId => {
-            const ancestorSpec = this.compileComponentWithContext(ancestorId, compilationContext);
-            Object.entries(ancestorSpec.encoding || {}).forEach(([channel, enc]) => {
-                if (!compilationContext[channel]?.scale) {
-                    compilationContext[channel] = {
-                        ...compilationContext[channel],
-                        scale: enc?.scale,
-                        scaleType: enc?.scale?.type
-                    };
-                }
-            });
-        });
-
-
         return compilationContext
-
-        // TODO, channel edges have second priorty. 
-        // for example, if a brush.left : drag_line, then we need to resolve brush.x1 (left), to drag_line.x, 
-        // so if none of the edges have a direct map, then we use channel edges to resolve the value
-
-
-
-
-        //console.log('personalized anchorMatchedEdges',anchorMatchedEdges)
-        // console.log('personalized filteredChannelEdges',filteredChannelEdges)
-
-
-        // we need to then resolve the value of each of the edges in the group
-
-        // we need to then add the resolved value to the compilationContext
     }
 
-
-    private getHierarchyAncestors(nodeId: string): string[] {
-        const ancestors: string[] = [];
-        let currentId = nodeId;
-
-        while (this.hierarchyEdges.has(currentId)) {
-            const edges = this.hierarchyEdges.get(currentId)!;
-            edges.forEach(edge => {
-                ancestors.push(edge.source.nodeId);
-                currentId = edge.source.nodeId;
-            });
-        }
-
-        return ancestors;
-    }
 
 
     private compileComponentWithContext(nodeId: string, context: compilationContext): Partial<UnitSpec<Field>> {

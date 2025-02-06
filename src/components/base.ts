@@ -83,6 +83,31 @@ export abstract class BaseComponent {
     });
   }
 
+  public createGroupAnchor(groupName: string, children: string[]) {
+    this.anchors.set(groupName, {
+        id: { componentId: this.id, anchorId: groupName },
+        component: this,
+        anchorSchema: {
+            id: groupName, 
+            type: 'group',
+            children: children,
+            interactive: false // Group anchors are always not interactive
+        },
+        bind: (target: any) => {
+            children.forEach(child => 
+                this.anchors.get(child)?.bind(target)
+            );
+            return this;
+        },
+        // group anchors never get compiled as they are expanded
+        compile: (nodeId?: string)=>{
+            console.error('Group anchor was compiled', groupName, nodeId)
+            return {source: 'group',
+            value: "empty"}
+        }
+    });
+}
+
   public initializeAnchors() {
     const allAnchor: AnchorGroupSchema = {
       id: '_all',

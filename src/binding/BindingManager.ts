@@ -2,7 +2,7 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext, deduplicateById, groupEdgesByAnchorId, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes,  resolveAnchorValue} from "./binding";
+import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec ,logComponentInfo, detectAndMergeSuperNodes,  resolveAnchorValue} from "./binding";
 import {getProxyAnchor} from '../utils/anchorProxy';
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import {TopLevelSelectionParameter} from "vega-lite/build/src/selection"
@@ -219,6 +219,7 @@ export function expandGroupAnchors(
     const schema = anchorProxy.anchorSchema;
     
     if (schema.type === 'group') {
+        console.log('expanding group anchors',schema.children)
 
         return schema.children.map(childId => ({
             originalEdge,
@@ -283,7 +284,6 @@ export class SpecCompiler {
 
         // maybe instead of turn edges into anchors, we should just keep edges, and add anchor property
         const incomingAnchors : AnchorEdge[] = this.prepareEdges(filteredEdges)
-        console.log('incomingAnchors',incomingAnchors)
 
         // Okay, at this point you kept the edge with the anchor itself. Now you need to pipe those changes through. 
         // this will be nice because you can use the edge targetId to group now.
@@ -306,22 +306,21 @@ export class SpecCompiler {
         const superNodeMap : Map<string, string>= this.graphManager.getSuperNodes();
 
         let compilationContext = {nodeId: superNodeMap.get(node.id) || node.id};
-        console.log('supernode map',superNodeMap, compilationContext)
 
         let component = this.getBindingManager().getComponent(node.id);
 
         
 
-        console.log('incomingAnchors',incomingAnchors, component)
         compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
 
         compilationContext = this.scalePropagation(node.id,compilationContext);
+
+        console.log('compilationContext',compilationContext)
 
 
         // at this point compilationContext will have a grouped and ordered list of corresponding values. 
         
 
-        console.log('compilationContext',compilationContext)
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
         return compiledSpec;
     }
@@ -339,13 +338,13 @@ export class SpecCompiler {
 
     private scalePropagation(nodeId: string, compilationContext: compilationContext): compilationContext {
         // Find root node by traversing up the binding graph
-        console.log('scale Propagation',compilationContext)
-        const rootNodeId = 'node_2' //this.findRootNode(nodeId);
+        const rootNodeId = 'node_3' //this.findRootNode(nodeId);
         if (!rootNodeId) return compilationContext;
 
-        const rootComponent = this.getBindingManager().getComponent('node_2');
+        const rootComponent = this.getBindingManager().getComponent(rootNodeId);
         if (!rootComponent) return compilationContext;
 
+        console.log('rootComponent',rootComponent)
         // For each key in compilation context
         for (const [key, value] of Object.entries(compilationContext)) {
             if (key === 'nodeId') continue;
@@ -376,6 +375,10 @@ export class SpecCompiler {
     }
 
     private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
+
+        function isCompatible(sourceAnchorId:string,targetAnchor:string){
+            return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+        }
         function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
             const getAnchors = (component: BaseComponent, anchorId: string) => 
                 anchorId === '_all' 
@@ -390,7 +393,7 @@ export class SpecCompiler {
                     .filter(targetAnchor => {
                         const sourceType = source.getAnchor(sourceAnchor)?.anchorSchema.type;
                         const targetType = target.getAnchor(targetAnchor)?.anchorSchema.type;
-                        return sourceType === targetType;
+                        return sourceType === targetType && isCompatible(sourceAnchor,targetAnchor);
                     })
                     .map(targetAnchor => ({
                         source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
@@ -463,10 +466,13 @@ export class SpecCompiler {
             return acc;
         }, new Map<string, Edge[]>());
 
+
+        // filter out incompatible edges
+        // for each property make sure that the 
+
         
 
 
-        console.log('groupedEdges',groupedEdges)
         // this.getBindingManager().getVirtualBindings().forEach((virtualBinding, channel) => {
         //     if (!groupedEdges.has(channel)) {
         //         groupedEdges.set(channel, []);
@@ -480,7 +486,6 @@ export class SpecCompiler {
 
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of groupedEdges.entries()) {
-            console.log('anchorId edges',anchorId, edges, compilationContext.nodeId)
             const superNodeMap : Map<string, string>= this.graphManager.getSuperNodes();
             const resolvedValue = resolveAnchorValue(edges, superNodeMap);
             compilationContext[anchorId] = resolvedValue;
@@ -489,12 +494,10 @@ export class SpecCompiler {
 
             // Add scale propagation from parent components
         const hierarchyAncestors = this.getHierarchyAncestors(compilationContext.nodeId);
-        console.log('hierarchyAncestors',hierarchyAncestors)
 
         hierarchyAncestors.forEach(ancestorId => {
             const ancestorSpec = this.compileComponentWithContext(ancestorId, compilationContext);
             Object.entries(ancestorSpec.encoding || {}).forEach(([channel, enc]) => {
-                console.log('channel',channel)
                 if (!compilationContext[channel]?.scale ) {
                     compilationContext[channel] = {
                         ...compilationContext[channel],

@@ -1,7 +1,6 @@
 import { createAnchorProxy } from "../../utils/anchorProxy";
 import { BaseComponent } from "../../components/base";
 import {  AnchorOrGroupSchema, ChannelType } from "../../types/anchors";
-import { BindingManager, getBindingManager } from "../../binding/BindingManager";
 export function getChannelFromEncoding(encoding: string): ChannelType {
 
     const channelMap: Record<string, ChannelType> = {

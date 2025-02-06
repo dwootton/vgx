@@ -22,7 +22,7 @@ type RectConfig = {
     [K in keyof typeof rectBaseContext]?: typeof rectBaseContext[K]
 }
 
-
+import { generateRectAnchors } from "../../utils/anchorGeneration/rectAnchors";
 export class Rect extends BaseComponent {
     public config: RectConfig;
     static bindableProperties = ['x1', 'x2', 'y1', 'y2', 'size', 'color', 'stroke'] as const;
@@ -36,6 +36,15 @@ export class Rect extends BaseComponent {
                 this.addContextBinding(prop, config[prop]);
             }
         });
+
+        const rectAnchors = generateRectAnchors(this);
+
+        
+        this.anchors = new Map([...this.anchors, ...rectAnchors]);
+        
+        // Create group anchors
+        this.createGroupAnchor('x', ['x1', 'x2']);
+        this.createGroupAnchor('y', ['y1', 'y2']);
         
         Object.entries(rectBaseContext).forEach(([key, value]) => {
             if (config[key as keyof RectConfig] === undefined) {

@@ -64,10 +64,10 @@ export class IntervalSelect extends BaseComponent {
             id: { componentId: this.id, anchorId: groupName },
             component: this,
             anchorSchema: {
-                id: groupName,
+                id: groupName, 
                 type: 'group',
                 children: children,
-                interactive: true // Selection anchors are always interactive
+                interactive: false // Group anchors are always not interactive
             },
             bind: (target: any) => {
                 children.forEach(child => 

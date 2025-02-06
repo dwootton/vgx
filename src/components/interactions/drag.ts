@@ -9,14 +9,18 @@ import { generateParams } from "../../utils/compilation";
 
 export const dragBaseContext: Record<AnchorIdentifer, any> = {
     targetElementId: null,
-    x1: 0,
-    y1: 0,
+    start:{
+        x:0,
+        y:0
+    },
+  
     // start: { x: 0, y: 0 },
     // stop: { x: 0, y: 0 },
     x: 0,
     y: 0,
     markName: null
 }
+
 
 type DragConfig = {
     [K in keyof typeof dragBaseContext]?: typeof dragBaseContext[K]
@@ -27,7 +31,7 @@ export class Drag extends BaseComponent {
 
     constructor(config: DragConfig = {}) {
         super(config);
-        this.anchors = generateAnchorsFromContext(dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}});
+        this.anchors = generateAnchorsFromContext(dragBaseContext, this,{'x':{interactive:true},'y':{interactive:true}, start:{'x':{interactive:true},'y':{interactive:true}}});
         this.config = config;
         this.initializeAnchors();
     }
@@ -46,19 +50,19 @@ export class Drag extends BaseComponent {
                         { type: "pointerup" }
                     ]
                 },
-                update: `merge(${nodeId},{'x': x(), 'y': y() })`
+                update: `merge(${nodeId}, {'x': x(), 'y': y() })`
             },
             {
                 "events": {
                     "type": "pointerdown",
                 },
-                "update": `merge(${nodeId},{x1:x(),y1:y()})`
+                "update": `merge(${nodeId}, {'start_x':x(),'start_y':y(), 'x': x(), 'y': y()  })`
             },
             {
                 "events": {
                     "type": "pointerup",
                 },
-                "update": `merge(${nodeId},{stop:{x:x(),y:y()}})`
+                "update": `merge(${nodeId}, {'stop_x':x(),'stop_y':y()})`
             }]
         };
 

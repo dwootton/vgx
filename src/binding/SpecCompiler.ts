@@ -72,19 +72,6 @@ export class SpecCompiler {
         // maybe instead of turn edges into anchors, we should just keep edges, and add anchor property
         const incomingAnchors: AnchorEdge[] = this.prepareEdges(filteredEdges)
 
-        // Okay, at this point you kept the edge with the anchor itself. Now you need to pipe those changes through. 
-        // this will be nice because you can use the edge targetId to group now.
-        // then within that, you just pipe the 
-
-
-        //keeping a VSCode History Log- all of the comments you make to yourself, get logged. and the the compiler thinks of if 
-        // you're talking to it, and then describes all fo th changes in a really nice git history. 
-
-        // helpful for understanding 
-
-
-
-
 
         const anchorProxies = incomingAnchors.map(edge => edge.anchorProxy);
         //then, as we compile the node, we pass in the edges and it groups on edge.target.anchorId (then compiles)
@@ -104,8 +91,6 @@ export class SpecCompiler {
 
         console.log('compilationContext', compilationContext)
 
-
-        // at this point compilationContext will have a grouped and ordered list of corresponding values. 
 
 
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);

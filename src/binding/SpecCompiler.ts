@@ -84,6 +84,7 @@ export class SpecCompiler {
         let component = this.getBindingManager().getComponent(node.id);
 
 
+        console.log('incomingAnchors', incomingAnchors)
 
         compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
 
@@ -263,7 +264,84 @@ export class SpecCompiler {
         return component.compileComponent(context);
     }
 
+    public getProcessedGraph(startComponentId: string): ProcessedGraph {
+        const bindingGraph = this.graphManager.generateBindingGraph(startComponentId);
+        console.log('bindingGraph', bindingGraph)
+        const superNodeMap = detectAndMergeSuperNodes(bindingGraph.edges);
+        
+        const processedNodes = Array.from(bindingGraph.nodes.values()).map(node => ({
+            id: node.id,
+            type: node.type,
+            mergedId: superNodeMap.get(node.id) || node.id,
+            anchors: this.getComponentAnchors(node.id)
+        }));
+        const edges = this.prepareEdges(bindingGraph.edges);
 
+        const processedEdges = edges.map(edge => ({
+            source: {
+                original: edge.originalEdge.source.nodeId,
+                merged: superNodeMap.get(edge.originalEdge.source.nodeId) || edge.originalEdge.source.nodeId
+            },
+            target: {
+                original: edge.originalEdge.target.nodeId, 
+                merged: superNodeMap.get(edge.originalEdge.target.nodeId) || edge.originalEdge.target.nodeId
+            },
+            anchors: {
+                source: edge.anchorProxy.anchorSchema.id,
+                target: edge.originalEdge.target.anchorId
+            }
+        }));
+        console.log('processedEdges', processedEdges)
+
+
+        // const processedEdges = edges.map(edge => ({
+        //     source: {
+        //         original: edge.source.nodeId,
+        //         merged: superNodeMap.get(edge.source.nodeId) || edge.source.nodeId
+        //     },
+        //     target: {
+        //         original: edge.target.nodeId, 
+        //         merged: superNodeMap.get(edge.target.nodeId) || edge.target.nodeId
+        //     },
+        //     anchors: {
+        //         source: edge.source.anchorId,
+        //         target: edge.target.anchorId
+        //     }
+        // }));
+
+        // Group edges by target anchor (matching compileNode logic)
+        const anchorGroups = this.groupEdgesByAnchor(
+            bindingGraph.edges.filter(e => e.target.nodeId === startComponentId)
+        );
+
+        return {
+            nodes: processedNodes,
+            edges: processedEdges,
+            superNodes: Array.from(superNodeMap.entries()),
+            anchorGroups
+        };
+    }
+
+    private groupEdgesByAnchor(edges: BindingEdge[]): Map<string, EdgeGroup> {
+        return edges.reduce((acc, edge) => {
+            const anchorId = edge.target.anchorId;
+            if (!acc.has(anchorId)) {
+                acc.set(anchorId, {
+                    anchorId,
+                    edges: [],
+                    resolvedValue: null
+                });
+            }
+            const group = acc.get(anchorId)!;
+            group.edges.push(edge);
+            return acc;
+        }, new Map<string, EdgeGroup>());
+    }
+
+    private getComponentAnchors(nodeId: string): AnchorProxy[] {
+        const component = this.getBindingManager().getComponent(nodeId);
+        return component ? Array.from(component.getAnchors().values()) : [];
+    }
 }
 
 
@@ -408,5 +486,27 @@ function mergeParams(params: any[]): any[] {
     });
 
     return Array.from(paramsByName.values());
+}
+
+export interface ProcessedGraph {
+    nodes: Array<{
+        id: string;
+        type: string;
+        mergedId: string;
+        anchors: AnchorProxy[];
+    }>;
+    edges: Array<{
+        source: { original: string; merged: string };
+        target: { original: string; merged: string };
+        anchors: { source: string; target: string };
+    }>;
+    superNodes: Array<[string, string]>;
+    anchorGroups: Map<string, EdgeGroup>;
+}
+
+interface EdgeGroup {
+    anchorId: string;
+    edges: BindingEdge[];
+    resolvedValue: any;
 }
 

@@ -31,6 +31,7 @@ export class GraphManager {
     }
 
     public generateBindingGraph(startComponentId: string): BindingGraph {
+        console.log('startComponentId', startComponentId)
         const nodes = new Map<string, BindingNode>();
         const edges: BindingEdge[] = [];
         const visited = new Set<string>();

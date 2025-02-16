@@ -2,15 +2,11 @@ import { BaseComponent } from "components/base";
 import { AnchorGroupSchema, AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { Field } from "vega-lite/build/src/channeldef";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue } from "./binding";
 import { getProxyAnchor } from '../utils/anchorProxy';
-import { VariableParameter } from "vega-lite/build/src/parameter";
-import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+
 import { BindingEdge, GraphManager } from "./GraphManager";
 import {SpecCompiler} from "./SpecCompiler";
 
-type Parameter = VariableParameter | TopLevelSelectionParameter
 
 
 
@@ -26,7 +22,7 @@ interface Binding {
     sourceAnchor: string;
     targetAnchor: string;
 }
-
+import { ProcessedGraph } from "./SpecCompiler";
 export class BindingManager {
     private static instance: BindingManager;
     private graphManager: GraphManager;
@@ -40,6 +36,11 @@ export class BindingManager {
         // Initialize dependencies lazily
         this.graphManager = new GraphManager(() => this);
         this.specCompiler = new SpecCompiler(this.graphManager, () => this);
+    }
+
+    public getProcessedGraph(id: string): ProcessedGraph {
+        return this.specCompiler.getProcessedGraph('node_3');
+
     }
 
     public static getInstance(): BindingManager {
@@ -108,127 +109,4 @@ export class BindingManager {
     }
 }
 
-
-
-function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): TopLevelSpec {
-    // Helper to check if spec has layer/mark
-    const hasLayerOrMark = (spec: any) => {
-        return spec.layer || spec.mark;
-    };
-
-
-    // First merge specs, handling layers
-    const mergedSpec = specs.reduce((merged: any, spec) => {
-        // If either has layer/mark, create layer spec
-        if (hasLayerOrMark(merged) && hasLayerOrMark(spec)) {
-            return {
-                layer: [
-                    merged,
-                    spec
-                ]
-            };
-        }
-
-        // Otherwise merge normally
-        return {
-            ...merged,
-            ...spec,
-            // Concatenate params if they exist
-            params: [
-                ...(merged.params || []),
-                ...(spec.params || [])
-            ]
-        };
-    }, {});
-
-    // Move all params to top level
-    const params: (Parameter)[] = [];
-    const selectParams: (Parameter)[] = [];
-
-    // Function to find base chart layer by rootComponentId
-    const findBaseChartLayer = (obj: any): any | null => {
-        if (!obj || typeof obj !== 'object') return null;
-
-        if (obj.name === rootComponentId) return obj;
-
-        for (const value of Object.values(obj)) {
-            const result = findBaseChartLayer(value);
-            if (result) return result;
-        }
-
-        return null;
-    };
-
-    // Function to move params to top level
-    const moveParamsToTop = (obj: any) => {
-        if (!obj || typeof obj !== 'object') return;
-
-        if (obj.params && Array.isArray(obj.params)) {
-            // Split params into select and non-select
-            const [selectParamsArr, nonSelectParamsArr] = obj.params.reduce(
-                ([select, nonSelect]: [Parameter[], Parameter[]], param: Parameter) => {
-                    if ('select' in param) {
-                        select.push(param);
-                    } else {
-                        nonSelect.push(param);
-                    }
-                    return [select, nonSelect];
-                },
-                [[], []]
-            );
-
-            // Add to respective arrays
-            if (nonSelectParamsArr.length > 0) {
-                params.push(...nonSelectParamsArr);
-            }
-            if (selectParamsArr.length > 0) {
-                selectParams.push(...selectParamsArr);
-            }
-
-            // Remove params from original location
-            delete obj.params;
-        }
-
-        Object.values(obj).forEach(value => {
-            moveParamsToTop(value);
-        });
-    };
-
-    // Move params to their destinations
-    moveParamsToTop(mergedSpec);
-
-    // Add select params to base chart
-    const baseChartLayer = findBaseChartLayer(mergedSpec);
-    if (baseChartLayer && selectParams.length > 0) {
-        baseChartLayer.params = selectParams;
-    }
-    if (params.length > 0) {
-
-        mergedSpec.params = mergeParams(params);
-    }
-
-    return mergedSpec;
-}
-
-function mergeParams(params: any[]): any[] {
-    const paramsByName = new Map<string, any>();
-
-    // Group params by name
-    params.forEach(param => {
-        if (!param.name) return;
-
-        if (paramsByName.has(param.name)) {
-            // Merge with existing param
-            const existing = paramsByName.get(param.name);
-            paramsByName.set(param.name, {
-                ...existing,
-                ...param
-            });
-        } else {
-            paramsByName.set(param.name, param);
-        }
-    });
-
-    return Array.from(paramsByName.values());
-}
 

@@ -10,6 +10,7 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { BaseChart } from "../components/charts/base";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 
+console.log('SpecCompiler')
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -112,8 +113,9 @@ export class SpecCompiler {
             visited.add(currentId);
             
             const currentComponent = bindingManager.getComponent(currentId);
-            // If this is a BaseChart component, we've found our root
-            if (currentComponent instanceof BaseChart) {
+            // If this is a chart component (has encoding property), we've found our root
+            //@ts-ignore
+            if (currentComponent && 'spec' in currentComponent && currentComponent.spec.encoding) {
                 break;
             }
             

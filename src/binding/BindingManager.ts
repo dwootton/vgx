@@ -1,8 +1,6 @@
 import { BaseComponent } from "components/base";
-import { AnchorGroupSchema, AnchorProxy, AnchorIdentifer } from "types/anchors";
-import { Field } from "vega-lite/build/src/channeldef";
+
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
-import { getProxyAnchor } from '../utils/anchorProxy';
 
 import { BindingEdge, GraphManager } from "./GraphManager";
 import {SpecCompiler} from "./SpecCompiler";

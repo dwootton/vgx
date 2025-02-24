@@ -6,6 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-hierarchy@3.1.2/dist/d3-hierarchy.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="alx.js"></script>
   <style>
     .vis-container {
@@ -30,6 +32,13 @@
 
 <body>
   <div class="vis-container">
+    <!-- Added binding tree container -->
+    <div class="chart" style="grid-column: 1 / -1">
+      <h2>Binding Tree</h2>
+      <div id="binding-tree"></div>
+    </div>
+    
+    <!-- Existing chart containers remain unchanged -->
     <div class="chart">
       <h2>Scatterplot</h2>
       <div id="scatter"></div>
@@ -59,14 +68,12 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       alx = alx.alx
+     
       // Generate better sample data
       const scatterData = Array.from({ length: 50 }, () => ({
         x: Math.random() * 100,
         y: Math.random() * 100
       }));
-
-
-
 
 
       // Data for histogram - single array of values
@@ -110,78 +117,22 @@
         }
       }
 
-      // Create visualizations
-      const scatter = alx.scatterplot({
-        data: scatterData,
-        x: 'x',
-        y: 'y',
-        width: 400,
-        height: 300,
-        bind: alx.circle({
-          x: 20,
-          y: 60,
-          bind: alx.drag()
-        })
-      })
+      
 
-      const hist = alx.histogram({
-        data: histData,
-        x: 'value',
-        width: 400,
-        height: 300,
-        bind: alx.brush({name:'brush'})
-      })
-
-
-
-
-
-
-
-      const line = alx.lineplot({
-        data: timeSeriesData,
-        x: 'time',
-        y: 'value',
-        width: 400,
-        height: 300
-      })
-
-      const bar = alx.barchart({
-        data: barData,
-        x: 'category',
-        y: 'value',
-        aggregate: 'mean',
-        width: 400,
-        height: 300,
-        bind: alx.brush({name:'brush'})
-      })
-
-      const heat = alx.heatmap({
-        data: heatmapData,
-        x: 'x',
-        y: 'y',
-        color: 'value',
-        width: 400,
-        height: 300
-      })
-
-      const pie = alx.piechart({
-        data: barData,
-        categoryField: 'category'
-      }
-      )
-
-      // Render all charts
+      // Modified renderChart function
       const renderChart = async (chart, elementId) => {
         const vegaLiteSpec = await chart.compile();
-        console.log('vlspec', vegaLiteSpec)
-        console.log('vlspec.marks',JSON.stringify(vegaLiteSpec,null,2))
+        const bindingManager = alx.bindingManager();
+        const processedGraph = bindingManager.getProcessedGraph(chart.id);
 
-        vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' }).then(console.log).catch(console.warn);
+        
+        // Render Vega chart
+        await vegaEmbed(`#${elementId}`, vegaLiteSpec, { renderer: 'svg' });
       };
 
+      // Existing render calls remain unchanged
       await Promise.all([
-        renderChart(scatter, 'scatter'),
+        // renderChart(scatter, 'scatter'),
          renderChart(hist, 'hist'),
         // renderChart(line, 'line'),
         // renderChart(bar, 'bar'),

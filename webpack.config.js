@@ -8,9 +8,11 @@ module.exports = {
   
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'alx.js',
-    library: 'alx',
-    libraryTarget: 'var',
+    filename: 'index.js',
+    library: {
+      name: 'alx',
+      type: 'umd'
+    },
     clean: true,
   },
 
@@ -37,10 +39,10 @@ module.exports = {
   },
 
   plugins: [
-    new HtmlWebpackPlugin({
-      template: './src/index.html',
-      inject: 'body',
-    }),
+    // new HtmlWebpackPlugin({
+    //   template: './src/index.html',
+    //   inject: 'body',
+    // }),
   ],
 
   devServer: {

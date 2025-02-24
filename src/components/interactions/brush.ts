@@ -9,12 +9,12 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import {compilationContext} from '../../binding/binding';
-import {  AnchorType } from "types/anchors";
+import { compilationContext } from '../../binding/binding';
+import {  AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 
-export const brushBaseContext: Record<AnchorType, any> = {
+export const brushBaseContext: Record<AnchorIdentifer, any> = {
     x: null,
     y: null,
     color: "'transparent'", // in vega, color needs to be a string in the expression
@@ -26,38 +26,14 @@ type BrushConfig = {
     [K in keyof typeof brushBaseContext]?: typeof brushBaseContext[K]
 }
 
-
-// point.x -> {xVal}
-// brush.x -> (x1,x2)
-// lasso.x -> [x,x,x,x,x,x,x,x,x,x]
-//lasso.x.bind(vgx.drag_point)// each one should constraint the drag point to the lasso value 
-// when 
-
-// creates, arrays of params. 
-// brush.x.bind(vgx.line) 
-// constraint()
-/* 
-Brush.x-> [x1,x2]
-
-
-*/
-
-function generateSides() {
-
-}
-
-function generateRectProperties(){
-    return ['']
-}
-
 export class Brush extends BaseComponent {
     public config: BrushConfig;
-    static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
+    static bindableProperties = ['x', 'y'] as const;
 
     constructor(config:BrushConfig={}){
         
         super({...config})
-        this.anchors = generateAnchorsFromContext(config, brushBaseContext,this);
+        this.anchors = generateAnchorsFromContext(brushBaseContext,this);
 
         Brush.bindableProperties.forEach(prop => {
             if (config[prop] !== undefined) {
@@ -74,7 +50,6 @@ export class Brush extends BaseComponent {
 
         this.config = config;
         this.initializeAnchors()
-        console.log('made brush!',this)
          
     }
 
@@ -82,7 +57,6 @@ export class Brush extends BaseComponent {
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        console.log('compiling brush')
         //TODO split rect into 4 sides such that we can do this like bind x sides diff than y sides...
         const brushName = `${inputContext.nodeId}_brush`;
 

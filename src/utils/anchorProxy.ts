@@ -1,18 +1,19 @@
 import { BindingTarget } from "../components/base";
 import { isComponent } from "./component";
 
-import { AnchorSchema, AnchorProxy, AnchorType, AnchorGroupSchema } from '../types/anchors';
+import {  AnchorProxy, AnchorType, AnchorGroupSchema, AnchorOrGroupSchema, AnchorSchema } from '../types/anchors';
 import { BaseComponent } from '../components/base';
 import { BindingManager, BindingEdge } from '../binding/BindingManager';
 import { generateComponentSignalName } from "./component";
 import { generateParams } from "./compilation"
+import { isChannel } from "vega-lite/build/src/channel";
 
 
 export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorOrGroupSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -30,39 +31,58 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
   if (!compileFn && anchor.type != 'group') {
     throw new Error(`Compile function is required for an anchor proxy ${anchor.id} ${component.id}`)
   }
-
-  return {
+  const proxy = {
     id: { componentId: component.id, anchorId: anchor.id },
     component,
     bind: bindFn,
     anchorSchema: anchor,
     compile: compileFn || (() => ({source:'baseContext',value:''}))
   };
+  // console.log('anchorProxy', proxy);
+  return proxy;
 }
 //TODO: make sure that the interactive data "bubbles up", when anchors are bound.
 
 
-export function generateAnchorsFromContext(context: Record<AnchorType, any>, baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
+
+
+export function generateAnchorsFromContext( baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
   const anchors = new Map<string, AnchorProxy>();
 
   
-  Object.entries(baseContext).forEach(([key, value]) => {
-    const anchorSchema = {
-      id: `${key}`,
-      type: key as AnchorType,
-      interactive: metaContext[key]?.interactive || false
-    }
-
-    const compileFn = (nodeId?: string) => {
-      if (!nodeId) {
-        nodeId = component.id
-      }
-        value =  {fieldValue:`${(nodeId)}.${key}`};
-        return {source:'generated',value}
+  function processNestedObject(obj: any, prefix: string = '', metaContext: any = {}) {
+    Object.entries(obj).forEach(([key, value]) => {
+      const fullKey = prefix ? `${prefix}_${key}` : key;
       
-    }
-    anchors.set(key, createAnchorProxy(component, anchorSchema, compileFn));
-  });
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        // Recursively process nested objects
+        processNestedObject(value, fullKey, metaContext?.[key] || {});
+      } else {
+        // Create anchor for leaf node
+        const anchorType = isChannel(key) ? 'encoding' : 'info';
+
+        const anchorSchema = {
+          id: fullKey,
+          type: anchorType,
+          interactive: prefix 
+            ? metaContext?.[key]?.interactive || false
+            : metaContext[key]?.interactive || false
+        } as AnchorSchema
+
+        const compileFn = (nodeId?: string) => {
+          if (!nodeId) {
+            nodeId = component.id
+          }
+          value = {fieldValue: `${nodeId}.${fullKey}`};
+          return {source: 'generated', value}
+        }
+
+        anchors.set(fullKey, createAnchorProxy(component, anchorSchema, compileFn));
+      }
+    });
+  }
+
+  processNestedObject(baseContext, '', metaContext);
   return anchors;
 }
 
@@ -76,27 +96,43 @@ export function getProxyAnchor(edge: BindingEdge, sourceComponent: BaseComponent
 }
 
 
-export function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent | undefined) {
-  if (!component) {
-      throw new Error(`Component "${edge.id}" not added to binding manager`);
-  }
-  // for each edge, expand it (e iteratively go through and expand out any group anchors)
-  const edges: AnchorProxy[] =[];
-  const anchorSchema = edge.anchorSchema;
-  if (anchorSchema.type === 'group') {
-      // get the children of the group
-      const children = (anchorSchema as AnchorGroupSchema).children;
-      // for each child, get the proxy anchor and add it to the edges
-      children.forEach(child => {
-          const childAnchor = child.id;
-          const childProxy = component.getAnchor(childAnchor);
-          edges.push(childProxy);
-      });
-  } else {
-    edges.push(edge);
-  }
-  return edges;
-}
+// export function expandGroupAnchors(edge: AnchorProxy, component: BaseComponent | undefined) {
+//   if (!component) {
+//       throw new Error(`Component "${edge.id}" not added to binding manager`);
+//   }
+//   // for each edge, expand it (e iteratively go through and expand out any group anchors)
+//   const edges: AnchorProxy[] =[];
+//   const anchorSchema = edge.anchorSchema;
+//   if (anchorSchema.type === 'group') {
+//       // get the children of the group
+//       const children = (anchorSchema as AnchorGroupSchema).children;
+//       // for each child, get the proxy anchor and add it to the edges
+//       children.forEach(anchorId => {
+//           const childProxy = component.getAnchor(anchorId);
+//           edges.push(childProxy);
+//       });
+//   } else {
+//     edges.push(edge);
+//   }
+//   return edges;
+// // }
+
+// export function expandGroupAnchors(
+//   edge: EnhancedBindingEdge,
+//   component: BaseComponent
+// ): EnhancedBindingEdge[] {
+//   const { originalEdge, anchorProxy } = edge;
+//   const schema = anchorProxy.anchorSchema;
+  
+//   if (schema.type === 'group') {
+//       return schema.children.map(childId => ({
+//           originalEdge,
+//           anchorProxy: component.getAnchor(childId)
+//       }));
+//   }
+//   return [edge];
+// }
+
 // Function to make properties bindable
 export function anchorize<T extends object>(obj: T): T {
   const handler: ProxyHandler<T> = {

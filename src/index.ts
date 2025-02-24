@@ -1,8 +1,24 @@
-import { Scatterplot, LinePlot, BarChart, Heatmap ,Histogram, PieChart} from './components/charts';
-import { Circle } from './components/marks';
-import { Brush, Drag } from './components/interactions';
+// Charts
 
-export const alx = {
+export { Brush as Brush2 } from './components/interactions/Instruments/Brush';
+
+// Binding System
+export { BindingManager } from './binding/BindingManager';
+export { SpecCompiler } from './binding/SpecCompiler';
+export { GraphManager } from './binding/GraphManager';
+
+
+// Main ALX object (backward compatibility)
+export { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
+export { Circle } from './components/marks';
+export { Brush, Drag } from './components/interactions';
+
+import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
+import { Circle } from './components/marks';
+import { Drag } from './components/interactions';  
+import { Brush as Brush2 } from './components/interactions/Instruments/Brush';
+
+export const all = {
   scatterplot: (config: any) => new Scatterplot(config),
   histogram: (config: any) => new Histogram(config),
   lineplot: (config: any) => new LinePlot(config), 
@@ -11,5 +27,5 @@ export const alx = {
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
   drag: (config:any)=> new Drag(config),
-  brush: (config:any)=> new Brush(config)
+  brush: (config:any)=> new Brush2(),
 };

@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorType } from '../types/anchors';
+import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorIdentifer, AnchorOrGroupSchema } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager,VirtualBindingEdge } from '../binding/BindingManager';
@@ -46,6 +46,7 @@ export abstract class BaseComponent {
       return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
     }
     
+
     bindings.forEach(({ value: binding, key }) => {
       const bindingProperty = key == 'bind' ? '_all' : key;
 
@@ -75,24 +76,45 @@ export abstract class BaseComponent {
       } else {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if(binding.anchorSchema.interactive){
-
           this.bindingManager.addBinding(getTargetId(binding),this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }
-      
-
-       
-
      
     });
   }
+
+  public createGroupAnchor(groupName: string, children: string[]) {
+    this.anchors.set(groupName, {
+        id: { componentId: this.id, anchorId: groupName },
+        component: this,
+        anchorSchema: {
+            id: groupName, 
+            type: 'group',
+            children: children,
+            interactive: false // Group anchors are always not interactive
+        },
+        bind: (target: any) => {
+            children.forEach(child => 
+                this.anchors.get(child)?.bind(target)
+            );
+            return this;
+        },
+        // group anchors never get compiled as they are expanded
+        compile: (nodeId?: string)=>{
+            console.error('Group anchor was compiled', groupName, nodeId)
+            return {source: 'group',
+            value: "empty"}
+        }
+    });
+}
 
   public initializeAnchors() {
     const allAnchor: AnchorGroupSchema = {
       id: '_all',
       type: 'group',
-      // map through all anchors and add their schemas to the children
-      children: new Map(Array.from(this.anchors.entries()).map(([key, anchor]) => [key, anchor.anchorSchema]))
+      interactive: false, 
+      // map through all anchors  dand add their schemas to the children
+      children: Array.from(this.anchors.keys())
     };
     this.anchors.set('_all', this.createAnchorProxy(allAnchor));
   }
@@ -116,6 +138,10 @@ export abstract class BaseComponent {
       throw new Error(`Anchor "${id}" not found`);
     }
     return anchor;
+  }
+
+  public getAnchors(): AnchorProxy[] {
+    return Array.from(this.anchors.values());
   }
 
 

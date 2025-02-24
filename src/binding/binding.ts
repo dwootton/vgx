@@ -1,6 +1,6 @@
-import { AnchorProxy, AnchorType, PositionValueSchema, ValueSchema } from "../types/anchors";
+import { AnchorProxy, AnchorIdentifer, PositionValueSchema, ValueSchema } from "../types/anchors";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-import { BindingManager } from "./BindingManager";
+import { BindingManager, Edge } from "./BindingManager";
 export type compilationContext = any;
 
 
@@ -44,21 +44,15 @@ export const groupBy = <T>(items: T[], keyGetter: (item: T) => string): Map<stri
         groups.get(key)?.push(item);
         return groups;
     }, new Map<string, T[]>());
-import { VirtualBindingEdge } from "./BindingManager";
-type Edge = AnchorProxy | VirtualBindingEdge;
-/**
- * Groups edges by their channel
- */
-export const groupEdgesByChannel = (edges: AnchorProxy[]): Map<string, Edge[]> =>
-    groupBy(edges, edge => edge.id.anchorId);
 
 
 export type EdgeResult = {
     data: { source: string; value: ValueSchema };
-    type: AnchorType;
+    type: AnchorIdentifer;
   };
 
 import { normalizeEdgeResult, resolveValueSchema } from "./channelResolution";
+
 export const getPrioritizedValue = (
     edgeResults: EdgeResult[]
   ): PositionValueSchema | number | string => {
@@ -78,14 +72,19 @@ export const getPrioritizedValue = (
  * Resolves the value for a channel based on priority rules
  */
 
-export const resolveChannelValue = (edges: Edge[], nodeId: string): PositionValueSchema | number | string => {
+export const resolveAnchorValue = (edges: Edge[], nodeIdMap: Map<string, string>): PositionValueSchema | number | string => {
     
     const edgeResults = edges.map(edge => {
-        if ('compile' in edge) {
-            return {
-                data: edge.compile(nodeId),
-                type: edge.anchorSchema.type
+       
+        if ('anchorProxy' in edge) {
+            const anchor = edge.anchorProxy;
+            
+            const result = {
+                data: anchor.compile(nodeIdMap.get(anchor.id.componentId)),
+                type: anchor.anchorSchema.type
             };
+            return result
+
         } else {
             // Handle virtual edge case
             return {
@@ -93,11 +92,12 @@ export const resolveChannelValue = (edges: Edge[], nodeId: string): PositionValu
                     source: edge.source,
                     value: edge.value
                 },
-                type: 'virtual' as AnchorType
+                type: 'virtual' as AnchorIdentifer
             };
         }
     });
 
+    console.log('edgeResults',edgeResults)
     const prioritizedValue = getPrioritizedValue(edgeResults);
     return prioritizedValue;
 };
@@ -159,6 +159,7 @@ export const detectBidirectionalLinks = (edges: BindingEdge[]): Map<string, stri
   
     return bidirectionalPairs;
   };
+
   export const createSuperNodeMap = (bidirectionalPairs: Map<string, string>): Map<string, string> => {
     const superNodeMap = new Map<string, string>();
     const visited = new Set<string>();

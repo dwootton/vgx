@@ -171,26 +171,27 @@ export class BaseChart extends BaseComponent {
         'id': scaleName, 'proxy': this.createAnchorProxy({
           id: scaleName,
           type: 'encoding',
-          interactive:false,
+          interactive: false,
+          encoding:"Range",
           channel: scaleName as ChannelType
         }, () => {
+          console.log('in binding scales!')
           return {
             source: 'encoding',
             value: {
               'scale': scaleName,
               'scaleType': 'quantitative',
               'fieldName': 'tester',
-              'initialValue': `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`,
-              'constraints': {
-                'type': 'minMax',
-                'min': `range('${scaleName}')[0]`,
-                'max': `range('${scaleName}')[1]`
-              }
+              'start': `range('${scaleName}')[0]`,
+              'stop': `range('${scaleName}')[1]`,
+              
             }
           }
         })
       })
     })
+
+    // compile bindFn
 
     // for each anchor, add it
     anchors.forEach((anchor) => {

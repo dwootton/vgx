@@ -53,8 +53,6 @@ const resolvePositionValue = (
     edgeResults: EdgeResult[]
   ): any => {
     const priorityOrder = priorityRules[positionValueType];
-
-
   
     for (const source of priorityOrder) {
         

@@ -239,8 +239,11 @@ export class SpecCompiler {
 
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of groupedEdges.entries()) {
-            const superNodeMap: Map<string, string> = this.graphManager.getSuperNodeMap();
-            const resolvedValue = resolveAnchorValue(edges, superNodeMap);
+            // const superNodeMap: Map<string, string> = this.graphManager.getSuperNodeMap();
+            // const resolvedValue = resolveAnchorValue(edges, superNodeMap);
+
+            const resolvedValue = edges.map(edge => edge.anchorProxy.compile(edge.originalEdge.source.nodeId));
+            console.log('resolvedValue', resolvedValue)
             compilationContext[anchorId] = resolvedValue;
         }
 

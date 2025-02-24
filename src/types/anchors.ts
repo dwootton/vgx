@@ -42,6 +42,12 @@ type Range = {
 
 export type EncodingValues = "Scalar" | "Set" | "Range";
 
+export type InteractorSchema = {
+  schemaId: string; // 'current', 'span'
+  schemaType: EncodingValues
+  extractors: Record<string,any>
+}
+
 // type ScalarEncoding = {
 //     type: 'scalar';
 //     value: Scalar;

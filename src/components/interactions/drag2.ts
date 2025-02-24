@@ -6,7 +6,7 @@ import { AnchorIdentifer, AnchorSchema } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
-
+import { InteractorSchema } from "types/anchors";
 export const dragBaseContext = {
 
 }
@@ -73,11 +73,6 @@ const startExtractor = (channel: string) => ({
 
 import {EncodingValues} from "types/anchors";
 
-type InteractorSchema = {
-    schemaId: string; // 'current', 'span'
-    schemaType: EncodingValues
-    extractors: any[]
-}
 
 export class DragStart extends BaseComponent {
     public schemas: InteractorSchema[];
@@ -87,7 +82,7 @@ export class DragStart extends BaseComponent {
         this.schemas = [{
             schemaId: 'start',
             schemaType: 'Scalar',
-            extractors: [startExtractor('x'), startExtractor('y')]
+            extractors: {'x':startExtractor('x'), 'y':startExtractor('y')}
         }];
 
         this.initializeAnchors();
@@ -108,7 +103,7 @@ export class DragStart extends BaseComponent {
         };
 
         return {
-            params: [signal]
+            params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
         };
     }
 }
@@ -121,7 +116,7 @@ export class DragSpan extends BaseComponent {
         this.schemas = [{
             schemaId: 'span',
             schemaType: 'Range',
-            extractors: [rangeExtractor('x'), rangeExtractor('y')]
+            extractors: {'x':rangeExtractor('x'), 'y':rangeExtractor('y')}
         }];
 
         this.initializeAnchors();
@@ -144,12 +139,29 @@ export class DragSpan extends BaseComponent {
             }]
         };
 
+        
+
+
         return {
-            params: [signal]
+            params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
         };
     }
 }
 
+const generateSignalFromSchema = (schema: InteractorSchema, channel: string, signalParent:string,mergedParent:string) => {
+    console.log(schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent))    
+
+    return {
+        name: mergedParent+'_'+channel,
+        value: null,
+        on: [{
+            events: {
+               signal: signalParent,
+            },
+            update: schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent)
+        }]
+    }
+}
 export class Drag extends BaseComponent {
     public schemas: InteractorSchema[];
     constructor(config: any = {}) {
@@ -158,7 +170,7 @@ export class Drag extends BaseComponent {
         this.schemas = [{
             schemaId: 'current',
             schemaType: 'Scalar', 
-            extractors: [currentExtractor('x'), currentExtractor('y')]
+            extractors: {'x':currentExtractor('x'), 'y':currentExtractor('y')}
         }];
 
         this.initializeAnchors();
@@ -182,7 +194,8 @@ export class Drag extends BaseComponent {
         };
 
         return {
-            params: [signal]
+            params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
+
         };
     }
 }

@@ -8,7 +8,7 @@ export class Brush {
         const rect = new Rect({y1:0, y2:100});
         // const intervalSelect = new IntervalSelect();
         const drag = new Drag();
-        const drag2 = new Drag();
+        // const drag2 = new Drag();
         const bindingManager = BindingManager.getInstance();
         
         // Set up internal bindings
@@ -24,12 +24,12 @@ export class Brush {
             'x', 'x2'
         );
 
-        // Set up internal bindings
-        bindingManager.addBinding(
-            rect.id,
-            drag2.id,
-            'x', 'x1'
-        );
+        // // Set up internal bindings
+        // bindingManager.addBinding(
+        //     rect.id,
+        //     drag2.id,
+        //     'x', 'x1'
+        // );
 
 
 

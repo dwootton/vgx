@@ -37,7 +37,7 @@ export class BindingManager {
     }
 
     public getProcessedGraph(id: string): ProcessedGraph {
-        return this.specCompiler.getProcessedGraph('node_3');
+        return this.specCompiler.getProcessedGraph(id);
 
     }
 

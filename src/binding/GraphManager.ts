@@ -1,6 +1,7 @@
 import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
 
+console.log('changes2!')
 
 export interface BindingNode {
     id: string;

@@ -34,33 +34,36 @@ type Scalar = number;
 
 type Set = Scalar[] | Range[];
 
+
 type Range = {
     start: Scalar;
     end: Scalar;
 }
 
-type ScalarEncoding = {
-    type: 'scalar';
-    value: Scalar;
-}
+export type EncodingValues = "Scalar" | "Set" | "Range";
 
-type SetEncoding = {
-    type: 'set';
-    value: Set;
-}
+// type ScalarEncoding = {
+//     type: 'scalar';
+//     value: Scalar;
+// }
 
-type RangeEncoding = {
-    type: 'range';
-    value: Range;
-}
+// type SetEncoding = {
+//     type: 'set';
+//     value: Set;
+// }
 
-type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
+// type RangeEncoding = {
+//     type: 'range';
+//     value: Range;
+// }
+
+// export type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
 
 export interface EncodingAnchorSchema {
     id: string;
     type: 'encoding';
     channel: ChannelType;
-    encoding: EncodingValueSchema;
+    encoding: EncodingValues;//EncodingValueSchema;
     interactive: boolean;
 }
 

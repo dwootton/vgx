@@ -14,7 +14,6 @@ export interface HeatmapConfig extends ChartConfig {
         mark: 'rect'
       });
   
-      console.log('this.channelConfigs heatmap', this.channelConfigs)
       this.spec.encoding = {
         x: this.channelConfigs.encodingDefs.x as PositionEncodingDef,
         y: this.channelConfigs.encodingDefs.y as PositionEncodingDef,

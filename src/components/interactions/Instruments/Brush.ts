@@ -5,6 +5,10 @@ import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
     constructor() {
+
+        
+
+
         const rect = new Rect({y1:0, y2:100});
         // const intervalSelect = new IntervalSelect();
         const drag = new Drag();

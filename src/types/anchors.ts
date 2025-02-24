@@ -30,13 +30,39 @@ export interface InfoAnchorSchema {
     interactive: boolean;
 }
 
+type Scalar = number;
+
+type Set = Scalar[] | Range[];
+
+type Range = {
+    start: Scalar;
+    end: Scalar;
+}
+
+type ScalarEncoding = {
+    type: 'scalar';
+    value: Scalar;
+}
+
+type SetEncoding = {
+    type: 'set';
+    value: Set;
+}
+
+type RangeEncoding = {
+    type: 'range';
+    value: Range;
+}
+
+type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
+
 export interface EncodingAnchorSchema {
     id: string;
     type: 'encoding';
     channel: ChannelType;
+    encoding: EncodingValueSchema;
     interactive: boolean;
 }
-
 
 // Used for binding groups of anchors like the corners of a rectangle
 export interface AnchorGroupSchema {

@@ -10,7 +10,6 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { BaseChart } from "../components/charts/base";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 
-console.log('SpecCompiler')
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -84,14 +83,10 @@ export class SpecCompiler {
 
         let component = this.getBindingManager().getComponent(node.id);
 
-
-        console.log('incomingAnchors', incomingAnchors)
-
         compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
 
         compilationContext = this.scalePropagation(node.id, compilationContext);
 
-        console.log('compilationContext', compilationContext)
 
 
 
@@ -134,13 +129,11 @@ export class SpecCompiler {
         // Find root node by traversing up the binding graph
         const rootNodeId = this.findRootNode(nodeId)//'node_3' //this.findRootNode(nodeId);
 
-        console.log('rootNodeId', rootNodeId)
         if (!rootNodeId) return compilationContext;
 
         const rootComponent = this.getBindingManager().getComponent(rootNodeId);
         if (!rootComponent) return compilationContext;
 
-        console.log('rootComponent', rootComponent)
         // For each key in compilation context
         for (const [key, value] of Object.entries(compilationContext)) {
             if (key === 'nodeId') continue;
@@ -268,7 +261,6 @@ export class SpecCompiler {
 
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
         const bindingGraph = this.graphManager.generateBindingGraph(startComponentId);
-        console.log('bindingGraph', bindingGraph)
         const superNodeMap = detectAndMergeSuperNodes(bindingGraph.edges);
         
         const processedNodes = Array.from(bindingGraph.nodes.values()).map(node => ({
@@ -293,23 +285,8 @@ export class SpecCompiler {
                 target: edge.originalEdge.target.anchorId
             }
         }));
-        console.log('processedEdges', processedEdges)
 
 
-        // const processedEdges = edges.map(edge => ({
-        //     source: {
-        //         original: edge.source.nodeId,
-        //         merged: superNodeMap.get(edge.source.nodeId) || edge.source.nodeId
-        //     },
-        //     target: {
-        //         original: edge.target.nodeId, 
-        //         merged: superNodeMap.get(edge.target.nodeId) || edge.target.nodeId
-        //     },
-        //     anchors: {
-        //         source: edge.source.anchorId,
-        //         target: edge.target.anchorId
-        //     }
-        // }));
 
         // Group edges by target anchor (matching compileNode logic)
         const anchorGroups = this.groupEdgesByAnchor(

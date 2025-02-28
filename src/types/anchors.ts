@@ -100,6 +100,22 @@ export const SetOfNumericScalars: SchemaType = {
 
 export type AnchorSchema = Record<string, SchemaType>;
 
+//Now actually instantiated values during compilation
+type ScalarValue = {
+  value: string; // maps to the expression for the value
+}
+
+type SetValue = {
+  values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
+}
+
+type RangeValue = {
+  start: string; // maps to the expression for the value
+  stop: string; // maps to the expression for the value
+}
+
+export type AllValues = SetValue | ScalarValue | RangeValue;
+
 // {X:X<range>}
 
 // export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;

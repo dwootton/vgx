@@ -179,23 +179,45 @@ export class BaseChart extends BaseComponent {
 
       
       console.log('encoding',encodingProxy);
+
+     
       
+      // Scalar
+      const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) { // this is a range, so how do I 
+          acc[key] = {
+            'start': `range('${scaleName}')[0]`,
+            'stop': `range('${scaleName}')[1]`,
+          };
+        } else { // this is scalar, numeric
+          acc[key] = {
+            'value': `range('${scaleName}')[0]`, // min value
+          };
+        }
+        return acc;
+      }, {} as Record<string, AllValues>);
+
+      type ScalarValue = {
+        value: string; // maps to the expression for the value
+      }
+
+      type SetValue = {
+        values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
+      }
+     
+      type RangeValue = {
+        start: string; // maps to the expression for the value
+        stop: string; // maps to the expression for the value
+      }
+
+      type AllValues = SetValue | ScalarValue | RangeValue;
+     
 
      
       anchors.push({
         'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
           console.log('in binding scales!')
-          return {
-            source: 'encoding',
-            value: {
-              'scale': scaleName,
-              'scaleType': 'quantitative',
-              'fieldName': 'tester',
-              'start': `range('${scaleName}')[0]`,
-              'stop': `range('${scaleName}')[1]`,
-              
-            }
-          }
+          return compiledAnchor
         })
       })
     })

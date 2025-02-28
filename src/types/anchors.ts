@@ -40,7 +40,7 @@ type Range = {
     end: Scalar;
 }
 
-export type EncodingValues = "Scalar" | "Set" | "Range";
+export type EncodingValues = "NumericScalar" | "CategoricalScalar" | "Set" | "Range";
 
 export type InteractorSchema = {
   schemaId: string; // 'current', 'span'
@@ -65,29 +65,49 @@ export type InteractorSchema = {
 
 // export type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
 
-export interface EncodingAnchorSchema {
-    id: string;
-    type: 'encoding';
-    channel: ChannelType;
-    encoding: EncodingValues;//EncodingValueSchema;
-    interactive: boolean;
+// Base value types
+export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding'// | 'Boolean';
+
+// Base container types
+export type ContainerType = 'Scalar' | 'Set' | 'Range';
+
+export interface SchemaType {
+  container: ContainerType;
+  valueType: ValueType | SchemaType; // Recursive - can nest another schema
+  optional?: boolean;
 }
 
-// Used for binding groups of anchors like the corners of a rectangle
-export interface AnchorGroupSchema {
-    id: string;
-    type: 'group';
-    children: string[];
-    interactive: boolean;
-}
 
-export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;
-export type AnchorOrGroupSchema = AnchorSchema | AnchorGroupSchema;
+export const RangeSchema : SchemaType = {
+  container:'Range',
+  valueType:'Numeric'
+}
+// Type helpers for common patterns
+export const NumericScalar: SchemaType = { 
+  container: 'Scalar', 
+  valueType: 'Numeric' 
+};
+
+export const CategoricalSet: SchemaType = { 
+  container: 'Set', 
+  valueType: 'Categorical' 
+};
+
+export const SetOfNumericScalars: SchemaType = {
+  container: 'Set',
+  valueType: NumericScalar
+};
+
+export type AnchorSchema = Record<string, SchemaType>;
+
+// {X:X<range>}
+
+// export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;
 
 export interface AnchorProxy {
   component: BaseComponent;
   id: AnchorId;
-  anchorSchema: AnchorOrGroupSchema;
+  anchorSchema: AnchorSchema;
   bind: (target: AnchorProxy) => BaseComponent;
   compile: (nodeId?: string) => {source:string,value:any}; // produces a expr string
 }

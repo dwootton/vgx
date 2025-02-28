@@ -64,13 +64,129 @@ export class SpecCompiler {
         return compiledComponents;
     }
 
+    private compileNodeCompositional(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+        // this is where we need to know what the parent and what the child interaction schema is here. 
+
+        // graphEdges will have _all
+
+        // get the interaction schema of node. (for now one node will have just one interaction schema).
+
+        // each edge has (anchorTarget, or something like _all), 'bins':Scalar<numeric>
+                                                            //   'option':Scalar<category>, set, indexed set, range 
+                                                            //   'x':Scalar<numericEncoding>
+                                                            //   'x': Scalar<categoryEncoding> 
+        
+
+        // elaborate all edges (e.g. expand all) 
+            // sourceId, anchorName, schema: Scalar,...
+
+        
+        // group on target schema anchor ['x']
+            // for each incoming edge, compile it into an update rule
+                // the nice part is that the signal always the same schema as node initially
+            // example update for drag :{'sourceId':'gridComponent',anchorName:'x',schema:Set<Scalar>}
+            // update : "nearest(gridComponent_x,<component1_signal_name>)"
+
+
+        //schema set-> wrap in a dataset
+            // 
+
+        
+        // if schema is of type 'set'.... 
+            // this is case of target being set<scalar>// thus will create multiple. 
+            // for rn, we can probably just turn that into multiple marks/signals (so sorry arvind), each with its own signal
+            // although, this might actually be easier to do with data, because things like
+                // drags or clicks, might need more 
+
+
+
+
+        // if node schema is of type set 
+            // you create a dataset + a set of index operators to control indexing the dataset. 
+            // ex: lines -> create a dataset of lines (id + line layout) +  a mark encoding 
+                // specifying the dataset generators is key here (OR) specifying which dataset to use (e.g. hist bins)
+            // ex drags -> create a dataset of drags ()
+                // drags 
+
+        // draglines 
+            // compiles to set(lines):set(drags) (also drags:lines)
+            // grid.x.bind(draglines) // x draggable lines
+                // set:set(line):set(drag) + set(drag):set(line)
+                // grid.x -> regular compile 
+                // set(line): edge (grid.x) + edge set(drag)
+                    // expr (default to each gridline)
+                // dataset(grid.x)
+                // lines (new mark) 
+                // add new param, which modify grid.x when on drag
+                    // 
+
+            // each component will either be R or P. R is reified,
+                // P:R-> drags(lines):: P is used as the dataset to create R. 
+                // R:R-> lines(points):: R1 and R2's datasets are shared. Events on R2 will trigger updates on R1
+
+            // Grid.x.bind(Brush)
+                // this never modifies it as set:range
+            // Grid.x.bind(Brushs)  set<scalar>:set<range> // set<scalar>:set<scalar> should bind scalar2 to scalar1
+                                                           // set<scalar>:set<range> should bind range values to scalar
+                                                                // e.g. similar to set<scalar>:range
+                                                            // set<range>:set<scalar> each scalar should be within range
+                                                            // set<range>:set<range> each range should be within range?
+            // Grid.x.bind(draglines) // would modify it 
+
+            
+
+         
+
+        // gridlines.bind(draglines)
+            // line->drag
+
+        
+        
+
+            
+
+        
+        
+        
+        
+        
+
+
+
+        
+
+        // once all elaborated, 
+
+
+        // for each edge, get 
+
+        // for each of the edges that is coming in, find the interaction schema. 
+
+        // Scalar: <numeric, string>
+        // Scalar composition works the same way for both (except range, which set is like fully range)
+
+        // scalars are dictated via their names, thus if a numeric outputs a specific value, it will be called it
+
+        // bu
+
+
+        return {}
+
+    }
+
 
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
 
+        console.log('node', node, graphEdges)
+
         const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id)
+
+        console.log('filteredNode', node, graphEdges)
 
         // maybe instead of turn edges into anchors, we should just keep edges, and add anchor property
         const incomingAnchors: AnchorEdge[] = this.prepareEdges(filteredEdges)
+
+        console.log('incoming anchors',incomingAnchors)
 
 
         const anchorProxies = incomingAnchors.map(edge => edge.anchorProxy);
@@ -91,6 +207,7 @@ export class SpecCompiler {
 
 
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
+        console.log('compiledSpec',compiledSpec)
         return compiledSpec;
     }
 
@@ -244,6 +361,10 @@ export class SpecCompiler {
 
             const resolvedValue = edges.map(edge => edge.anchorProxy.compile(edge.originalEdge.source.nodeId));
             console.log('resolvedValue', resolvedValue)
+
+            // i need to know what the parent and what the child interaction schema is here. 
+            
+
             compilationContext[anchorId] = resolvedValue;
         }
 

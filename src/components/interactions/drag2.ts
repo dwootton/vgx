@@ -10,6 +10,8 @@ import { InteractorSchema } from "types/anchors";
 export const dragBaseContext = {
 
 }
+// console.log('not broken')
+
 
 // maybe schemas actually work as data extractors on some base context
 // e.g. drag always compiles to things such as x,y,start,stop, but this schemas have an additional update states
@@ -138,9 +140,6 @@ export class DragSpan extends BaseComponent {
                 update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
             }]
         };
-
-        
-
 
         return {
             params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]

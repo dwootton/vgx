@@ -6,7 +6,7 @@ import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
-import { AnchorProxy, ChannelType } from 'types/anchors';
+import { AnchorProxy, ChannelType , RangeSchema,NumericScalar,SchemaType} from '../../types/anchors';
 
 export interface ChartConfig {
   data: any[];
@@ -166,15 +166,24 @@ export class BaseChart extends BaseComponent {
         const positionChannel = getMainRangeChannel(key as PositionChannel);
         scaleName = positionChannel; // used for any reference and inversions 
       } 
-   
+
+
+      const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) {
+          acc[key] = RangeSchema;
+        } else {
+          acc[key] = NumericScalar;
+        }
+        return acc;
+      }, {} as Record<string, SchemaType>);
+
+      
+      console.log('encoding',encodingProxy);
+      
+
+     
       anchors.push({
-        'id': scaleName, 'proxy': this.createAnchorProxy({
-          id: scaleName,
-          type: 'encoding',
-          interactive: false,
-          encoding:"Range",
-          channel: scaleName as ChannelType
-        }, () => {
+        'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
           console.log('in binding scales!')
           return {
             source: 'encoding',

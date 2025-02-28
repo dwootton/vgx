@@ -2,20 +2,13 @@ import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
-import { AnchorIdentifer, AnchorSchema } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
-import { InteractorSchema } from "types/anchors";
+import { InteractorSchema, NumericScalar } from "../../types/anchors";
 export const dragBaseContext = {
 
 }
-// console.log('not broken')
-
-
-// maybe schemas actually work as data extractors on some base context
-// e.g. drag always compiles to things such as x,y,start,stop, but this schemas have an additional update states
-// that will take in that and then return the encoding values.
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -75,6 +68,43 @@ const startExtractor = (channel: string) => ({
 
 import {EncodingValues} from "types/anchors";
 
+function gen(){
+    const anchors = []
+
+
+    const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) {
+          acc[key] = RangeSchema;
+        } else {
+          acc[key] = NumericScalar;
+        }
+        return acc;
+      }, {} as Record<string, SchemaType>);
+
+      
+      console.log('encoding',encodingProxy);
+
+     
+      
+      // Scalar
+      const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) { // this is a range, so how do I 
+          acc[key] = {
+            'start': `range('${scaleName}')[0]`,
+            'stop': `range('${scaleName}')[1]`,
+          };
+        } else { // this is scalar, numeric
+          acc[key] = {
+            'value': `range('${scaleName}')[0]`, // min value
+          };
+        }
+        return acc;
+      }, {} as Record<string, AllValues>);
+      
+     
+
+
+}
 
 export class DragStart extends BaseComponent {
     public schemas: InteractorSchema[];
@@ -88,6 +118,21 @@ export class DragStart extends BaseComponent {
         }];
 
         this.initializeAnchors();
+        
+        const numericTypes = {
+            'x': NumericScalar, // min value
+          }
+    
+          const compiledValue = {
+            'value': `COMPONENT_NAME.x`, // min value
+          }
+    
+          this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
+            console.log('in binding scales!')
+            return compiledValue
+          }));
+         
+          
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
@@ -172,7 +217,19 @@ export class Drag extends BaseComponent {
             extractors: {'x':currentExtractor('x'), 'y':currentExtractor('y')}
         }];
 
-        this.initializeAnchors();
+        const numericTypes = {
+            'x': NumericScalar, // min value
+          }
+    
+          const compiledValue = {
+            'value': `COMPONENT_NAME.x`, // min value
+          }
+    
+          this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
+            console.log('in binding scales!')
+            return compiledValue
+          }));
+
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {

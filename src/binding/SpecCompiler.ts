@@ -36,9 +36,10 @@ export class SpecCompiler {
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
+        console.log('bindinggraph',bindingGraph)
 
         // Compile the updated graph
-        const compiledSpecs = this.compileBindingGraph(bindingGraph);
+        const compiledSpecs = this.compileBindingGraph(fromComponentId, bindingGraph);
 
         //const compiledSpecs = this.compileBindingGraph(bindingGraph);
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
@@ -48,23 +49,82 @@ export class SpecCompiler {
 
 
 
-    private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+    private compileBindingGraph(rootId:string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
-        const compiledComponents: Partial<UnitSpec<Field>>[] = [];
-
-        const superNodeMap: Map<string, string> = detectAndMergeSuperNodes(edges);
-        this.graphManager.setSuperNodeMap(superNodeMap);
 
 
-        for (const node of nodes.values()) {
-            const compiledNode = this.compileNode(node, edges);
-            compiledComponents.push(compiledNode);
+        function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+            const getAnchors = (component: BaseComponent, anchorId: string) =>
+                anchorId === '_all'
+                    ? [...component.getAnchors().values()].map(a => a.id.anchorId)
+                    : [anchorId];
+
+            const sourceAnchors = getAnchors(source, edge.source.anchorId);
+            const targetAnchors = getAnchors(target, edge.target.anchorId);
+            console.log('sourceAnchors',sourceAnchors)
+            console.log('targetAnchors',targetAnchors)
+
+            function isCompatible(sourceAnchorId: string, targetAnchor: string) {
+                return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+            }
+
+            return sourceAnchors.flatMap(sourceAnchor =>
+                targetAnchors
+                    .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
+                    .map(targetAnchor => ({
+                        source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
+                        target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
+                    }))
+            );
         }
+        function expandEdges(edges: BindingEdge[]): BindingEdge[] {
+            return edges.flatMap(edge => {
+                const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
+                if (!sourceComponent) {
+                    throw new Error(`Source component ${edge.source.nodeId} not found`);
+                }
+                const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
+                if (!targetComponent) {
+                    throw new Error(`Target component ${edge.target.nodeId} not found`);
+                }
+                return expandAllAnchors(edge, sourceComponent, targetComponent)
+            });
+        }
+
+
+        const expandedEdges = expandEdges(edges);
+        console.log('expandedEdges',expandedEdges)
+
+
+        
+
+
+
+        // const compiledComponents: Partial<UnitSpec<Field>>[] = [];
+
+        // console.log('all edgesa dn node',nodes,'edges',edges)
+
+        // //
+
+
+        // for (const node of nodes.values()) {
+        //     const compiledNode = this.compileNode(node, edges);
+        //     compiledComponents.push(compiledNode);
+        // }
 
         return compiledComponents;
     }
 
-    private compileNodeCompositional(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+    private compileNodeCompositional(root: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+
+
+        // elaborate binding tree, creating all of the edges & getting anchors
+
+        // then starting at root, traverse the tree. 
+        // at each node get each incoming edge. 
+
+        // brush.onEnd // [x1,x2] schema
+
         // this is where we need to know what the parent and what the child interaction schema is here. 
 
         // graphEdges will have _all

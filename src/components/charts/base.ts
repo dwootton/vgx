@@ -6,7 +6,7 @@ import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
-import { AnchorProxy, ChannelType , RangeSchema,NumericScalar,SchemaType} from '../../types/anchors';
+import { AnchorProxy, ChannelType , RangeSchema,NumericScalar,SchemaType, SchemaValue} from '../../types/anchors';
 
 export interface ChartConfig {
   data: any[];
@@ -195,29 +195,18 @@ export class BaseChart extends BaseComponent {
           };
         }
         return acc;
-      }, {} as Record<string, AllValues>);
+      }, {} as Record<string, SchemaValue>);
 
-      type ScalarValue = {
-        value: string; // maps to the expression for the value
-      }
-
-      type SetValue = {
-        values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
-      }
      
-      type RangeValue = {
-        start: string; // maps to the expression for the value
-        stop: string; // maps to the expression for the value
-      }
-
-      type AllValues = SetValue | ScalarValue | RangeValue;
      
 
      
+      // currently this returns anchors compile with {x,y,etc}.. I think this is actually supposed tobe something like schema constraints, and then we grab 
+      // them lat
       anchors.push({
         'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
-          console.log('in binding scales!')
-          return compiledAnchor
+          console.log('chart compilation!', compiledAnchor)
+          return compiledAnchor[scaleName]
         })
       })
     })

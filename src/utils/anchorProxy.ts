@@ -1,7 +1,7 @@
 import { BindingTarget } from "../components/base";
 import { isComponent } from "./component";
 
-import {  AnchorProxy, AnchorType, AnchorSchema, AllValues } from '../types/anchors';
+import {  AnchorProxy, AnchorType, AnchorSchema, SchemaValue } from '../types/anchors';
 import { BaseComponent } from '../components/base';
 import { BindingManager, BindingEdge } from '../binding/BindingManager';
 import { generateComponentSignalName } from "./component";
@@ -13,7 +13,7 @@ export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, anchorId:string, compileFn?: (nodeId?:string) => AllValues): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, anchorId:string, compileFn?: (nodeId?:string) => SchemaValue): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -22,7 +22,7 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     const bindingManager = BindingManager.getInstance();
     bindingManager.addBinding(
       component.id, targetAnchor.id.componentId, anchorId,
-      targetAnchor.id.anchorId
+    targetAnchor.id.anchorId
     );
 
     return targetAnchor.component;

@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorIdentifer, AnchorOrGroupSchema, AllValues } from '../types/anchors';
+import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorIdentifer, SchemaType, SchemaValue } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager, VirtualBindingEdge } from '../binding/BindingManager';
@@ -15,8 +15,12 @@ export interface Component {
   getSpec(): any;
 }
 
+
+
 export abstract class BaseComponent {
   protected anchors: Map<string, AnchorProxy> = new Map();
+  public schema: Record<string, SchemaType> = {}; // default?
+
   public id: string;
   public bindingManager: BindingManager;
 
@@ -147,7 +151,7 @@ export abstract class BaseComponent {
 
 
 
-  protected createAnchorProxy(anchor: AnchorSchema, anchorId: string, compileFn?: (nodeId?: string) => AllValues): AnchorProxy {
+  protected createAnchorProxy(anchor: AnchorSchema, anchorId: string, compileFn?: (nodeId?: string) => SchemaValue): AnchorProxy {
     return createAnchorProxy(this, anchor, anchorId, compileFn);
   }
 

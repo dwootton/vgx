@@ -2,10 +2,10 @@ import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
-import { generateAnchorsFromContext } from "../../utils/anchorProxy";
+import { generateAnchorsFromContext } , SchemaTypefrom "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
-import { InteractorSchema, NumericScalar } from "../../types/anchors";
+import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
 export const dragBaseContext = {
 
 }
@@ -66,56 +66,23 @@ const startExtractor = (channel: string) => ({
 // 
 
 
-import {EncodingValues} from "types/anchors";
-
-function gen(){
-    const anchors = []
-
-
-    const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) {
-          acc[key] = RangeSchema;
-        } else {
-          acc[key] = NumericScalar;
-        }
-        return acc;
-      }, {} as Record<string, SchemaType>);
-
-      
-      console.log('encoding',encodingProxy);
-
-     
-      
-      // Scalar
-      const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) { // this is a range, so how do I 
-          acc[key] = {
-            'start': `range('${scaleName}')[0]`,
-            'stop': `range('${scaleName}')[1]`,
-          };
-        } else { // this is scalar, numeric
-          acc[key] = {
-            'value': `range('${scaleName}')[0]`, // min value
-          };
-        }
-        return acc;
-      }, {} as Record<string, AllValues>);
-      
-     
-
-
-}
 
 export class DragStart extends BaseComponent {
-    public schemas: InteractorSchema[];
     constructor(config: any = {}) {
         super(config);
 
-        this.schemas = [{
-            schemaId: 'start',
-            schemaType: 'Scalar',
-            extractors: {'x':startExtractor('x'), 'y':startExtractor('y')}
-        }];
+        this.schema = {
+            'x': {
+                container: 'Scalar',
+                valueType: 'Numeric'
+            }
+        }
+
+        // this.schemas = [{
+        //     schemaId: 'start',
+        //     schemaType: 'Scalar',
+        //     extractors: {'x':startExtractor('x'), 'y':startExtractor('y')}
+        // }];
 
         this.initializeAnchors();
         
@@ -192,8 +159,12 @@ export class DragSpan extends BaseComponent {
     }
 }
 
-const generateSignalFromSchema = (schema: InteractorSchema, channel: string, signalParent:string,mergedParent:string) => {
-    console.log(schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent))    
+type constrain_expr = string;
+// context: a mapping of property names to constraint expressions
+type CompilationContext = Record<string, constrain_expr[]>;
+// markName : "update": "mark_0_layer_marks "// scalar, just map 
+
+const generateSignalFromSchema = (schema: SchemaType, channel: string, signalParent:string,mergedParent:string) => {
 
     return {
         name: mergedParent+'_'+channel,
@@ -207,22 +178,27 @@ const generateSignalFromSchema = (schema: InteractorSchema, channel: string, sig
     }
 }
 export class Drag extends BaseComponent {
-    public schemas: InteractorSchema[];
     constructor(config: any = {}) {
         super(config);
 
-        this.schemas = [{
-            schemaId: 'current',
-            schemaType: 'Scalar', 
-            extractors: {'x':currentExtractor('x'), 'y':currentExtractor('y')}
-        }];
+        this.schema = {
+            'x': {
+                container: 'Scalar',
+                valueType: 'Numeric'
+            }
+        }
+        // this.schemas = [{
+        //     schemaId: 'current',
+        //     schemaType: 'Scalar', 
+        //     extractors: {'x':currentExtractor('x'), 'y':currentExtractor('y')}
+        // }];
 
         const numericTypes = {
             'x': NumericScalar, // min value
           }
     
           const compiledValue = {
-            'value': `COMPONENT_NAME.x`, // min value
+            'value': `VGX_SIGNAL_NAME_x`, // min value
           }
     
           this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
@@ -232,10 +208,10 @@ export class Drag extends BaseComponent {
 
     }
 
-    compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
-            name: this.id,
+            name: this.id, // base signal
             value: dragBaseContext,
             on: [{
                 events: {
@@ -247,10 +223,66 @@ export class Drag extends BaseComponent {
                 },
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
             }]
-        };
+        }; // drag_x, drag_y
+
+        // 
+
+        function generateSignalFromAnchor(constraints:string[],channel: string, signalParent:string,mergedParent:string) {
+            // const compilationValue = anchor.compile();
+            const parentExtractor = signalParent+"."+channel
+            const signalName = mergedParent+'_'+channel;
+            console.log("CONSTRAINTS",constraints)
+
+
+            const generateConstraints = (update:string)=>{
+                return {
+                    events: {
+                        signal: signalName
+                    },
+                    update: update
+                }
+
+            }
+            return {
+                name: signalName,
+                value: null,
+                on: [{
+                    events: [{
+                        signal: signalParent
+                    }],
+                    update: parentExtractor
+                }, ...(constraints.map(generateConstraints))]
+            }
+            //Example out:
+            // const drag_x = {
+                //     name:"drag_x",
+                //     value: null,
+                //     on: [{
+                //         events: {
+                //             signal: this.id
+                //         },
+                //         update: `${this.id}.x`
+                //     },{
+                //         events: {
+                //             signal: "drag_x"
+                //         },
+                //         update: `clamp('drag_x', ${range0}, ${range1})`
+                //     }]
+                // }
+        }
+        
+       
+
+
+        console.log('schewma',this.schema, Object.keys(this.schema))
+
+        // TODO handle missing key/anchors
+        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId))
+        // then , may through each item
 
         return {
-            params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
+            //@ts-ignore as signals can exist in VL
+            params: [signal, ...outputSignals]
 
         };
     }

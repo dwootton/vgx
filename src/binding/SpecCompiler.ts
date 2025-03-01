@@ -1,7 +1,7 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge,  } from "./BindingManager";
 import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue } from "./binding";
-import { AnchorProxy } from "../types/anchors";
+import { AnchorProxy,SchemaType, SchemaValue, RangeValue, SetValue,ScalarValue  } from "../types/anchors";
 import { BaseComponent } from "../components/base";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
@@ -52,51 +52,183 @@ export class SpecCompiler {
     private compileBindingGraph(rootId:string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
 
-
-        function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-            const getAnchors = (component: BaseComponent, anchorId: string) =>
-                anchorId === '_all'
-                    ? [...component.getAnchors().values()].map(a => a.id.anchorId)
-                    : [anchorId];
-
-            const sourceAnchors = getAnchors(source, edge.source.anchorId);
-            const targetAnchors = getAnchors(target, edge.target.anchorId);
-            console.log('sourceAnchors',sourceAnchors)
-            console.log('targetAnchors',targetAnchors)
-
-            function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-                return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
-            }
-
-            return sourceAnchors.flatMap(sourceAnchor =>
-                targetAnchors
-                    .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
-                    .map(targetAnchor => ({
-                        source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
-                        target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
-                    }))
-            );
-        }
-        function expandEdges(edges: BindingEdge[]): BindingEdge[] {
-            return edges.flatMap(edge => {
-                const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
-                if (!sourceComponent) {
-                    throw new Error(`Source component ${edge.source.nodeId} not found`);
-                }
-                const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
-                if (!targetComponent) {
-                    throw new Error(`Target component ${edge.target.nodeId} not found`);
-                }
-                return expandAllAnchors(edge, sourceComponent, targetComponent)
-            });
-        }
-
-
         const expandedEdges = expandEdges(edges);
-        console.log('expandedEdges',expandedEdges)
+        // at this point, you'll have alist of all of the compatible edges between sources and targets 
+        // now, we will need to do the pre-order traversal, and then compile as we go along the tree.
+        // 
+
+        function createContext(node: BindingNode, edges: BindingEdge[], parentNodes: BindingNode[] = []): compilationContext {
+            // Create a compilation context with node, edges, and parent information
+            return {
+                nodeId: node.id,
+                edges: edges,
+                parentNodes: parentNodes
+            };
+        }
+
+        const preOrderTraversal = (node: BindingNode, edges: BindingEdge[]): Partial<UnitSpec<Field>>[] => {
+            // Find child nodes from edges where this node is the source
+            const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
+            const parentNodes = parentEdges.map(edge => 
+                nodes.get(edge.source.nodeId)
+            ).filter((n): n is BindingNode => n !== undefined);
+
+            // Create context with current node, edges, and parent nodes
+            const context = createContext(node, edges, parentNodes);
+            
+            const component = this.getBindingManager().getComponent(node.id);
+            // Get parent components and their corresponding anchors based on the edges
+            const parentAnchors = parentNodes.map(parentNode => {
+                const component = this.getBindingManager().getComponent(parentNode.id);
+                // Find the edge connecting this parent to the current node
+                const edge = parentEdges.find(e => e.source.nodeId === parentNode.id);
+                // Get the anchor from the parent component
+                const anchor = edge ? component?.getAnchor(edge.source.anchorId) : undefined;
+                
+                return anchor
+            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined)
+
+            //ASSUMPTION CHART:POINT:DRAG
+
+            // constraint value 
+                // if the component is a generator, it will generate its own signal
+                // then the constraints will be passed in as a separate signal, which will be used in future components
+            
+            console.log('parent anchors',parentAnchors)
+
+            const constraints : Record<string,string[]> = {};
+            parentAnchors.map((anchorProxy)=>{
+                
+                //
+                const parentVals = Object.keys(anchorProxy.anchorSchema).map((channel)=>{
+
+                    const schema = anchorProxy.anchorSchema[channel]
+
+                    console.log('ptschema',schema, 'comped',anchorProxy.compile())
+
+                    function generateConstraintString(schema:SchemaType,value:SchemaValue):string{
+                        console.log('schemaNEWWs',schema, 'value',value)
+                        if(schema.container==='Range'){
+                            value = value as RangeValue
+                            return `clamp(${channel},${value.start},${value.stop})`
+                        }
+                        if(schema.container==='Set'){
+                            value = value as SetValue
+                            return `nearest(${channel},${value.values})`
+                        }
+                        if(schema.container==='Scalar'){
+                            value = value as ScalarValue
+                            return `${channel}`
+                        }
+                        return "";
+                    }
+
+                    const result=generateConstraintString(schema,anchorProxy.compile())
+                    console.log('resultSFDS',result)
+
+                    constraints[channel]=[result]
+
+                    return result
+                })
+                
+                return parentVals
+
+            })
+            console.log('new constraint',constraints)
+
+            //TODO 3/1/2025 @12:45 pm
+            // Okay, some weird signal magic is happewning here (expr are not compiling correctly),
+            // but we're getting it through! So just a bit more pushing here
 
 
-        
+   
+
+
+            
+            // for every parent anchor 
+                // get the child schema
+                // construct a signal in its form 
+                    // grab the update rule 
+
+                    //point compile - data:data, mark:point{x,y}
+                    //marks expect a data in the form data
+                    // will have a set of params that create and manage data (e.g. via update rules)
+
+                    //drag compile – data:data 
+                    // params will return a param that is used 
+                    // marks will return a signal 
+           
+
+
+
+
+
+
+            // all components will have a signal value that they read in (but this doesn't work– what about data)
+            // all components will have a dataset that they read in + signals that build that dataset 
+            // vgx.dragcompile-
+                // 
+
+            // converts parent values into schema values 
+                // constrained_signal_value 
+                    // initial values set by defaults, or then set by passed in values 
+                    // 
+
+            // pass in signal for constrained object 
+                // in set case, will also pass in data & signals has selection+dataset creation
+                // update: constrain(pt1,min,max)
+                // value: natural_val()
+
+            // point
+                // point : assumes input will be of type {x,y}
+
+            // 
+            // compiles default values 
+            // compiles expr values 
+
+
+            // range - scalar
+                // create new dataset name _ constrts_comp & corresponding signal
+                // add a number of updates 
+                // 
+
+            // then for each parent anchor, we'll pass that in as the context
+            // within the context, we'll do the corresponding updates to the underlying component here?
+                // hmm note, if its a scalar:scalar, how do we populate up the value? Might need double edges.
+
+            // for each input into
+                // sets – marks: create a dataset, params: create a dataset + selected index
+
+            // add constraints into inputContext
+
+
+
+            
+            
+            
+            
+
+            console.log('creating context',context, 'parent anchors',constraints)
+            // Compile the current node with the context
+            const compiledNode = component.compileComponent(constraints);
+            
+            // Find child nodes from edges where this node is the source
+            const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
+            const childNodes = childEdges.map(edge => 
+                nodes.get(edge.target.nodeId)
+            ).filter((n): n is BindingNode => n !== undefined);
+            
+            // Recursively process child nodes
+            const children = childNodes.map(child => 
+                preOrderTraversal(child, edges)
+            );
+            
+            // Flatten the results
+            return [compiledNode, ...children.flat()];
+        }
+
+
+        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges);
 
 
 
@@ -673,3 +805,44 @@ interface EdgeGroup {
     resolvedValue: any;
 }
 
+
+
+
+// Interactor schema fn 
+function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+    const getAnchors = (component: BaseComponent, anchorId: string) =>
+        anchorId === '_all'
+            ? [...component.getAnchors().values()].map(a => a.id.anchorId)
+            : [anchorId];
+
+    const sourceAnchors = getAnchors(source, edge.source.anchorId);
+    const targetAnchors = getAnchors(target, edge.target.anchorId);
+    console.log('sourceAnchors',sourceAnchors)
+    console.log('targetAnchors',targetAnchors)
+
+    function isCompatible(sourceAnchorId: string, targetAnchor: string) {
+        return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+    }
+
+    return sourceAnchors.flatMap(sourceAnchor =>
+        targetAnchors
+            .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
+            .map(targetAnchor => ({
+                source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
+                target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
+            }))
+    );
+}
+function expandEdges(edges: BindingEdge[]): BindingEdge[] {
+    return edges.flatMap(edge => {
+        const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
+        if (!sourceComponent) {
+            throw new Error(`Source component ${edge.source.nodeId} not found`);
+        }
+        const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
+        if (!targetComponent) {
+            throw new Error(`Target component ${edge.target.nodeId} not found`);
+        }
+        return expandAllAnchors(edge, sourceComponent, targetComponent)
+    });
+}

@@ -53,6 +53,7 @@ export class SpecCompiler {
         const { nodes, edges } = bindingGraph;
 
         const expandedEdges = expandEdges(edges);
+
         // at this point, you'll have alist of all of the compatible edges between sources and targets 
         // now, we will need to do the pre-order traversal, and then compile as we go along the tree.
         // 
@@ -68,25 +69,29 @@ export class SpecCompiler {
 
         const preOrderTraversal = (node: BindingNode, edges: BindingEdge[]): Partial<UnitSpec<Field>>[] => {
             // Find child nodes from edges where this node is the source
+            // Find all edges where this node is the target
             const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-            const parentNodes = parentEdges.map(edge => 
-                nodes.get(edge.source.nodeId)
-            ).filter((n): n is BindingNode => n !== undefined);
-
-            // Create context with current node, edges, and parent nodes
-            const context = createContext(node, edges, parentNodes);
             
+            // Create a list of {edge, node} pairs to preserve the relationship between edges and nodes
+            const parentEdgePairs = parentEdges.map(edge => {
+                const parentNode = nodes.get(edge.source.nodeId);
+                return parentNode ? { edge, node: parentNode } : null;
+            }).filter((pair): pair is { edge: BindingEdge, node: BindingNode } => pair !== null);
+            
+            // Get the component for the current node
             const component = this.getBindingManager().getComponent(node.id);
-            // Get parent components and their corresponding anchors based on the edges
-            const parentAnchors = parentNodes.map(parentNode => {
-                const component = this.getBindingManager().getComponent(parentNode.id);
-                // Find the edge connecting this parent to the current node
-                const edge = parentEdges.find(e => e.source.nodeId === parentNode.id);
-                // Get the anchor from the parent component
-                const anchor = edge ? component?.getAnchor(edge.source.anchorId) : undefined;
+            
+            // Extract parent anchors from the edge-node pairs
+            const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
+                const parentComponent = this.getBindingManager().getComponent(node.id);
+                if (!parentComponent) return undefined;
                 
-                return anchor
-            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined)
+                // Get the anchor from the parent component using the source anchorId from the edge
+                const anchor = parentComponent.getAnchor(edge.source.anchorId);
+                console.log('edge', edge);
+                
+                return anchor;
+            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
 
             //ASSUMPTION CHART:POINT:DRAG
 
@@ -211,7 +216,6 @@ export class SpecCompiler {
             
             
 
-            console.log('creating context',context, 'parent anchors',constraints)
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
             

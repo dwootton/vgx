@@ -185,25 +185,29 @@ export class Drag extends BaseComponent {
             'x': {
                 container: 'Scalar',
                 valueType: 'Numeric'
+            },
+            'y': {
+                container: 'Scalar',
+                valueType: 'Numeric'
             }
         }
-        // this.schemas = [{
-        //     schemaId: 'current',
-        //     schemaType: 'Scalar', 
-        //     extractors: {'x':currentExtractor('x'), 'y':currentExtractor('y')}
-        // }];
 
-        const numericTypes = {
-            'x': NumericScalar, // min value
-          }
     
-          const compiledValue = {
-            'value': `VGX_SIGNAL_NAME_x`, // min value
-          }
+        function generateCompiledValue(channel:string){
+            return {
+                'value': `VGX_SIGNAL_NAME_${channel}`, // min value
+            }
+        }
+         
     
-          this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
+          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
             console.log('in binding scales!')
-            return compiledValue
+            return generateCompiledValue('x')
+          }));
+
+          this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+            console.log('in binding scales!')
+            return generateCompiledValue('y')
           }));
 
     }
@@ -241,8 +245,8 @@ export class Drag extends BaseComponent {
                     },
                     update: update.replace('VGX_SIGNAL_NAME',signalName)
                 }
-
             }
+
             return {
                 name: signalName,
                 value: null,

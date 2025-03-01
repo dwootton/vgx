@@ -172,7 +172,7 @@ export class BaseChart extends BaseComponent {
         if (key === scaleName) {
           acc[key] = RangeSchema;
         } else {
-          acc[key] = NumericScalar;
+         // acc[key] = NumericScalar;
         }
         return acc;
       }, {} as Record<string, SchemaType>);
@@ -184,15 +184,16 @@ export class BaseChart extends BaseComponent {
       
       // Scalar
       const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) { // this is a range, so how do I 
+        if (key === scaleName) { 
+          // some encoding channels like y have an inverted range, so we must min/max the range
           acc[key] = {
-            'start': `range('${this.id+'_'+scaleName}')[0]`,
-            'stop': `range('${this.id+'_'+scaleName}')[1]`,
+            'start': `min(range('${this.id+'_'+scaleName}')[0],range('${this.id+'_'+scaleName}')[1])`,
+            'stop': `max(range('${this.id+'_'+scaleName}')[0],range('${this.id+'_'+scaleName}')[1])`,
           };
         } else { // this is scalar, numeric
-          acc[key] = {
-            'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
-          };
+          // acc[key] = {
+          //   'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
+          // };
         }
         return acc;
       }, {} as Record<string, SchemaValue>);

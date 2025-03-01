@@ -186,12 +186,12 @@ export class BaseChart extends BaseComponent {
       const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
         if (key === scaleName) { // this is a range, so how do I 
           acc[key] = {
-            'start': `range('${scaleName}')[0]`,
-            'stop': `range('${scaleName}')[1]`,
+            'start': `range('${this.id+'_'+scaleName}')[0]`,
+            'stop': `range('${this.id+'_'+scaleName}')[1]`,
           };
         } else { // this is scalar, numeric
           acc[key] = {
-            'value': `range('${scaleName}')[0]`, // min value
+            'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
           };
         }
         return acc;

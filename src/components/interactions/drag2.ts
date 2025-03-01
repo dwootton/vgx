@@ -239,7 +239,7 @@ export class Drag extends BaseComponent {
                     events: {
                         signal: signalName
                     },
-                    update: update
+                    update: update.replace('VGX_SIGNAL_NAME',signalName)
                 }
 
             }

@@ -110,20 +110,20 @@ export class SpecCompiler {
                         console.log('schemaNEWWs',schema, 'value',value)
                         if(schema.container==='Range'){
                             value = value as RangeValue
-                            return `clamp(${channel},${value.start},${value.stop})`
+                            return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
                         }
                         if(schema.container==='Set'){
                             value = value as SetValue
-                            return `nearest(${channel},${value.values})`
+                            return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
                         }
                         if(schema.container==='Scalar'){
                             value = value as ScalarValue
-                            return `${channel}`
+                            return `${value}`
                         }
                         return "";
                     }
 
-                    const result=generateConstraintString(schema,anchorProxy.compile())
+                    const result = generateConstraintString(schema,anchorProxy.compile())
                     console.log('resultSFDS',result)
 
                     constraints[channel]=[result]
@@ -139,6 +139,9 @@ export class SpecCompiler {
             //TODO 3/1/2025 @12:45 pm
             // Okay, some weird signal magic is happewning here (expr are not compiling correctly),
             // but we're getting it through! So just a bit more pushing here
+
+            // you also need to figure out the clean distinction between anchors and schema, and how to 
+            // access anchor values (e.g. drag.x.value, not "x":<range>)
 
 
    

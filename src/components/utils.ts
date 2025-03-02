@@ -61,15 +61,8 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
             }
         };
 
-
         const clampedStartExtractor = collapseSignalUpdates(constraints.map(generateStartConstraints),startParentExtractor)
         const clampedStopExtractor = collapseSignalUpdates(constraints.map(generateStopConstraints),stopParentExtractor)
-
-
-
-
-        console.log('transpiled',clampedStartExtractor,clampedStopExtractor)
-
         
         return [
             {

@@ -32,7 +32,6 @@ export abstract class BaseComponent {
     this.bindingManager = BindingManager.getInstance();
     this.bindingManager.addComponent(this);
 
-    console.log('config',this,config)
     const bindings = findBindings(config);
     bindings.length && this.addParameterBindings(bindings);
   }
@@ -122,7 +121,6 @@ export abstract class BaseComponent {
   public initializeAnchors() {
   
     this.anchors.set('_all', this.createAnchorProxy({}, '_all', () => {
-      console.log('compiling all')
       return { source: '', value: '' }
     }));
   }
@@ -171,10 +169,8 @@ export abstract class BaseComponent {
 const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy, key: string }[] => {
   if (!value) return [];
 
-  console.log('in findBindings',value,path)
-
-  // Handle arrays
-  if (Array.isArray(value)) {
+  // Handle arrays, but skip if path is 'data'
+  if (Array.isArray(value) && path !== 'data') {
     return value.flatMap((item, index) => findBindings(item, `${path}[${index}]`));
   }
 
@@ -189,7 +185,7 @@ const findBindings = (value: any, path: string = ''): { value: BaseComponent | A
   }
 
   // If not a direct match but is an object, check its properties
-  if (typeof value === 'object') {
+  if (typeof value === 'object' && path !== 'data') {
     return Object.entries(value).flatMap(([key, v]) =>
       findBindings(v, path ? `${path}.${key}` : key)
     );

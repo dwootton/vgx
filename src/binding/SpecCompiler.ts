@@ -51,7 +51,6 @@ export class SpecCompiler {
     private compileBindingGraph(rootId:string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
 
-        console.log('binding graph',bindingGraph)
 
         const expandedEdges = expandEdges(edges);
 
@@ -126,46 +125,8 @@ export class SpecCompiler {
                         return "";
                     }
 
-                    let result = []
+                    let result:string[] = []
 
-
-                    // old functions to generate a singular node_0_x variable (doesn't work with vega b.c. its a nested object)
-                    // function generateConstraintStringRange(schema:SchemaType,value:SchemaValue):string{
-                    //     if(schema.container==='Range'){
-                    //         value = value as RangeValue
-                    //         return `{'start':clamp(${'VGX_SIGNAL_NAME'}.start,${value.start},${value.stop}),'stop':clamp(${'VGX_SIGNAL_NAME'}.stop,${value.start},${value.stop})}`
-                    //     }
-                    //     if(schema.container==='Set'){
-                    //         value = value as SetValue
-                    //         return `{'start':nearest(${'VGX_SIGNAL_NAME'}.start,${value.values}),'stop':nearest(${'VGX_SIGNAL_NAME'}.stop,${value.values})}`
-                    //     }
-                    //     if(schema.container==='Scalar'){
-                    //         value = value as ScalarValue
-                    //         return `{'start':${'VGX_SIGNAL_NAME'}.start + ${value},'stop':${'VGX_SIGNAL_NAME'}.stop + ${value}}`
-                    //     }
-                    //     return "";
-                    // }
-
-                    // // // current functions that genertate ranges for each value 
-                    //  function generateConstraintRangeScalar(schema:SchemaType,key:string,value:SchemaValue):string{
-                    //     if(schema.container==='Range'){
-                    //         //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
-                    //         console.log('in generateConstraintRangeScalar',anchorProxy.component,value)
-                    //         value = value as RangeValue
-
-                    //         // range:range, means start=start, stop=stop
-                    //         return `${value.start}`
-                    //     }
-                    //     if(schema.container==='Set'){
-                    //         value = value as SetValue
-                    //         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
-                    //     }
-                    //     if(schema.container==='Scalar'){ // NOTE THIS IS DIFF THAN SCALAR AS WE OFFSET
-                    //         value = value as ScalarValue
-                    //     return `${'VGX_SIGNAL_NAME'}+${value}`
-                    //     }
-                    //     return "";
-                    // }
                     // // current functions that genertate ranges for each value 
                      function generateConstraintRangeScalar(schema:SchemaType,value:SchemaValue):string{
                         if(schema.container==='Range'){
@@ -190,18 +151,8 @@ export class SpecCompiler {
                     if(component.schema[channel].container ==="Scalar"){
                          result = [generateConstraintStringScalar(schema,anchorProxy.compile())];
                     } else if (component.schema[channel].container === "Range"){
-                        console.log('in range anchor Proxy',component,anchorProxy.compile())
-                        // compile starts
-                        // result = generateConstraintRangeScalar(schema,anchorProxy.compile());
                         result = [generateConstraintRangeScalar(schema,anchorProxy.compile()),generateConstraintRangeScalar(schema,anchorProxy.compile())]
-
-                        //  result.push(generateConstraintRangeScalarUnit(schema,'start',anchorProxy.compile()));
-                        //  result.push(generateConstraintRangeScalarUnit(schema,'stop',anchorProxy.compile()));
                     }
-
-
-
-                    // const result = generateConstraintString(schema,anchorProxy.compile())
 
                     constraints[channel]=result
 
@@ -211,81 +162,6 @@ export class SpecCompiler {
                 return parentVals
 
             })
-
-            //TODO 3/1/2025 @12:45 pm
-            // Okay, some weird signal magic is happewning here (expr are not compiling correctly),
-            // but we're getting it through! So just a bit more pushing here
-
-            // you also need to figure out the clean distinction between anchors and schema, and how to 
-            // access anchor values (e.g. drag.x.value, not "x":<range>)
-
-
-   
-
-
-            
-            // for every parent anchor 
-                // get the child schema
-                // construct a signal in its form 
-                    // grab the update rule 
-
-                    //point compile - data:data, mark:point{x,y}
-                    //marks expect a data in the form data
-                    // will have a set of params that create and manage data (e.g. via update rules)
-
-                    //drag compile – data:data 
-                    // params will return a param that is used 
-                    // marks will return a signal 
-           
-
-
-
-
-
-
-            // all components will have a signal value that they read in (but this doesn't work– what about data)
-            // all components will have a dataset that they read in + signals that build that dataset 
-            // vgx.dragcompile-
-                // 
-
-            // converts parent values into schema values 
-                // constrained_signal_value 
-                    // initial values set by defaults, or then set by passed in values 
-                    // 
-
-            // pass in signal for constrained object 
-                // in set case, will also pass in data & signals has selection+dataset creation
-                // update: constrain(pt1,min,max)
-                // value: natural_val()
-
-            // point
-                // point : assumes input will be of type {x,y}
-
-            // 
-            // compiles default values 
-            // compiles expr values 
-
-
-            // range - scalar
-                // create new dataset name _ constrts_comp & corresponding signal
-                // add a number of updates 
-                // 
-
-            // then for each parent anchor, we'll pass that in as the context
-            // within the context, we'll do the corresponding updates to the underlying component here?
-                // hmm note, if its a scalar:scalar, how do we populate up the value? Might need double edges.
-
-            // for each input into
-                // sets – marks: create a dataset, params: create a dataset + selected index
-
-            // add constraints into inputContext
-
-
-
-            
-            
-            
-            
 
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
@@ -308,141 +184,10 @@ export class SpecCompiler {
 
         const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges);
 
-
-
-        // const compiledComponents: Partial<UnitSpec<Field>>[] = [];
-
-        // console.log('all edgesa dn node',nodes,'edges',edges)
-
-        // //
-
-
-        // for (const node of nodes.values()) {
-        //     const compiledNode = this.compileNode(node, edges);
-        //     compiledComponents.push(compiledNode);
-        // }
-
         return compiledComponents;
     }
 
-    private compileNodeCompositional(root: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
-
-
-        // elaborate binding tree, creating all of the edges & getting anchors
-
-        // then starting at root, traverse the tree. 
-        // at each node get each incoming edge. 
-
-        // brush.onEnd // [x1,x2] schema
-
-        // this is where we need to know what the parent and what the child interaction schema is here. 
-
-        // graphEdges will have _all
-
-        // get the interaction schema of node. (for now one node will have just one interaction schema).
-
-        // each edge has (anchorTarget, or something like _all), 'bins':Scalar<numeric>
-                                                            //   'option':Scalar<category>, set, indexed set, range 
-                                                            //   'x':Scalar<numericEncoding>
-                                                            //   'x': Scalar<categoryEncoding> 
-        
-
-        // elaborate all edges (e.g. expand all) 
-            // sourceId, anchorName, schema: Scalar,...
-
-        
-        // group on target schema anchor ['x']
-            // for each incoming edge, compile it into an update rule
-                // the nice part is that the signal always the same schema as node initially
-            // example update for drag :{'sourceId':'gridComponent',anchorName:'x',schema:Set<Scalar>}
-            // update : "nearest(gridComponent_x,<component1_signal_name>)"
-
-
-        //schema set-> wrap in a dataset
-            // 
-
-        
-        // if schema is of type 'set'.... 
-            // this is case of target being set<scalar>// thus will create multiple. 
-            // for rn, we can probably just turn that into multiple marks/signals (so sorry arvind), each with its own signal
-            // although, this might actually be easier to do with data, because things like
-                // drags or clicks, might need more 
-
-
-
-
-        // if node schema is of type set 
-            // you create a dataset + a set of index operators to control indexing the dataset. 
-            // ex: lines -> create a dataset of lines (id + line layout) +  a mark encoding 
-                // specifying the dataset generators is key here (OR) specifying which dataset to use (e.g. hist bins)
-            // ex drags -> create a dataset of drags ()
-                // drags 
-
-        // draglines 
-            // compiles to set(lines):set(drags) (also drags:lines)
-            // grid.x.bind(draglines) // x draggable lines
-                // set:set(line):set(drag) + set(drag):set(line)
-                // grid.x -> regular compile 
-                // set(line): edge (grid.x) + edge set(drag)
-                    // expr (default to each gridline)
-                // dataset(grid.x)
-                // lines (new mark) 
-                // add new param, which modify grid.x when on drag
-                    // 
-
-            // each component will either be R or P. R is reified,
-                // P:R-> drags(lines):: P is used as the dataset to create R. 
-                // R:R-> lines(points):: R1 and R2's datasets are shared. Events on R2 will trigger updates on R1
-
-            // Grid.x.bind(Brush)
-                // this never modifies it as set:range
-            // Grid.x.bind(Brushs)  set<scalar>:set<range> // set<scalar>:set<scalar> should bind scalar2 to scalar1
-                                                           // set<scalar>:set<range> should bind range values to scalar
-                                                                // e.g. similar to set<scalar>:range
-                                                            // set<range>:set<scalar> each scalar should be within range
-                                                            // set<range>:set<range> each range should be within range?
-            // Grid.x.bind(draglines) // would modify it 
-
-            
-
-         
-
-        // gridlines.bind(draglines)
-            // line->drag
-
-        
-        
-
-            
-
-        
-        
-        
-        
-        
-
-
-
-        
-
-        // once all elaborated, 
-
-
-        // for each edge, get 
-
-        // for each of the edges that is coming in, find the interaction schema. 
-
-        // Scalar: <numeric, string>
-        // Scalar composition works the same way for both (except range, which set is like fully range)
-
-        // scalars are dictated via their names, thus if a numeric outputs a specific value, it will be called it
-
-        // bu
-
-
-        return {}
-
-    }
+    
 
 
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
@@ -622,11 +367,8 @@ export class SpecCompiler {
 
         // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
         for (const [anchorId, edges] of groupedEdges.entries()) {
-            // const superNodeMap: Map<string, string> = this.graphManager.getSuperNodeMap();
-            // const resolvedValue = resolveAnchorValue(edges, superNodeMap);
 
             const resolvedValue = edges.map(edge => edge.anchorProxy.compile(edge.originalEdge.source.nodeId));
-            console.log('resolvedValue', resolvedValue)
 
             // i need to know what the parent and what the child interaction schema is here. 
             
@@ -891,8 +633,6 @@ function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: Base
 
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
     const targetAnchors = getAnchors(target, edge.target.anchorId);
-    console.log('sourceAnchors',sourceAnchors)
-    console.log('targetAnchors',targetAnchors)
 
     function isCompatible(sourceAnchorId: string, targetAnchor: string) {
         return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)

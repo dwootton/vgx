@@ -187,13 +187,6 @@ export class DragSpan extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
 
-        // this.schemas = [{
-        //     schemaId: 'span',
-        //     schemaType: 'Range',
-        //     extractors: {'x':rangeExtractor('x'), 'y':rangeExtractor('y')}
-        // }];
-
-        console.log('in DragSpan constructor')
         this.schema = {
             'x': {
                 container: 'Range',
@@ -223,11 +216,6 @@ export class DragSpan extends BaseComponent {
             return generateCompiledRange('y')
           }));
 
-        //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-        //     console.log('in binding scales!')
-        //     return generateCompiledValue('y')
-        //   }));
-
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
@@ -244,14 +232,12 @@ export class DragSpan extends BaseComponent {
                         { type: "pointerup",    source:"window", }
                     ]
                 },
-                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
                 update: `{'x':merge(${this.id}.x, {'stop':x()}), 'y':merge(${this.id}.y, {'stop':y()})}`
 
             },{
                 events: {
                      type: "pointerdown", "markname": inputContext.markName,
                 },
-                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
                 update: `{'x':{'start':x()},'y':{'start':y()}}`
             }]
         };
@@ -261,7 +247,6 @@ export class DragSpan extends BaseComponent {
         const outputSignals = Object.keys(this.schema).map(key => 
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
         ).flat()
-        // then , may through each item
 
         return {
             //@ts-ignore as signals can exist in VL
@@ -269,21 +254,4 @@ export class DragSpan extends BaseComponent {
 
         };
     }
-}
-
-    // const drag_x = {
-        //     name:"drag_x",
-        //     value: null,
-        //     on: [{
-        //         events: {
-        //             signal: this.id
-        //         },
-        //         update: `${this.id}.x`
-        //     },{
-        //         events: {
-        //             signal: "drag_x"
-        //         },
-        //         update: `clamp('drag_x', ${range0}, ${range1})`
-        //     }]
-        // }
 }

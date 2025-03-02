@@ -28,7 +28,6 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     return targetAnchor.component;
   };
 
-  console.log('anchor',anchor)
   if (!compileFn ) {
 
     throw new Error(`Compile function is required for an anchor proxy ${anchorId} ${component.id}`)

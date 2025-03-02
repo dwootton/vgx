@@ -22,7 +22,6 @@ export const rectBaseContext: Record<AnchorIdentifer, any> = {
     data: {"values":[{ "val1":"val2"}]} // Empty data array to only render one mark
 }
 
-console.log('in rect.ts')
 type RectConfig = {
     [K in keyof typeof rectBaseContext]?: typeof rectBaseContext[K]
 }
@@ -46,7 +45,6 @@ export class Rect extends BaseComponent {
 
         // when rect is the parent, how does its child get this value?
         const generateCompiledRange = (channel:string) => {
-            console.log('in generateCompiledRange', channel)
             return {
                 'start': `${this.id}_${channel}_start`,
                 'stop': `${this.id}_${channel}_stop`,
@@ -54,11 +52,9 @@ export class Rect extends BaseComponent {
         }
 
         this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            console.log('in binding scales!')
             return generateCompiledRange('x')
           }));
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            console.log('in binding scales!')
             return generateCompiledRange('y')
           }));
          
@@ -69,7 +65,6 @@ export class Rect extends BaseComponent {
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        console.log('in rect compileComponent',inputContext)
         const nodeId = inputContext.nodeId || this.id;
         // in previous examples, I've needed to construct signals. But technically we should have the right info...
 

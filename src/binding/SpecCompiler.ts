@@ -36,7 +36,6 @@ export class SpecCompiler {
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
-        console.log('bindinggraph',bindingGraph)
 
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, bindingGraph);
@@ -88,7 +87,6 @@ export class SpecCompiler {
                 
                 // Get the anchor from the parent component using the source anchorId from the edge
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                console.log('edge', edge);
                 
                 return anchor;
             }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
@@ -109,10 +107,8 @@ export class SpecCompiler {
 
                     const schema = anchorProxy.anchorSchema[channel]
 
-                    console.log('ptschema',schema, 'comped',anchorProxy.compile())
 
-                    function generateConstraintString(schema:SchemaType,value:SchemaValue):string{
-                        console.log('schemaNEWWs',schema, 'value',value)
+                    function generateConstraintStringScalar(schema:SchemaType,value:SchemaValue):string{
                         if(schema.container==='Range'){
                             value = value as RangeValue
                             return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
@@ -127,9 +123,51 @@ export class SpecCompiler {
                         }
                         return "";
                     }
+                    let result = ""
 
-                    const result = generateConstraintString(schema,anchorProxy.compile())
-                    console.log('resultSFDS',result)
+                    // old functions to generate a singular node_0_x variable (doesn't work with vega b.c. its a nested object)
+                    // function generateConstraintStringRange(schema:SchemaType,value:SchemaValue):string{
+                    //     if(schema.container==='Range'){
+                    //         value = value as RangeValue
+                    //         return `{'start':clamp(${'VGX_SIGNAL_NAME'}.start,${value.start},${value.stop}),'stop':clamp(${'VGX_SIGNAL_NAME'}.stop,${value.start},${value.stop})}`
+                    //     }
+                    //     if(schema.container==='Set'){
+                    //         value = value as SetValue
+                    //         return `{'start':nearest(${'VGX_SIGNAL_NAME'}.start,${value.values}),'stop':nearest(${'VGX_SIGNAL_NAME'}.stop,${value.values})}`
+                    //     }
+                    //     if(schema.container==='Scalar'){
+                    //         value = value as ScalarValue
+                    //         return `{'start':${'VGX_SIGNAL_NAME'}.start + ${value},'stop':${'VGX_SIGNAL_NAME'}.stop + ${value}}`
+                    //     }
+                    //     return "";
+                    // }
+
+                    // // current functions that genertate ranges for each value 
+                    // function generateConstraintStringRange(schema:SchemaType,value:SchemaValue):string{
+                    //     if(schema.container==='Range'){
+                    //         value = value as RangeValue
+                    //         return `clamp(${'VGX_SIGNAL_NAME'}.start,${value.start},${value.stop})`
+                    //     }
+                    //     if(schema.container==='Set'){
+                    //         value = value as SetValue
+                    //         return `{'start':nearest(${'VGX_SIGNAL_NAME'}.start,${value.values}),'stop':nearest(${'VGX_SIGNAL_NAME'}.stop,${value.values})}`
+                    //     }
+                    //     if(schema.container==='Scalar'){
+                    //         value = value as ScalarValue
+                    //         return `{'start':${'VGX_SIGNAL_NAME'}.start + ${value},'stop':${'VGX_SIGNAL_NAME'}.stop + ${value}}`
+                    //     }
+                    //     return "";
+                    // }
+
+                    if(component.schema[channel].container ==="Scalar"){
+                         result = generateConstraintStringScalar(schema,anchorProxy.compile());
+                    } else if (component.schema[channel].container === "Range"){
+                         result = generateConstraintStringScalar(schema,anchorProxy.compile());
+                    }
+
+
+
+                    // const result = generateConstraintString(schema,anchorProxy.compile())
 
                     constraints[channel]=[result]
 
@@ -139,7 +177,6 @@ export class SpecCompiler {
                 return parentVals
 
             })
-            console.log('new constraint',constraints)
 
             //TODO 3/1/2025 @12:45 pm
             // Okay, some weird signal magic is happewning here (expr are not compiling correctly),
@@ -376,16 +413,13 @@ export class SpecCompiler {
 
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
 
-        console.log('node', node, graphEdges)
 
         const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id)
 
-        console.log('filteredNode', node, graphEdges)
 
         // maybe instead of turn edges into anchors, we should just keep edges, and add anchor property
         const incomingAnchors: AnchorEdge[] = this.prepareEdges(filteredEdges)
 
-        console.log('incoming anchors',incomingAnchors)
 
 
         const anchorProxies = incomingAnchors.map(edge => edge.anchorProxy);

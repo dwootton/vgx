@@ -97,7 +97,6 @@ export const resolveAnchorValue = (edges: Edge[], nodeIdMap: Map<string, string>
         }
     });
 
-    console.log('edgeResults',edgeResults)
 
     const prioritizedValue = getPrioritizedValue(edgeResults);
     return prioritizedValue;

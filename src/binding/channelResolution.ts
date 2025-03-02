@@ -100,7 +100,6 @@ const debugLogIfMatch = (
       console.log('Value:', value);
       console.log('Source:', source);
       console.log('Result:', result);
-      console.log('is it in',value,'positionValueType',positionValueType,'in value?', value && positionValueType in value)
 
       console.log('=================');
     }

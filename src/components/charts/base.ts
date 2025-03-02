@@ -178,7 +178,6 @@ export class BaseChart extends BaseComponent {
       }, {} as Record<string, SchemaType>);
 
       
-      console.log('encoding',encodingProxy);
 
      
       
@@ -206,7 +205,6 @@ export class BaseChart extends BaseComponent {
       // them lat
       anchors.push({
         'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
-          console.log('chart compilation!', compiledAnchor)
           return compiledAnchor[scaleName]
         })
       })

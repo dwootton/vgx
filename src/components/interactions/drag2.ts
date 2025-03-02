@@ -95,7 +95,6 @@ export class DragStart extends BaseComponent {
           }
     
           this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
-            console.log('in binding scales!')
             return compiledValue
           }));
          
@@ -199,12 +198,10 @@ export class Drag extends BaseComponent {
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            console.log('in binding scales!')
             return generateCompiledValue('x')
           }));
 
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            console.log('in binding scales!')
             return generateCompiledValue('y')
           }));
 
@@ -221,7 +218,7 @@ export class Drag extends BaseComponent {
                     source:"window",
                     between: [
                         { type: "pointerdown", "markname": inputContext.markName},
-                        { type: "pointerup" }
+                        { type: "pointerup",    source:"window", }
                     ]
                 },
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
@@ -251,6 +248,7 @@ export class DragSpan extends BaseComponent {
         //     extractors: {'x':rangeExtractor('x'), 'y':rangeExtractor('y')}
         // }];
 
+        console.log('in DragSpan constructor')
         this.schema = {
             'x': {
                 container: 'Range',
@@ -264,11 +262,19 @@ export class DragSpan extends BaseComponent {
 
     
      
+        function generateCompiledRange(channel:string){
+            console.log('in generateCompiledRange', channel)
+            return {
+                'start': `VGX_SIGNAL_NAME_${channel}.start`,
+                'stop': `VGX_SIGNAL_NAME_${channel}.stop`,
+            }
+        }
+        
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
             console.log('in binding scales!')
-            return generateCompiledValue('x')
+            return generateCompiledRange('x')
           }));
 
         //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
@@ -289,7 +295,7 @@ export class DragSpan extends BaseComponent {
                     source:"window",
                     between: [
                         { type: "pointerdown", "markname": inputContext.markName},
-                        { type: "pointerup" }
+                        { type: "pointerup",    source:"window", }
                     ]
                 },
                 // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
@@ -306,7 +312,9 @@ export class DragSpan extends BaseComponent {
       
        
         // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId))
+        const outputSignals = Object.keys(this.schema).map(key => 
+            generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
+        ).flat();
         // then , may through each item
 
         return {
@@ -323,33 +331,87 @@ function generateCompiledValue(channel:string){
     }
 }
 
-function generateSignalFromAnchor(constraints:string[],channel: string, signalParent:string,mergedParent:string) {
-    // const compilationValue = anchor.compile();
-    const parentExtractor = signalParent+"."+channel
-    const signalName = mergedParent+'_'+channel;
-    console.log("CONSTRAINTS",constraints)
+function generateSignalFromAnchor(constraints:string[], channel: string, signalParent:string, mergedParent:string, schemaType: string): any[] {
+    // For Scalar type
+    if (schemaType === 'Scalar') {
+        const parentExtractor = signalParent + "." + channel;
+        const signalName = mergedParent + '_' + channel;
+        console.log("CONSTRAINTS", constraints);
 
+        const generateConstraints = (update:string) => {
+            return {
+                events: {
+                    signal: signalName
+                },
+                update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
+            }
+        };
 
-    const generateConstraints = (update:string)=>{
-        return {
-            events: {
-                signal: signalName
+        return [{
+            name: signalName,
+            value: null,
+            on: [{
+                events: [{
+                    signal: signalParent
+                }],
+                update: parentExtractor
+            }, ...(constraints.map(generateConstraints))]
+        }];
+    }
+    // For Range type
+    else if (schemaType === 'Range') {
+        const startSignalName = mergedParent + '_' + channel + '_start';
+        const stopSignalName = mergedParent + '_' + channel + '_stop';
+        
+        const startParentExtractor = signalParent + "." + channel + ".start";
+        const stopParentExtractor = signalParent + "." + channel + ".stop";
+        
+        const generateStartConstraints = (update:string) => {
+            return {
+                events: {
+                    signal: startSignalName
+                },
+                update: `${startSignalName} ? ${update.replace(/VGX_SIGNAL_NAME/g, startSignalName)}:${startSignalName} `
+            }
+        };
+        
+        const generateStopConstraints = (update:string) => {
+            return {
+                events: {
+                    signal: stopSignalName
+                },
+                update: `${stopSignalName} ? ${update.replace(/VGX_SIGNAL_NAME/g, stopSignalName)}:${stopSignalName} `
+            }
+        };
+        
+        return [
+            {
+                name: startSignalName,
+                value: null,
+                on: [{
+                    events: [{
+                        signal: signalParent
+                    }],
+                    update: startParentExtractor
+                }, ...(constraints.map(generateStartConstraints))]
             },
-            update: update.replace('VGX_SIGNAL_NAME',signalName)
-        }
+            {
+                name: stopSignalName,
+                value: null,
+                on: [{
+                    events: [{
+                        signal: signalParent
+                    }],
+                    update: stopParentExtractor
+                }, ...(constraints.map(generateStopConstraints))]
+            }
+        ];
     }
-
-    return {
-        name: signalName,
-        value: null,
-        on: [{
-            events: [{
-                signal: signalParent
-            }],
-            update: parentExtractor
-        }, ...(constraints.map(generateConstraints))]
-    }
-    //Example out:
+    
+    // Default case (should not happen if schema is properly defined)
+    console.warn(`Unknown schema type: ${schemaType} for channel ${channel}`);
+    return [];
+}
     // const drag_x = {
         //     name:"drag_x",
         //     value: null,

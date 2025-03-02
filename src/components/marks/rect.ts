@@ -45,11 +45,11 @@ export class Rect extends BaseComponent {
         }
 
         // when rect is the parent, how does its child get this value?
-        function generateCompiledRange(channel:string){
+        const generateCompiledRange = (channel:string) => {
             console.log('in generateCompiledRange', channel)
             return {
-                'start': `VGX_SIGNAL_NAME_${channel}.start`,
-                'stop': `VGX_SIGNAL_NAME_${channel}.stop`,
+                'start': `${this.id}_${channel}_start`,
+                'stop': `${this.id}_${channel}_stop`,
             }
         }
 
@@ -106,23 +106,41 @@ export class Rect extends BaseComponent {
             data: inputContext.data || rectBaseContext.data,
             mark: {
                 type: "rect",
-                x: { 
-                    expr:  `${this.id}_x_start`
+                // x: { 
+                //     expr:  `${this.id}_x_start`
+                // },
+                // x2: {
+                //     expr:   `${this.id}_x_stop`
+                // },
+                // y: {
+                //     expr:  `${this.id}_y_start`
+                // },
+                // y2: {
+                //     expr:  `${this.id}_y_stop`
+                // },
+                // color: {
+                //     expr: inputContext.color || rectBaseContext.color
+                // },
+                // stroke: {
+                //     expr: inputContext.stroke || rectBaseContext.stroke
+                // }
+            },
+            "encoding":{
+                "x":{
+                    "value":{"expr":`${this.id}_x_start`},
+                    //"type":"quantitative"
                 },
-                x2: {
-                    expr:   `${this.id}_x_stop`
+                "x2":{
+                    "value":{"expr":`${this.id}_x_stop`},
+                    //"type":"quantitative"
                 },
-                y: {
-                    expr:  `${this.id}_y_start`
+                "y":{
+                    "value":{"expr":`${this.id}_y_start`},
+                    //"type":"quantitative"
                 },
-                y2: {
-                    expr:  `${this.id}_y_stop`
-                },
-                color: {
-                    expr: inputContext.color || rectBaseContext.color
-                },
-                stroke: {
-                    expr: inputContext.stroke || rectBaseContext.stroke
+                "y2":{
+                    "value":{"expr":`${this.id}_y_stop`},
+                    //"type":"quantitative"
                 }
             }
         }
@@ -132,93 +150,3 @@ export class Rect extends BaseComponent {
 
 
 
-export class DragSpan extends BaseComponent {
-    constructor(config: any = {}) {
-        super(config);
-
-        // this.schemas = [{
-        //     schemaId: 'span',
-        //     schemaType: 'Range',
-        //     extractors: {'x':rangeExtractor('x'), 'y':rangeExtractor('y')}
-        // }];
-
-        console.log('in DragSpan constructor')
-        this.schema = {
-            'x': {
-                container: 'Range',
-                valueType: 'Numeric'
-            },
-            'y': {
-                container: 'Range',
-                valueType: 'Numeric'
-            }
-        }
-
-    
-     
-        function generateCompiledRange(channel:string){
-            console.log('in generateCompiledRange', channel)
-            return {
-                'start': `VGX_SIGNAL_NAME_${channel}.start`,
-                'stop': `VGX_SIGNAL_NAME_${channel}.stop`,
-            }
-        }
-        
-         
-    
-          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            console.log('in binding scales!')
-            return generateCompiledRange('x')
-          }));
-          this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            console.log('in binding scales!')
-            return generateCompiledRange('y')
-          }));
-
-        //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-        //     console.log('in binding scales!')
-        //     return generateCompiledValue('y')
-        //   }));
-
-    }
-
-    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
-        const signal = {
-            name: this.id,
-            value: dragBaseContext,
-            on: [{
-                events: {
-                    type: 'pointermove',
-                    source:"window",
-                    between: [
-                        { type: "pointerdown", "markname": inputContext.markName},
-                        { type: "pointerup",    source:"window", }
-                    ]
-                },
-                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
-                update: `{'x':merge(${this.id}.x, {'stop':x()}), 'y':merge(${this.id}.y, {'stop':y()})}`
-
-            },{
-                events: {
-                     type: "pointerdown", "markname": inputContext.markName,
-                },
-                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
-                update: `{'x':{'start':x()},'y':{'start':y()}}`
-            }]
-        };
-      
-       
-        // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => 
-            generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
-        ).flat();
-        // then , may through each item
-
-        return {
-            //@ts-ignore as signals can exist in VL
-            params: [signal, ...outputSignals]
-
-        };
-    }
-}

@@ -186,8 +186,8 @@ export class BaseChart extends BaseComponent {
         if (key === scaleName) { 
           // some encoding channels like y have an inverted range, so we must min/max the range
           acc[key] = {
-            'start': `min(range('${this.id+'_'+scaleName}')[0],range('${this.id+'_'+scaleName}')[1])`,
-            'stop': `max(range('${this.id+'_'+scaleName}')[0],range('${this.id+'_'+scaleName}')[1])`,
+            'start': `${this.id}_${key}_start`,
+            'stop': `${this.id}_${key}_stop`,
           };
         } else { // this is scalar, numeric
           // acc[key] = {
@@ -234,10 +234,16 @@ export class BaseChart extends BaseComponent {
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
-      {"name": "xrange", "expr": "{'min':range('x')[0],'max':range('x')[1]}"},
+      {"name": this.id+"_x_start", "expr": "range('x')[0]"},
       //@ts-ignore
-      {"name": "yrange", "expr": "{'min':range('y')[1],'max':range('y')[0]}"},
+      {"name": this.id+"_x_stop", "expr": "range('x')[1]"},
+      //@ts-ignore, note : y range is inverted due to svg layout
+      {"name": this.id+"_y_start", "expr": "range('y')[1]"},
+      //@ts-ignore
+      {"name": this.id+"_y_stop", "expr": "range('y')[0]"},
     ]
+
+
 
     return this.spec;
   }

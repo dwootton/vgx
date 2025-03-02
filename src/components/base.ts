@@ -16,7 +16,6 @@ export interface Component {
 }
 
 
-
 export abstract class BaseComponent {
   protected anchors: Map<string, AnchorProxy> = new Map();
   public schema: Record<string, SchemaType> = {}; // default?
@@ -24,11 +23,16 @@ export abstract class BaseComponent {
   public id: string;
   public bindingManager: BindingManager;
 
+  
+
+
   constructor(config: any) {
     this.id = generateId();
+
     this.bindingManager = BindingManager.getInstance();
     this.bindingManager.addComponent(this);
 
+    console.log('config',this,config)
     const bindings = findBindings(config);
     bindings.length && this.addParameterBindings(bindings);
   }
@@ -166,6 +170,8 @@ export abstract class BaseComponent {
 
 const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy, key: string }[] => {
   if (!value) return [];
+
+  console.log('in findBindings',value,path)
 
   // Handle arrays
   if (Array.isArray(value)) {

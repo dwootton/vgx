@@ -27,6 +27,6 @@ export const all = {
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
   drag: (config:any)=> new Drag(config),
-  brush: (config:any)=> new Brush2(),
+  brush: (config:any)=> new Brush2(config),
   rect: (config:any)=> new Rect(config),
 };

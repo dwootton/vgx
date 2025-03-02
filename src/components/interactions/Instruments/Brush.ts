@@ -4,13 +4,13 @@ import { Rect } from "../../marks/rect";
 import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
-    constructor() {
+    constructor(config:any) {
 
         
 
 
         // const intervalSelect = new IntervalSelect();
-        const drag = new DragSpan();
+        const drag = new DragSpan(config);
         
 
         // // Set up internal bindings

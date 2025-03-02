@@ -51,6 +51,8 @@ export class SpecCompiler {
     private compileBindingGraph(rootId:string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
 
+        console.log('binding graph',bindingGraph)
+
         const expandedEdges = expandEdges(edges);
 
         // at this point, you'll have alist of all of the compatible edges between sources and targets 
@@ -97,7 +99,6 @@ export class SpecCompiler {
                 // if the component is a generator, it will generate its own signal
                 // then the constraints will be passed in as a separate signal, which will be used in future components
             
-            console.log('parent anchors',parentAnchors)
 
             const constraints : Record<string,string[]> = {};
             parentAnchors.map((anchorProxy)=>{
@@ -106,6 +107,7 @@ export class SpecCompiler {
                 const parentVals = Object.keys(anchorProxy.anchorSchema).map((channel)=>{
 
                     const schema = anchorProxy.anchorSchema[channel]
+
 
 
                     function generateConstraintStringScalar(schema:SchemaType,value:SchemaValue):string{
@@ -123,7 +125,8 @@ export class SpecCompiler {
                         }
                         return "";
                     }
-                    let result = ""
+
+                    let result = []
 
 
                     // old functions to generate a singular node_0_x variable (doesn't work with vega b.c. its a nested object)
@@ -143,10 +146,33 @@ export class SpecCompiler {
                     //     return "";
                     // }
 
+                    // // // current functions that genertate ranges for each value 
+                    //  function generateConstraintRangeScalar(schema:SchemaType,key:string,value:SchemaValue):string{
+                    //     if(schema.container==='Range'){
+                    //         //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
+                    //         console.log('in generateConstraintRangeScalar',anchorProxy.component,value)
+                    //         value = value as RangeValue
+
+                    //         // range:range, means start=start, stop=stop
+                    //         return `${value.start}`
+                    //     }
+                    //     if(schema.container==='Set'){
+                    //         value = value as SetValue
+                    //         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
+                    //     }
+                    //     if(schema.container==='Scalar'){ // NOTE THIS IS DIFF THAN SCALAR AS WE OFFSET
+                    //         value = value as ScalarValue
+                    //     return `${'VGX_SIGNAL_NAME'}+${value}`
+                    //     }
+                    //     return "";
+                    // }
                     // // current functions that genertate ranges for each value 
                      function generateConstraintRangeScalar(schema:SchemaType,value:SchemaValue):string{
                         if(schema.container==='Range'){
+                            //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
                             value = value as RangeValue
+
+                            // range:range, means start=start, stop=stop
                             return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
                         }
                         if(schema.container==='Set'){
@@ -155,22 +181,29 @@ export class SpecCompiler {
                         }
                         if(schema.container==='Scalar'){ // NOTE THIS IS DIFF THAN SCALAR AS WE OFFSET
                             value = value as ScalarValue
-                            return `${'VGX_SIGNAL_NAME'}+${value}`
+                        return `${'VGX_SIGNAL_NAME'}+${value}`
                         }
                         return "";
                     }
+                    
 
                     if(component.schema[channel].container ==="Scalar"){
-                         result = generateConstraintStringScalar(schema,anchorProxy.compile());
+                         result = [generateConstraintStringScalar(schema,anchorProxy.compile())];
                     } else if (component.schema[channel].container === "Range"){
-                         result = generateConstraintRangeScalar(schema,anchorProxy.compile());
+                        console.log('in range anchor Proxy',component,anchorProxy.compile())
+                        // compile starts
+                        // result = generateConstraintRangeScalar(schema,anchorProxy.compile());
+                        result = [generateConstraintRangeScalar(schema,anchorProxy.compile()),generateConstraintRangeScalar(schema,anchorProxy.compile())]
+
+                        //  result.push(generateConstraintRangeScalarUnit(schema,'start',anchorProxy.compile()));
+                        //  result.push(generateConstraintRangeScalarUnit(schema,'stop',anchorProxy.compile()));
                     }
 
 
 
                     // const result = generateConstraintString(schema,anchorProxy.compile())
 
-                    constraints[channel]=[result]
+                    constraints[channel]=result
 
                     return result
                 })
@@ -441,7 +474,6 @@ export class SpecCompiler {
 
 
         const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
-        console.log('compiledSpec',compiledSpec)
         return compiledSpec;
     }
 

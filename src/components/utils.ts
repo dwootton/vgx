@@ -10,7 +10,6 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
     if (schemaType === 'Scalar') {
         const parentExtractor = signalParent + "." + channel;
         const signalName = mergedParent + '_' + channel;
-        console.log("CONSTRAINTS", constraints);
 
         const generateConstraints = (update:string) => {
             return {
@@ -21,19 +20,23 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
             }
         };
 
+        const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints),parentExtractor)
+
+
         return [{
             name: signalName,
             value: null,
-            on: [{
-                events: [{
-                    signal: signalParent
-                }],
-                update: parentExtractor
-            }, ...(constraints.map(generateConstraints))]
-        }];
+            on: { events: [{
+                signal: signalParent
+            }],
+            update: clampedExtractor}}]
+
     }
+
     // For Range type
     else if (schemaType === 'Range') {
+        // if mergedParent has _channel_start or _channel_stop, remove it and then re add later
+        // mergedParent = mergedParent.replace(`start_${channel}`, '').replace(`stop_${channel}`, '');
         const startSignalName = mergedParent + '_' + channel + '_start';
         const stopSignalName = mergedParent + '_' + channel + '_stop';
         
@@ -45,7 +48,7 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
                 events: {
                     signal: startSignalName
                 },
-                update: `${startSignalName} ? ${update.replace(/VGX_SIGNAL_NAME/g, startSignalName)}:${startSignalName} `
+                update: `${update.replace(/VGX_SIGNAL_NAME/g, startParentExtractor)}`
             }
         };
         
@@ -54,32 +57,40 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
                 events: {
                     signal: stopSignalName
                 },
-                update: `${stopSignalName} ? ${update.replace(/VGX_SIGNAL_NAME/g, stopSignalName)}:${stopSignalName} `
+                update: `${update.replace(/VGX_SIGNAL_NAME/g, stopParentExtractor)}`
             }
         };
+
+
+        const clampedStartExtractor = collapseSignalUpdates(constraints.map(generateStartConstraints),startParentExtractor)
+        const clampedStopExtractor = collapseSignalUpdates(constraints.map(generateStopConstraints),stopParentExtractor)
+
+
+
+
+        console.log('transpiled',clampedStartExtractor,clampedStopExtractor)
+
         
         return [
             {
                 name: startSignalName,
-                value: null,
-                expr:startParentExtractor,
+                value: 1,
                 on: [{
                     events: [{
                         signal: signalParent
                     }],
-                    update: startParentExtractor
-                }, ...(constraints.map(generateStartConstraints))]
+                    update: clampedStartExtractor
+                }]
             },
             {
                 name: stopSignalName,
-                value: null,
-                expr:stopParentExtractor,
+                value: 400,
                 on: [{
                     events: [{
                         signal: signalParent
                     }],
-                    update: stopParentExtractor
-                }, ...(constraints.map(generateStopConstraints))]
+                    update: clampedStopExtractor
+                }]
             }
         ];
     }
@@ -88,3 +99,41 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
     console.warn(`Unknown schema type: ${schemaType} for channel ${channel}`);
     return [];
 }
+
+/**
+ * Collapses an array of signal updates into a single Vega update string
+ * by recursively replacing SIGNALVAL placeholders with the target value
+ * 
+ * @param updates Array of update objects with update strings
+ * @param target The target signal value to replace SIGNALVAL with
+ * @returns A single collapsed update string
+ */
+export function collapseSignalUpdates(updates: {update: string}[], target: string): string {
+    if (!updates || updates.length === 0) {
+      return "";
+    }
+  
+    // For the target, wrap it in parentheses
+    const formattedTarget = `(${target})`;
+    
+    // Start with the deepest nested update (last in the array)
+    let result = updates[updates.length - 1].update;
+    
+    // Replace any SIGNALVAL in the deepest update with the formatted target
+    if (result.includes("SIGNALVAL")) {
+      result = result.replace(/SIGNALVAL/g, formattedTarget);
+    }
+  
+    // Process remaining updates in reverse order (from deepest to shallowest)
+    for (let i = updates.length - 2; i >= 0; i--) {
+      const currentUpdate = updates[i].update;
+      
+      // Wrap the previous result in parentheses before substituting
+      const wrappedResult = `(${result})`;
+      
+      // Replace SIGNALVAL with the wrapped result
+      result = currentUpdate.replace("SIGNALVAL", wrappedResult);
+    }
+  
+    return result;
+  }

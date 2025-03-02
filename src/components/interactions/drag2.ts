@@ -5,11 +5,8 @@ import { compilationContext } from '../../binding/binding';
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
-import { generateCompiledValue, generateSignalFromAnchor } from "../utils";
-export const dragBaseContext = {
-
-
-}
+import { generateCompiledValue, generateSignalFromAnchor, transformVegaUpdates } from "../utils";
+export const dragBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -68,59 +65,6 @@ const startExtractor = (channel: string) => ({
 
 
 
-export class DragStart extends BaseComponent {
-    constructor(config: any = {}) {
-        super(config);
-
-        this.schema = {
-            'x': {
-                container: 'Scalar',
-                valueType: 'Numeric'
-            }
-        }
-
-        // this.schemas = [{
-        //     schemaId: 'start',
-        //     schemaType: 'Scalar',
-        //     extractors: {'x':startExtractor('x'), 'y':startExtractor('y')}
-        // }];
-
-        this.initializeAnchors();
-        
-        const numericTypes = {
-            'x': NumericScalar, // min value
-          }
-    
-          const compiledValue = {
-            'value': `COMPONENT_NAME.x`, // min value
-          }
-    
-          this.anchors.set('x', this.createAnchorProxy(numericTypes, 'x', () => {
-            return compiledValue
-          }));
-         
-          
-    }
-
-    compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
-        const signal = {
-            name: this.id,
-            value: dragBaseContext,
-            on: [{
-                "events": {
-                    "type": "pointerdown",
-                    "markname": inputContext.markName
-                },
-                "update": `merge(${nodeId}, {'x':x(),'y':y()})`
-            }]
-        };
-
-        return {
-            params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
-        };
-    }
-}
 
 /*export class DragSpan extends BaseComponent {
     public schemas: InteractorSchema[];
@@ -196,7 +140,6 @@ export class Drag extends BaseComponent {
 
     
      
-        console.log('in drag constructor')
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
@@ -264,22 +207,19 @@ export class DragSpan extends BaseComponent {
 
     
      
-        function generateCompiledRange(channel:string){
-            console.log('in generateCompiledRange', channel)
+        const generateCompiledRange = (channel:string) => {
             return {
-                'start': `VGX_SIGNAL_NAME_${channel}.start`,
-                'stop': `VGX_SIGNAL_NAME_${channel}.stop`,
+                'start': `${this.id}_${channel}_start`,
+                'stop': `${this.id}_${channel}_stop`,
             }
         }
         
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            console.log('in binding scales!')
             return generateCompiledRange('x')
           }));
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            console.log('in binding scales!')
             return generateCompiledRange('y')
           }));
 
@@ -320,7 +260,7 @@ export class DragSpan extends BaseComponent {
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => 
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
-        ).flat();
+        ).flat()
         // then , may through each item
 
         return {

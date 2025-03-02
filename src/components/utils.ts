@@ -1,4 +1,16 @@
 
+
+//Components: 
+
+ // creates the accessor for the signal backing the range
+ export const createRangeAccessor = (id:string, channel:string) => {
+    return {
+        'start': `${id}.${channel}.start`,
+        'stop': `${id}.${channel}.stop`,
+    }
+}
+
+
 export function generateCompiledValue(channel:string){
     return {
         'value': `VGX_SIGNAL_NAME_${channel}`, // min value

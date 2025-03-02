@@ -198,22 +198,19 @@ export class DragSpan extends BaseComponent {
             }
         }
 
-    
-     
-        const generateCompiledRange = (channel:string) => {
+        // creates the accessor for the signal backing the range
+        const createRangeAccessor = (channel:string) => {
             return {
-                'start': `${this.id}_${channel}_start`,
-                'stop': `${this.id}_${channel}_stop`,
+                'start': `${this.id}.${channel}.start`,
+                'stop': `${this.id}.${channel}.stop`,
             }
         }
-        
-         
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return generateCompiledRange('x')
+            return createRangeAccessor('x')
           }));
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return generateCompiledRange('y')
+            return createRangeAccessor('y')
           }));
 
     }

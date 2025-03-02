@@ -18,6 +18,46 @@ interface AnchorEdge {
 export type Edge = AnchorEdge | VirtualBindingEdge;
 type Parameter = VariableParameter | TopLevelSelectionParameter
 
+type AnchorId = string;
+type Constraint = string;
+
+function generateScalarConstraints(schema:SchemaType,value:SchemaValue):string{
+    if(schema.container==='Range'){
+        value = value as RangeValue
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
+    }
+    if(schema.container==='Set'){
+        value = value as SetValue
+        return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
+    }
+    if(schema.container==='Scalar'){
+        value = value as ScalarValue
+        return `${value}`
+    }
+    return "";
+}
+
+// 
+function generateRangeConstraints(schema:SchemaType,value:SchemaValue):string{
+    if(schema.container==='Range'){
+        //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
+        value = value as RangeValue
+
+        // range:range, means start=start, stop=stop
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
+    }
+    if(schema.container==='Set'){
+        value = value as SetValue
+        return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
+    }
+    if(schema.container==='Scalar'){ 
+        // !!!!!!!!! NOTE THIS IS DIFF THAN SCALAR CODE AS WE OFFSET instead of share !!!!!!!!!
+        value = value as ScalarValue
+    return `${'VGX_SIGNAL_NAME'}+${value}`
+    }
+    return "";
+}
+
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
@@ -54,19 +94,9 @@ export class SpecCompiler {
 
         const expandedEdges = expandEdges(edges);
 
-        // at this point, you'll have alist of all of the compatible edges between sources and targets 
-        // now, we will need to do the pre-order traversal, and then compile as we go along the tree.
-        // 
-
-        function createContext(node: BindingNode, edges: BindingEdge[], parentNodes: BindingNode[] = []): compilationContext {
-            // Create a compilation context with node, edges, and parent information
-            return {
-                nodeId: node.id,
-                edges: edges,
-                parentNodes: parentNodes
-            };
-        }
-
+      
+        // go through the binding tree and compile each node, passing the constraints from parents
+        // to their children, to help to compile. 
         const preOrderTraversal = (node: BindingNode, edges: BindingEdge[]): Partial<UnitSpec<Field>>[] => {
             // Find child nodes from edges where this node is the source
             // Find all edges where this node is the target
@@ -90,77 +120,37 @@ export class SpecCompiler {
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
                 
                 return anchor;
-            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
+            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);            
 
-            //ASSUMPTION CHART:POINT:DRAG
+          
+            const constraints : Record<AnchorId,Constraint[]> = {};
 
-            // constraint value 
-                // if the component is a generator, it will generate its own signal
-                // then the constraints will be passed in as a separate signal, which will be used in future components
-            
-
-            const constraints : Record<string,string[]> = {};
-            parentAnchors.map((anchorProxy)=>{
+            // for each parent anchor, create what constraints it places on the component
+            parentAnchors.forEach((anchorProxy)=>{
                 
-                //
-                const parentVals = Object.keys(anchorProxy.anchorSchema).map((channel)=>{
+                Object.keys(anchorProxy.anchorSchema).forEach(channel => {
 
-                    const schema = anchorProxy.anchorSchema[channel]
+                    const schema = anchorProxy.anchorSchema[channel];
+                    const value = anchorProxy.compile();
 
-
-
-                    function generateConstraintStringScalar(schema:SchemaType,value:SchemaValue):string{
-                        if(schema.container==='Range'){
-                            value = value as RangeValue
-                            return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
-                        }
-                        if(schema.container==='Set'){
-                            value = value as SetValue
-                            return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
-                        }
-                        if(schema.container==='Scalar'){
-                            value = value as ScalarValue
-                            return `${value}`
-                        }
-                        return "";
-                    }
-
-                    let result:string[] = []
-
-                    // // current functions that genertate ranges for each value 
-                     function generateConstraintRangeScalar(schema:SchemaType,value:SchemaValue):string{
-                        if(schema.container==='Range'){
-                            //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
-                            value = value as RangeValue
-
-                            // range:range, means start=start, stop=stop
-                            return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
-                        }
-                        if(schema.container==='Set'){
-                            value = value as SetValue
-                            return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
-                        }
-                        if(schema.container==='Scalar'){ // NOTE THIS IS DIFF THAN SCALAR AS WE OFFSET
-                            value = value as ScalarValue
-                        return `${'VGX_SIGNAL_NAME'}+${value}`
-                        }
-                        return "";
+                    // Skip channels not present in component schema
+                    if (!component.schema[channel]) {
+                        return;
                     }
                     
-
-                    if(component.schema[channel].container ==="Scalar"){
-                         result = [generateConstraintStringScalar(schema,anchorProxy.compile())];
-                    } else if (component.schema[channel].container === "Range"){
-                        result = [generateConstraintRangeScalar(schema,anchorProxy.compile()),generateConstraintRangeScalar(schema,anchorProxy.compile())]
+                    // Initialize constraint array if needed
+                    if (!constraints[channel]) {
+                        constraints[channel] = [];
                     }
 
-                    constraints[channel]=result
+                    if(component.schema[channel].container ==="Scalar"){
+                        constraints[channel].push(generateScalarConstraints(schema,anchorProxy.compile()));
+                    } else if (component.schema[channel].container === "Range"){
+                        constraints[channel].push(generateRangeConstraints(schema,anchorProxy.compile()));
+                    }
 
-                    return result
                 })
-                
-                return parentVals
-
+            
             })
 
             // Compile the current node with the context

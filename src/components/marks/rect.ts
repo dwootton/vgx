@@ -6,7 +6,7 @@ import { AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
-import { generateSignalFromAnchor } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor } from "../utils";
 export const rectBaseContext: Record<AnchorIdentifer, any> = {
    "x":{
     start: 50,
@@ -43,19 +43,13 @@ export class Rect extends BaseComponent {
             }
         }
 
-        // when rect is the parent, how does its child get this value?
-        const generateCompiledRange = (channel:string) => {
-            return {
-                'start': `${this.id}_${channel}_start`,
-                'stop': `${this.id}_${channel}_stop`,
-            }
-        }
+       
 
         this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return generateCompiledRange('x')
+            return createRangeAccessor(this.id,'x')
           }));
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return generateCompiledRange('y')
+            return createRangeAccessor(this.id,'y')
           }));
          
     }

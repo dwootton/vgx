@@ -254,10 +254,10 @@ export class DragSpan extends BaseComponent {
                 container: 'Range',
                 valueType: 'Numeric'
             },
-            // 'y': {
-            //     container: 'Range',
-            //     valueType: 'Numeric'
-            // }
+            'y': {
+                container: 'Range',
+                valueType: 'Numeric'
+            }
         }
 
     
@@ -275,6 +275,10 @@ export class DragSpan extends BaseComponent {
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
             console.log('in binding scales!')
             return generateCompiledRange('x')
+          }));
+          this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+            console.log('in binding scales!')
+            return generateCompiledRange('y')
           }));
 
         //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {

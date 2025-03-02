@@ -125,6 +125,7 @@ export class SpecCompiler {
                     }
                     let result = ""
 
+
                     // old functions to generate a singular node_0_x variable (doesn't work with vega b.c. its a nested object)
                     // function generateConstraintStringRange(schema:SchemaType,value:SchemaValue):string{
                     //     if(schema.container==='Range'){
@@ -143,26 +144,26 @@ export class SpecCompiler {
                     // }
 
                     // // current functions that genertate ranges for each value 
-                    // function generateConstraintStringRange(schema:SchemaType,value:SchemaValue):string{
-                    //     if(schema.container==='Range'){
-                    //         value = value as RangeValue
-                    //         return `clamp(${'VGX_SIGNAL_NAME'}.start,${value.start},${value.stop})`
-                    //     }
-                    //     if(schema.container==='Set'){
-                    //         value = value as SetValue
-                    //         return `{'start':nearest(${'VGX_SIGNAL_NAME'}.start,${value.values}),'stop':nearest(${'VGX_SIGNAL_NAME'}.stop,${value.values})}`
-                    //     }
-                    //     if(schema.container==='Scalar'){
-                    //         value = value as ScalarValue
-                    //         return `{'start':${'VGX_SIGNAL_NAME'}.start + ${value},'stop':${'VGX_SIGNAL_NAME'}.stop + ${value}}`
-                    //     }
-                    //     return "";
-                    // }
+                     function generateConstraintRangeScalar(schema:SchemaType,value:SchemaValue):string{
+                        if(schema.container==='Range'){
+                            value = value as RangeValue
+                            return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
+                        }
+                        if(schema.container==='Set'){
+                            value = value as SetValue
+                            return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
+                        }
+                        if(schema.container==='Scalar'){ // NOTE THIS IS DIFF THAN SCALAR AS WE OFFSET
+                            value = value as ScalarValue
+                            return `${'VGX_SIGNAL_NAME'}+${value}`
+                        }
+                        return "";
+                    }
 
                     if(component.schema[channel].container ==="Scalar"){
                          result = generateConstraintStringScalar(schema,anchorProxy.compile());
                     } else if (component.schema[channel].container === "Range"){
-                         result = generateConstraintStringScalar(schema,anchorProxy.compile());
+                         result = generateConstraintRangeScalar(schema,anchorProxy.compile());
                     }
 
 

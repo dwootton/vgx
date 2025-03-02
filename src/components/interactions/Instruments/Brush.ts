@@ -1,5 +1,5 @@
 import { IntervalSelect } from "../interval-select";
-import { Drag } from "../drag2";
+import { DragSpan } from "../drag2";
 import { Rect } from "../../marks/rect";
 import { BindingManager } from "../../../binding/BindingManager";
 
@@ -10,7 +10,7 @@ export class Brush {
 
 
         // const intervalSelect = new IntervalSelect();
-        const drag = new Drag();
+        const drag = new DragSpan();
         
 
         // // Set up internal bindings

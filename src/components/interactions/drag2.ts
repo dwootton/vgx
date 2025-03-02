@@ -122,7 +122,7 @@ export class DragStart extends BaseComponent {
     }
 }
 
-export class DragSpan extends BaseComponent {
+/*export class DragSpan extends BaseComponent {
     public schemas: InteractorSchema[];
     constructor(config: any = {}) {
         super(config);
@@ -157,26 +157,28 @@ export class DragSpan extends BaseComponent {
             params: [signal, generateSignalFromSchema(this.schemas[0], 'x', this.id, nodeId), generateSignalFromSchema(this.schemas[0], 'y', this.id, nodeId )]
         };
     }
-}
+}*/
 
 type constrain_expr = string;
 // context: a mapping of property names to constraint expressions
 type CompilationContext = Record<string, constrain_expr[]>;
 // markName : "update": "mark_0_layer_marks "// scalar, just map 
 
-const generateSignalFromSchema = (schema: SchemaType, channel: string, signalParent:string,mergedParent:string) => {
+// const generateSignalFromSchema = (schema: SchemaType, channel: string, signalParent:string,mergedParent:string) => {
 
-    return {
-        name: mergedParent+'_'+channel,
-        value: null,
-        on: [{
-            events: {
-               signal: signalParent,
-            },
-            update: schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent)
-        }]
-    }
-}
+//     return {
+//         name: mergedParent+'_'+channel,
+//         value: null,
+//         on: [{
+//             events: {
+//                signal: signalParent,
+//             },
+//             update: schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent)
+//         }]
+//     }
+// }
+
+
 export class Drag extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
@@ -193,11 +195,7 @@ export class Drag extends BaseComponent {
         }
 
     
-        function generateCompiledValue(channel:string){
-            return {
-                'value': `VGX_SIGNAL_NAME_${channel}`, // min value
-            }
-        }
+     
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
@@ -220,6 +218,7 @@ export class Drag extends BaseComponent {
             on: [{
                 events: {
                     type: 'pointermove',
+                    source:"window",
                     between: [
                         { type: "pointerdown", "markname": inputContext.markName},
                         { type: "pointerup" }
@@ -227,59 +226,8 @@ export class Drag extends BaseComponent {
                 },
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
             }]
-        }; // drag_x, drag_y
-
-        // 
-
-        function generateSignalFromAnchor(constraints:string[],channel: string, signalParent:string,mergedParent:string) {
-            // const compilationValue = anchor.compile();
-            const parentExtractor = signalParent+"."+channel
-            const signalName = mergedParent+'_'+channel;
-            console.log("CONSTRAINTS",constraints)
-
-
-            const generateConstraints = (update:string)=>{
-                return {
-                    events: {
-                        signal: signalName
-                    },
-                    update: update.replace('VGX_SIGNAL_NAME',signalName)
-                }
-            }
-
-            return {
-                name: signalName,
-                value: null,
-                on: [{
-                    events: [{
-                        signal: signalParent
-                    }],
-                    update: parentExtractor
-                }, ...(constraints.map(generateConstraints))]
-            }
-            //Example out:
-            // const drag_x = {
-                //     name:"drag_x",
-                //     value: null,
-                //     on: [{
-                //         events: {
-                //             signal: this.id
-                //         },
-                //         update: `${this.id}.x`
-                //     },{
-                //         events: {
-                //             signal: "drag_x"
-                //         },
-                //         update: `clamp('drag_x', ${range0}, ${range1})`
-                //     }]
-                // }
-        }
-        
+        }; 
        
-
-
-        console.log('schewma',this.schema, Object.keys(this.schema))
-
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId))
         // then , may through each item
@@ -290,4 +238,131 @@ export class Drag extends BaseComponent {
 
         };
     }
+}
+
+
+export class DragSpan extends BaseComponent {
+    constructor(config: any = {}) {
+        super(config);
+
+        // this.schemas = [{
+        //     schemaId: 'span',
+        //     schemaType: 'Range',
+        //     extractors: {'x':rangeExtractor('x'), 'y':rangeExtractor('y')}
+        // }];
+
+        this.schema = {
+            'x': {
+                container: 'Range',
+                valueType: 'Numeric'
+            },
+            // 'y': {
+            //     container: 'Range',
+            //     valueType: 'Numeric'
+            // }
+        }
+
+    
+     
+         
+    
+          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+            console.log('in binding scales!')
+            return generateCompiledValue('x')
+          }));
+
+        //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+        //     console.log('in binding scales!')
+        //     return generateCompiledValue('y')
+        //   }));
+
+    }
+
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        const nodeId = inputContext.nodeId || this.id;
+        const signal = {
+            name: this.id,
+            value: dragBaseContext,
+            on: [{
+                events: {
+                    type: 'pointermove',
+                    source:"window",
+                    between: [
+                        { type: "pointerdown", "markname": inputContext.markName},
+                        { type: "pointerup" }
+                    ]
+                },
+                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
+                update: `{'x':merge(${this.id}.x, {'stop':x()}), 'y':merge(${this.id}.y, {'stop':y()})}`
+
+            },{
+                events: {
+                     type: "pointerdown", "markname": inputContext.markName,
+                },
+                // update: `merge(${nodeId}, {'start': {'x': x(), 'y': y()}, 'stop': {'x': x(), 'y': y()}})`
+                update: `{'x':{'start':x()},'y':{'start':y()}}`
+            }]
+        };
+      
+       
+        // TODO handle missing key/anchors
+        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId))
+        // then , may through each item
+
+        return {
+            //@ts-ignore as signals can exist in VL
+            params: [signal, ...outputSignals]
+
+        };
+    }
+}
+
+function generateCompiledValue(channel:string){
+    return {
+        'value': `VGX_SIGNAL_NAME_${channel}`, // min value
+    }
+}
+
+function generateSignalFromAnchor(constraints:string[],channel: string, signalParent:string,mergedParent:string) {
+    // const compilationValue = anchor.compile();
+    const parentExtractor = signalParent+"."+channel
+    const signalName = mergedParent+'_'+channel;
+    console.log("CONSTRAINTS",constraints)
+
+
+    const generateConstraints = (update:string)=>{
+        return {
+            events: {
+                signal: signalName
+            },
+            update: update.replace('VGX_SIGNAL_NAME',signalName)
+        }
+    }
+
+    return {
+        name: signalName,
+        value: null,
+        on: [{
+            events: [{
+                signal: signalParent
+            }],
+            update: parentExtractor
+        }, ...(constraints.map(generateConstraints))]
+    }
+    //Example out:
+    // const drag_x = {
+        //     name:"drag_x",
+        //     value: null,
+        //     on: [{
+        //         events: {
+        //             signal: this.id
+        //         },
+        //         update: `${this.id}.x`
+        //     },{
+        //         events: {
+        //             signal: "drag_x"
+        //         },
+        //         update: `clamp('drag_x', ${range0}, ${range1})`
+        //     }]
+        // }
 }

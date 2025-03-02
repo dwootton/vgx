@@ -5,7 +5,7 @@ import { compilationContext } from '../../binding/binding';
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
-import { generateSignalFromAnchor } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor } from "../utils";
 export const dragBaseContext = {
 
 
@@ -196,6 +196,7 @@ export class Drag extends BaseComponent {
 
     
      
+        console.log('in drag constructor')
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {

@@ -6,12 +6,16 @@ import { AnchorProxy, AnchorIdentifer } from "types/anchors";
 import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
-
+import { generateSignalFromAnchor } from "../utils";
 export const rectBaseContext: Record<AnchorIdentifer, any> = {
-    x1: null,
-    x2: null,
-    y1: null,
-    y2: null,
+   "x":{
+    start: 50,
+    stop: 200
+   },
+   "y":{
+    start: 50,
+    stop: 100
+   },
     size: 200,
     color: "'red'", // in vega, color needs to be a string in the expression
     stroke: "'white'", 
@@ -66,9 +70,22 @@ export class Rect extends BaseComponent {
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         console.log('in rect compileComponent',inputContext)
+        const nodeId = inputContext.nodeId || this.id;
+        // in previous examples, I've needed to construct signals. But technically we should have the right info...
+
+ // TODO handle missing key/anchors
+        const outputSignals = Object.keys(this.schema).map(key => 
+            generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
+        ).flat();
        
         return {
             params: [
+                {
+                    "name":this.id,
+                    "value":rectBaseContext,
+                    // "expr":`{'x':{'start':${outputSignals[0].name},'stop':${outputSignals[1].name}},y:{'start':${outputSignals[2].name},'stop':${outputSignals[3].name}}}`
+                },
+                ...outputSignals
             //     {
             //     "name":this.id,
             //     //@ts-ignore
@@ -90,16 +107,16 @@ export class Rect extends BaseComponent {
             mark: {
                 type: "rect",
                 x: { 
-                    expr:  "50"//inputContext.x.start
+                    expr:  `${this.id}_x_start`
                 },
                 x2: {
-                    expr:   "100"//inputContext.x.stop
+                    expr:   `${this.id}_x_stop`
                 },
                 y: {
-                    expr:  "50"//inputContext.y.start
+                    expr:  `${this.id}_y_start`
                 },
                 y2: {
-                    expr:  "100"//inputContext.y.stop
+                    expr:  `${this.id}_y_stop`
                 },
                 color: {
                     expr: inputContext.color || rectBaseContext.color

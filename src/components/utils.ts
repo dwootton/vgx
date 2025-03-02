@@ -62,6 +62,7 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
             {
                 name: startSignalName,
                 value: null,
+                expr:startParentExtractor,
                 on: [{
                     events: [{
                         signal: signalParent
@@ -72,6 +73,7 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
             {
                 name: stopSignalName,
                 value: null,
+                expr:stopParentExtractor,
                 on: [{
                     events: [{
                         signal: signalParent

@@ -1,7 +1,7 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
-import { BindingManager, VirtualBindingEdge,  } from "./BindingManager";
+import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
 import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue } from "./binding";
-import { AnchorProxy,SchemaType, SchemaValue, RangeValue, SetValue,ScalarValue  } from "../types/anchors";
+import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
 import { BaseComponent } from "../components/base";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
@@ -21,16 +21,16 @@ type Parameter = VariableParameter | TopLevelSelectionParameter
 type AnchorId = string;
 type Constraint = string;
 
-function generateScalarConstraints(schema:SchemaType,value:SchemaValue):string{
-    if(schema.container==='Range'){
+function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
+    if (schema.container === 'Range') {
         value = value as RangeValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
     }
-    if(schema.container==='Set'){
+    if (schema.container === 'Set') {
         value = value as SetValue
         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
     }
-    if(schema.container==='Scalar'){
+    if (schema.container === 'Scalar') {
         value = value as ScalarValue
         return `${value}`
     }
@@ -38,22 +38,22 @@ function generateScalarConstraints(schema:SchemaType,value:SchemaValue):string{
 }
 
 // 
-function generateRangeConstraints(schema:SchemaType,value:SchemaValue):string{
-    if(schema.container==='Range'){
+function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
+    if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
 
         // range:range, means start=start, stop=stop
         return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
     }
-    if(schema.container==='Set'){
+    if (schema.container === 'Set') {
         value = value as SetValue
         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
     }
-    if(schema.container==='Scalar'){ 
+    if (schema.container === 'Scalar') {
         // !!!!!!!!! NOTE THIS IS DIFF THAN SCALAR CODE AS WE OFFSET instead of share !!!!!!!!!
         value = value as ScalarValue
-    return `${'VGX_SIGNAL_NAME'}+${value}`
+        return `${'VGX_SIGNAL_NAME'}+${value}`
     }
     return "";
 }
@@ -88,85 +88,85 @@ export class SpecCompiler {
 
 
 
-    private compileBindingGraph(rootId:string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+    private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
 
 
         const expandedEdges = expandEdges(edges);
 
-      
+
         // go through the binding tree and compile each node, passing the constraints from parents
         // to their children, to help to compile. 
         const preOrderTraversal = (node: BindingNode, edges: BindingEdge[]): Partial<UnitSpec<Field>>[] => {
             // Find child nodes from edges where this node is the source
             // Find all edges where this node is the target
             const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-            
+
             // Create a list of {edge, node} pairs to preserve the relationship between edges and nodes
             const parentEdgePairs = parentEdges.map(edge => {
                 const parentNode = nodes.get(edge.source.nodeId);
                 return parentNode ? { edge, node: parentNode } : null;
             }).filter((pair): pair is { edge: BindingEdge, node: BindingNode } => pair !== null);
-            
+
             // Get the component for the current node
             const component = this.getBindingManager().getComponent(node.id);
-            
+
             // Extract parent anchors from the edge-node pairs
             const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
                 const parentComponent = this.getBindingManager().getComponent(node.id);
                 if (!parentComponent) return undefined;
-                
+
                 // Get the anchor from the parent component using the source anchorId from the edge
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                
-                return anchor;
-            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);            
 
-          
-            const constraints : Record<AnchorId,Constraint[]> = {};
+                return anchor;
+            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
+
+
+            const constraints: Record<AnchorId, Constraint[]> = {};
 
             // for each parent anchor, create what constraints it places on the component
-            parentAnchors.forEach((anchorProxy)=>{
-                
+            parentAnchors.forEach((anchorProxy) => {
+
                 Object.keys(anchorProxy.anchorSchema).forEach(channel => {
 
                     const schema = anchorProxy.anchorSchema[channel];
-                    const value = anchorProxy.compile();
+                    const anchorAccessor = anchorProxy.compile();
 
                     // Skip channels not present in component schema
                     if (!component.schema[channel]) {
                         return;
                     }
-                    
+
                     // Initialize constraint array if needed
                     if (!constraints[channel]) {
                         constraints[channel] = [];
                     }
 
-                    if(component.schema[channel].container ==="Scalar"){
-                        constraints[channel].push(generateScalarConstraints(schema,anchorProxy.compile()));
-                    } else if (component.schema[channel].container === "Range"){
-                        constraints[channel].push(generateRangeConstraints(schema,anchorProxy.compile()));
+                    if (component.schema[channel].container === "Scalar") {
+                        constraints[channel].push(generateScalarConstraints(schema, anchorAccessor));
+                    } else if (component.schema[channel].container === "Range") {
+                        constraints[channel].push(generateRangeConstraints(schema, anchorAccessor));
                     }
 
                 })
-            
+
             })
 
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
-            
+
             // Find child nodes from edges where this node is the source
             const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
-            const childNodes = childEdges.map(edge => 
+            const childNodes = childEdges.map(edge =>
                 nodes.get(edge.target.nodeId)
             ).filter((n): n is BindingNode => n !== undefined);
-            
+
             // Recursively process child nodes
-            const children = childNodes.map(child => 
+            const children = childNodes.map(child =>
                 preOrderTraversal(child, edges)
             );
-            
+
             // Flatten the results
             return [compiledNode, ...children.flat()];
         }
@@ -177,7 +177,7 @@ export class SpecCompiler {
         return compiledComponents;
     }
 
-    
+
 
 
     private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
@@ -215,7 +215,7 @@ export class SpecCompiler {
     private findRootNode(nodeId: string): string {
         const bindingManager = this.getBindingManager();
         let currentId = nodeId;
-        
+
         // Keep traversing up until we find a BaseChart component
         const visited = new Set<string>();
         while (true) {
@@ -224,14 +224,14 @@ export class SpecCompiler {
                 break;
             }
             visited.add(currentId);
-            
+
             const currentComponent = bindingManager.getComponent(currentId);
             // If this is a chart component (has encoding property), we've found our root
             //@ts-ignore
             if (currentComponent && 'spec' in currentComponent && currentComponent.spec.encoding) {
                 break;
             }
-            
+
             const incomingBindings = bindingManager.getBindingsForComponent(currentId, 'target');
             if (incomingBindings.length === 0) {
                 break;
@@ -361,7 +361,7 @@ export class SpecCompiler {
             const resolvedValue = edges.map(edge => edge.anchorProxy.compile(edge.originalEdge.source.nodeId));
 
             // i need to know what the parent and what the child interaction schema is here. 
-            
+
 
             compilationContext[anchorId] = resolvedValue;
         }
@@ -384,7 +384,7 @@ export class SpecCompiler {
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
         const bindingGraph = this.graphManager.generateBindingGraph(startComponentId);
         const superNodeMap = detectAndMergeSuperNodes(bindingGraph.edges);
-        
+
         const processedNodes = Array.from(bindingGraph.nodes.values()).map(node => ({
             id: node.id,
             type: node.type,
@@ -399,7 +399,7 @@ export class SpecCompiler {
                 merged: superNodeMap.get(edge.originalEdge.source.nodeId) || edge.originalEdge.source.nodeId
             },
             target: {
-                original: edge.originalEdge.target.nodeId, 
+                original: edge.originalEdge.target.nodeId,
                 merged: superNodeMap.get(edge.originalEdge.target.nodeId) || edge.originalEdge.target.nodeId
             },
             anchors: {

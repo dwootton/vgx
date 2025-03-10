@@ -86,6 +86,10 @@ export class BindingManager {
     }
 
     public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        // check if the binding already exists
+        if (this.bindings.some(binding => binding.sourceId === sourceId && binding.targetId === targetId && binding.sourceAnchor === sourceAnchor && binding.targetAnchor === targetAnchor)) {
+            return;
+        }
         this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
     };
 

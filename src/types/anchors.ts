@@ -74,7 +74,7 @@ export type ContainerType = 'Scalar' | 'Set' | 'Range';
 export interface SchemaType {
   container: ContainerType;
   valueType: ValueType | SchemaType; // Recursive - can nest another schema
-  optional?: boolean;
+  interactive?: boolean;
 }
 
 

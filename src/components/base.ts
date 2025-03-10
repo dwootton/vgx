@@ -58,30 +58,49 @@ export abstract class BaseComponent {
       const bindingProperty = key == 'bind' ? '_all' : key;
 
       // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-      // if(bindingProperty === '_all'){
+      if(bindingProperty === '_all'){
+        console.log('checking for interactive anchors',)
 
-      //   // go through all target anchors, and if any are interactive, add a binding to the inverse
-      //   if(isComponent(binding)){
-      //   binding.anchors.forEach((anchor) => {
-      //     //@ts-ignore
-      //     if(anchor.anchorSchema.interactive){
-      //       this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
-      //     }
-      //   })
-      // }
+        // go through all target anchors, and if any are interactive, add a binding to the inverse
+        if(isComponent(binding)){
+        binding.anchors.forEach((anchor) => {
 
-      // }
+          // Check if the anchor has an anchorSchema with properties
+          if (anchor.anchorSchema) {
+            console.log('anchor schema', anchor.anchorSchema)
+            // Iterate through each property in the anchorSchema
+            Object.keys(anchor.anchorSchema).forEach(key => {
+
+              const schema = anchor.anchorSchema[key];
+              console.log('inside schema', schema,key)
+
+              // Check if the schema has an interactive property and it's true
+              if (schema && schema.interactive) {
+                console.log('adding binding for', anchor.id.anchorId, anchor.id.componentId)
+                // Add the inverse binding - from the target component back to this component
+                this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId);
+              }
+            });
+          }
+          // //@ts-ignore
+          // if(anchor.anchorSchema.interactive){
+          //   this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+          // }
+        })
+      }
+
+      }
 
       if (isComponent(binding)) {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
 
         // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-        // binding.anchors.forEach((anchor) => {
-        //   if(anchor.anchorSchema.interactive){
+        binding.anchors.forEach((anchor) => {
+          if(anchor.anchorSchema.interactive){
 
-        //     this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
-        //   }
-        // })
+            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+          }
+        })
 
       } else {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);

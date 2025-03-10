@@ -5,7 +5,7 @@ import { compilationContext } from '../../binding/binding';
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
-import { generateCompiledValue, generateSignalFromAnchor, transformVegaUpdates } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
 export const dragBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
 
 const currentExtractor = (channel: string) => ({
@@ -130,11 +130,13 @@ export class Drag extends BaseComponent {
         this.schema = {
             'x': {
                 container: 'Scalar',
-                valueType: 'Numeric'
+                valueType: 'Numeric',
+                interactive: true
             },
             'y': {
                 container: 'Scalar',
-                valueType: 'Numeric'
+                valueType: 'Numeric',
+                interactive: true
             }
         }
 
@@ -198,19 +200,13 @@ export class DragSpan extends BaseComponent {
             }
         }
 
-        // creates the accessor for the signal backing the range
-        const createRangeAccessor = (channel:string) => {
-            return {
-                'start': `${this.id}.${channel}.start`,
-                'stop': `${this.id}.${channel}.stop`,
-            }
-        }
+       
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return createRangeAccessor('x')
+            return createRangeAccessor(this.id,'x')
           }));
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return createRangeAccessor('y')
+            return createRangeAccessor(this.id,'y')
           }));
 
     }

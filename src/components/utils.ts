@@ -12,10 +12,9 @@ export const createRangeAccessor = (id: string, channel: string) => {
 
 
 export function generateCompiledValue(channel: string) {
-    return {
-        'value': `VGX_SIGNAL_NAME_${channel}`, // min value
-    }
+    return `VGX_SIGNAL_NAME_${channel}` // min value
 }
+
 function extractAllNodeNames(input: string): string[] {
     const nodeNames: string[] = [];
 

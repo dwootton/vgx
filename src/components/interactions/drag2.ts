@@ -174,8 +174,10 @@ export class Drag extends BaseComponent {
         }; 
        
         // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container))
+        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
         // then , may through each item
+
+        console.log('outputSignals', signal,outputSignals)
 
         return {
             //@ts-ignore as signals can exist in VL

@@ -56,6 +56,8 @@ export class Circle extends BaseComponent {
         const outputSignals = Object.keys(this.schema).map(key => 
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
         ).flat();
+
+        console.log('outputSignals circle', outputSignals)
         
         return {
             params: [

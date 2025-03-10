@@ -32,7 +32,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     }
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
-        return `${value}`
+        return `clamp(${'VGX_SIGNAL_NAME'},${value},${value})`
     }
     return "";
 }
@@ -93,6 +93,7 @@ export class SpecCompiler {
 
 
         const expandedEdges = expandEdges(edges);
+        console.log('expandedEdges', expandedEdges)
 
 
         // go through the binding tree and compile each node, passing the constraints from parents
@@ -104,6 +105,7 @@ export class SpecCompiler {
         ): Partial<UnitSpec<Field>>[] => {
             // If this node has already been processed, skip it
             if (visitedNodes.has(node.id)) {
+                console.log('visitedNodes', visitedNodes)
                 return [];
             }
             
@@ -133,6 +135,8 @@ export class SpecCompiler {
                 return anchor;
             }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
 
+            console.log('parentAnchors', parentAnchors)
+
             const constraints: Record<AnchorId, Constraint[]> = {};
 
             // for each parent anchor, create what constraints it places on the component
@@ -152,12 +156,15 @@ export class SpecCompiler {
                     }
 
                     if (component.schema[channel].container === "Scalar") {
+                        console.log('generateScalarConstraints', anchorAccessor, generateScalarConstraints(schema, anchorAccessor))
                         constraints[channel].push(generateScalarConstraints(schema, anchorAccessor));
                     } else if (component.schema[channel].container === "Range") {
                         constraints[channel].push(generateRangeConstraints(schema, anchorAccessor));
                     }
                 });
             });
+
+            console.log('constraints', constraints)
 
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);

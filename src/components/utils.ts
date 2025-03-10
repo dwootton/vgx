@@ -68,7 +68,7 @@ export const generateSignalFromAnchor = (constraints: string[], channel: string,
         };
 
         const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints), parentExtractor)
-        const depedentNodes = extractAllNodeNames(clampedExtractor)
+        const depedentNodes = extractAllNodeNames(clampedExtractor).filter(node => node !== signalName)
 
 
         return [{

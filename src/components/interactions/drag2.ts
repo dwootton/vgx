@@ -6,7 +6,8 @@ import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
 import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
-export const dragBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
+export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
+export const dragBaseContext = {"x":0,"y":0},
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -215,7 +216,7 @@ export class DragSpan extends BaseComponent {
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
             name: this.id,
-            value: dragBaseContext,
+            value: dragSpanBaseContext,
             on: [{
                 events: {
                     type: 'pointermove',

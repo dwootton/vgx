@@ -40,7 +40,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
     if (schema.container === 'Range') {
-        //TODO SOMETHING WEIRD IS HAPPENIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
+        //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
 
         // range:range, means start=start, stop=stop
@@ -97,8 +97,19 @@ export class SpecCompiler {
 
         // go through the binding tree and compile each node, passing the constraints from parents
         // to their children, to help to compile. 
-        const preOrderTraversal = (node: BindingNode, edges: BindingEdge[]): Partial<UnitSpec<Field>>[] => {
-            // Find child nodes from edges where this node is the source
+        const preOrderTraversal = (
+            node: BindingNode, 
+            edges: BindingEdge[], 
+            visitedNodes = new Set<string>()
+        ): Partial<UnitSpec<Field>>[] => {
+            // If this node has already been processed, skip it
+            if (visitedNodes.has(node.id)) {
+                return [];
+            }
+            
+            // Mark this node as visited
+            visitedNodes.add(node.id);
+            
             // Find all edges where this node is the target
             const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
 
@@ -122,14 +133,11 @@ export class SpecCompiler {
                 return anchor;
             }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
 
-
             const constraints: Record<AnchorId, Constraint[]> = {};
 
             // for each parent anchor, create what constraints it places on the component
             parentAnchors.forEach((anchorProxy) => {
-
                 Object.keys(anchorProxy.anchorSchema).forEach(channel => {
-
                     const schema = anchorProxy.anchorSchema[channel];
                     const anchorAccessor = anchorProxy.compile();
 
@@ -148,10 +156,8 @@ export class SpecCompiler {
                     } else if (component.schema[channel].container === "Range") {
                         constraints[channel].push(generateRangeConstraints(schema, anchorAccessor));
                     }
-
-                })
-
-            })
+                });
+            });
 
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
@@ -164,15 +170,15 @@ export class SpecCompiler {
 
             // Recursively process child nodes
             const children = childNodes.map(child =>
-                preOrderTraversal(child, edges)
+                preOrderTraversal(child, edges, visitedNodes)  // Pass the visited set to track nodes
             );
 
             // Flatten the results
             return [compiledNode, ...children.flat()];
-        }
+        };
 
-
-        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges);
+        // Start traversal with an empty visited set
+        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges, new Set<string>());
 
         return compiledComponents;
     }

@@ -1,7 +1,7 @@
 import { BindingTarget } from "../components/base";
 import { isComponent } from "./component";
 
-import {  AnchorProxy, AnchorType, AnchorGroupSchema, AnchorOrGroupSchema, AnchorSchema } from '../types/anchors';
+import {  AnchorProxy, AnchorType, AnchorSchema, SchemaValue } from '../types/anchors';
 import { BaseComponent } from '../components/base';
 import { BindingManager, BindingEdge } from '../binding/BindingManager';
 import { generateComponentSignalName } from "./component";
@@ -13,7 +13,7 @@ export function isAnchorProxy(value: any): value is AnchorProxy {
   return typeof value === 'object' && 'bind' in value && 'anchorSchema' in value;
 }
 
-export function createAnchorProxy(component: BaseComponent, anchor: AnchorOrGroupSchema, compileFn?: (nodeId?:string) => {source:string,value:any}): AnchorProxy {
+export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema, anchorId:string, compileFn?: (nodeId?:string) => SchemaValue): AnchorProxy {
   const bindFn = (target: BindingTarget) => {
     const targetAnchor = isComponent(target)
       ? target.getAnchor('_all')
@@ -21,18 +21,20 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorOrGrou
 
     const bindingManager = BindingManager.getInstance();
     bindingManager.addBinding(
-      component.id, targetAnchor.id.componentId, anchor.id,
-      targetAnchor.id.anchorId
+      component.id, targetAnchor.id.componentId, anchorId,
+    targetAnchor.id.anchorId
     );
 
     return targetAnchor.component;
   };
 
-  if (!compileFn && anchor.type != 'group') {
-    throw new Error(`Compile function is required for an anchor proxy ${anchor.id} ${component.id}`)
+  if (!compileFn ) {
+
+    throw new Error(`Compile function is required for an anchor proxy ${anchorId} ${component.id}`)
   }
+
   const proxy = {
-    id: { componentId: component.id, anchorId: anchor.id },
+    id: { componentId: component.id, anchorId: anchorId },
     component,
     bind: bindFn,
     anchorSchema: anchor,
@@ -46,45 +48,45 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorOrGrou
 
 
 
-export function generateAnchorsFromContext( baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
-  const anchors = new Map<string, AnchorProxy>();
+// export function generateAnchorsFromContext( baseContext: Record<AnchorType, any>, component: BaseComponent, metaContext: any = {}) {
+//   const anchors = new Map<string, AnchorProxy>();
 
   
-  function processNestedObject(obj: any, prefix: string = '', metaContext: any = {}) {
-    Object.entries(obj).forEach(([key, value]) => {
-      const fullKey = prefix ? `${prefix}_${key}` : key;
+//   function processNestedObject(obj: any, prefix: string = '', metaContext: any = {}) {
+//     Object.entries(obj).forEach(([key, value]) => {
+//       const fullKey = prefix ? `${prefix}_${key}` : key;
       
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        // Recursively process nested objects
-        processNestedObject(value, fullKey, metaContext?.[key] || {});
-      } else {
-        // Create anchor for leaf node
-        const anchorType = isChannel(key) ? 'encoding' : 'info';
+//       if (value && typeof value === 'object' && !Array.isArray(value)) {
+//         // Recursively process nested objects
+//         processNestedObject(value, fullKey, metaContext?.[key] || {});
+//       } else {
+//         // Create anchor for leaf node
+//         const anchorType = isChannel(key) ? 'encoding' : 'info';
 
-        const anchorSchema = {
-          id: fullKey,
-          type: anchorType,
-          interactive: prefix 
-            ? metaContext?.[key]?.interactive || false
-            : metaContext[key]?.interactive || false
-        } as AnchorSchema
+//         const anchorSchema = {
+//           id: fullKey,
+//           type: anchorType,
+//           interactive: prefix 
+//             ? metaContext?.[key]?.interactive || false
+//             : metaContext[key]?.interactive || false
+//         } as AnchorSchema
 
-        const compileFn = (nodeId?: string) => {
-          if (!nodeId) {
-            nodeId = component.id
-          }
-          value = {fieldValue: `${nodeId}.${fullKey}`};
-          return {source: 'generated', value}
-        }
+//         const compileFn = (nodeId?: string) => {
+//           if (!nodeId) {
+//             nodeId = component.id
+//           }
+//           value = {fieldValue: `${nodeId}.${fullKey}`};
+//           return {source: 'generated', value}
+//         }
 
-        anchors.set(fullKey, createAnchorProxy(component, anchorSchema, compileFn));
-      }
-    });
-  }
+//         anchors.set(fullKey, createAnchorProxy(component, anchorSchema, compileFn));
+//       }
+//     });
+//   }
 
-  processNestedObject(baseContext, '', metaContext);
-  return anchors;
-}
+//   processNestedObject(baseContext, '', metaContext);
+//   return anchors;
+// }
 
 
 export function getProxyAnchor(edge: BindingEdge, sourceComponent: BaseComponent | undefined) {

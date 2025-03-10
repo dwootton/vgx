@@ -30,29 +30,100 @@ export interface InfoAnchorSchema {
     interactive: boolean;
 }
 
-export interface EncodingAnchorSchema {
-    id: string;
-    type: 'encoding';
-    channel: ChannelType;
-    interactive: boolean;
+type Scalar = number;
+
+type Set = Scalar[] | Range[];
+
+
+type Range = {
+    start: Scalar;
+    end: Scalar;
+}
+
+export type EncodingValues = "NumericScalar" | "CategoricalScalar" | "Set" | "Range";
+
+export type InteractorSchema = {
+  schemaId: string; // 'current', 'span'
+  schemaType: EncodingValues
+  extractors: Record<string,any>
+}
+
+// type ScalarEncoding = {
+//     type: 'scalar';
+//     value: Scalar;
+// }
+
+// type SetEncoding = {
+//     type: 'set';
+//     value: Set;
+// }
+
+// type RangeEncoding = {
+//     type: 'range';
+//     value: Range;
+// }
+
+// export type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
+
+// Base value types
+export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding'// | 'Boolean';
+
+// Base container types
+export type ContainerType = 'Scalar' | 'Set' | 'Range';
+
+export interface SchemaType {
+  container: ContainerType;
+  valueType: ValueType | SchemaType; // Recursive - can nest another schema
+  interactive?: boolean;
 }
 
 
-// Used for binding groups of anchors like the corners of a rectangle
-export interface AnchorGroupSchema {
-    id: string;
-    type: 'group';
-    children: string[];
-    interactive: boolean;
+export const RangeSchema : SchemaType = {
+  container:'Range',
+  valueType:'Numeric'
+}
+// Type helpers for common patterns
+export const NumericScalar: SchemaType = { 
+  container: 'Scalar', 
+  valueType: 'Numeric' 
+};
+
+export const CategoricalSet: SchemaType = { 
+  container: 'Set', 
+  valueType: 'Categorical' 
+};
+
+export const SetOfNumericScalars: SchemaType = {
+  container: 'Set',
+  valueType: NumericScalar
+};
+
+export type AnchorSchema = Record<string, SchemaType>;
+
+//Now actually instantiated values during compilation
+export type ScalarValue = {
+  value: string; // maps to the expression for the value
 }
 
-export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;
-export type AnchorOrGroupSchema = AnchorSchema | AnchorGroupSchema;
+export type SetValue = {
+  values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
+}
+
+export type RangeValue = {
+  start: string; // maps to the expression for the value
+  stop: string; // maps to the expression for the value
+}
+
+export type SchemaValue = SetValue | ScalarValue | RangeValue;
+
+// {X:X<range>}
+
+// export type AnchorSchema = InfoAnchorSchema | EncodingAnchorSchema;
 
 export interface AnchorProxy {
   component: BaseComponent;
   id: AnchorId;
-  anchorSchema: AnchorOrGroupSchema;
+  anchorSchema: AnchorSchema;
   bind: (target: AnchorProxy) => BaseComponent;
   compile: (nodeId?: string) => {source:string,value:any}; // produces a expr string
 }

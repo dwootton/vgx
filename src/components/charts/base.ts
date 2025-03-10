@@ -6,7 +6,7 @@ import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
-import { AnchorProxy, ChannelType } from 'types/anchors';
+import { AnchorProxy, ChannelType , RangeSchema,NumericScalar,SchemaType, SchemaValue} from '../../types/anchors';
 
 export interface ChartConfig {
   data: any[];
@@ -166,31 +166,51 @@ export class BaseChart extends BaseComponent {
         const positionChannel = getMainRangeChannel(key as PositionChannel);
         scaleName = positionChannel; // used for any reference and inversions 
       } 
-   
+
+
+      const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) {
+          acc[key] = RangeSchema;
+        } else {
+         // acc[key] = NumericScalar;
+        }
+        return acc;
+      }, {} as Record<string, SchemaType>);
+
+      
+
+     
+      
+      // Scalar
+      const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+        if (key === scaleName) { 
+          // some encoding channels like y have an inverted range, so we must min/max the range
+          acc[key] = {
+            'start': `${this.id}_${key}_start`,
+            'stop': `${this.id}_${key}_stop`,
+          };
+        } else { // this is scalar, numeric
+          // acc[key] = {
+          //   'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
+          // };
+        }
+        return acc;
+      }, {} as Record<string, SchemaValue>);
+
+     
+     
+
+     
+      // currently this returns anchors compile with {x,y,etc}.. I think this is actually supposed tobe something like schema constraints, and then we grab 
+      // them lat
       anchors.push({
-        'id': scaleName, 'proxy': this.createAnchorProxy({
-          id: scaleName,
-          type: 'encoding',
-          interactive:false,
-          channel: scaleName as ChannelType
-        }, () => {
-          return {
-            source: 'encoding',
-            value: {
-              'scale': scaleName,
-              'scaleType': 'quantitative',
-              'fieldName': 'tester',
-              'initialValue': `(domain('${scaleName}')[1]+domain('${scaleName}')[0])/2`,
-              'constraints': {
-                'type': 'minMax',
-                'min': `range('${scaleName}')[0]`,
-                'max': `range('${scaleName}')[1]`
-              }
-            }
-          }
+        'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
+          return compiledAnchor[scaleName]
         })
       })
     })
+
+    // compile bindFn
 
     // for each anchor, add it
     anchors.forEach((anchor) => {
@@ -214,10 +234,16 @@ export class BaseChart extends BaseComponent {
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
-      {"name": "xrange", "expr": "{'min':range('x')[0],'max':range('x')[1]}"},
+      {"name": this.id+"_x_start", "expr": "range('x')[0]"},
       //@ts-ignore
-      {"name": "yrange", "expr": "{'min':range('y')[1],'max':range('y')[0]}"},
+      {"name": this.id+"_x_stop", "expr": "range('x')[1]"},
+      //@ts-ignore, note : y range is inverted due to svg layout
+      {"name": this.id+"_y_start", "expr": "range('y')[1]"},
+      //@ts-ignore
+      {"name": this.id+"_y_stop", "expr": "range('y')[0]"},
     ]
+
+
 
     return this.spec;
   }

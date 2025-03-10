@@ -29,7 +29,6 @@ type RectAnchorConfig = {
 import { AnchorProxy } from "../../types/anchors";
 export function generateRectAnchors(component: BaseComponent): Map<string, AnchorProxy>{
     const anchors = new Map<string, AnchorOrGroupSchema>();
-    console.log('in generateRectAnchors', component);
     
     // Individual coordinate anchors
     ['x1', 'x2', 'y1', 'y2'].forEach(coord => {
@@ -67,7 +66,6 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
         // compile functions turn the proxy anchor into a compiled anchor (like {fieldValue:#, scaleName:'x'....})
         
         const compileFn = (nodeId?: string) => {
-            console.log('nodeId',nodeId,'component.id', component.id)
             // at this point, I'll want the super node resolution to occur at the bindingGraph level vs. at the compile time. 
             // 
             nodeId = nodeId || component.id;

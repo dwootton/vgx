@@ -1,28 +1,17 @@
 import { IntervalSelect } from "../interval-select";
-import { Drag } from "../drag";
+import { DragSpan } from "../drag2";
 import { Rect } from "../../marks/rect";
 import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
-    constructor() {
-        const rect = new Rect({y1:0, y2:100});
-        // const intervalSelect = new IntervalSelect();
-        const drag = new Drag();
-        // const drag2 = new Drag();
-        const bindingManager = BindingManager.getInstance();
-        
-        // Set up internal bindings
-        bindingManager.addBinding(
-            drag.id,
-            rect.id,
-            'start_x', 'x1'
-        );
+    constructor(config:any) {
 
-        bindingManager.addBinding(
-            drag.id,
-            rect.id,
-            'x', 'x2'
-        );
+        
+
+
+        // const intervalSelect = new IntervalSelect();
+        const drag = new DragSpan(config);
+        
 
         // // Set up internal bindings
         // bindingManager.addBinding(

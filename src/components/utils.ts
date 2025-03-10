@@ -16,7 +16,42 @@ export function generateCompiledValue(channel:string){
         'value': `VGX_SIGNAL_NAME_${channel}`, // min value
     }
 }
-
+function extractAllNodeNames(input: string): string[] {
+    const nodeNames: string[] = [];
+    
+    // Find all node_X.something patterns (return just node_X)
+    const dotPattern = /(node_\d+)\./g;
+    let dotMatch;
+    
+    while ((dotMatch = dotPattern.exec(input)) !== null) {
+      if (dotMatch[1] && !nodeNames.includes(dotMatch[1])) {
+        nodeNames.push(dotMatch[1]);
+      }
+    }
+    
+    // Find all node_X_something patterns (return the whole thing)
+    const underscorePattern = /\b(node_\d+(?:_[^,)\s.]+))\b/g;
+    let underscoreMatch;
+    
+    while ((underscoreMatch = underscorePattern.exec(input)) !== null) {
+      if (underscoreMatch[1] && !nodeNames.includes(underscoreMatch[1])) {
+        nodeNames.push(underscoreMatch[1]);
+      }
+    }
+    
+    // Find any remaining bare node_X patterns that weren't caught above
+    const barePattern = /\b(node_\d+)\b(?![\._])/g;
+    let bareMatch;
+    
+    while ((bareMatch = barePattern.exec(input)) !== null) {
+      if (bareMatch[1] && !nodeNames.includes(bareMatch[1])) {
+        nodeNames.push(bareMatch[1]);
+      }
+    }
+    
+    return nodeNames;
+  }
+  
 export const generateSignalFromAnchor = (constraints:string[], channel: string, signalParent:string, mergedParent:string, schemaType: string): any[] => {
     // For Scalar type
     if (schemaType === 'Scalar') {
@@ -33,6 +68,8 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
         };
 
         const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints),parentExtractor)
+        const depedentNodes = extractAllNodeNames(clampedExtractor)
+        console.log('your depedent nodes are', depedentNodes)
 
 
         return [{
@@ -40,7 +77,9 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
             value: null,
             on: { events: [{
                 signal: signalParent
-            }],
+            },...depedentNodes.map(node => ({
+                signal: node
+            }))],
             update: clampedExtractor}}]
 
     }
@@ -54,6 +93,8 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
         
         const startParentExtractor = signalParent + "." + channel + ".start";
         const stopParentExtractor = signalParent + "." + channel + ".stop";
+
+        console.log('your constriants are', constraints)
         
         const generateStartConstraints = (update:string) => {
             return {
@@ -75,27 +116,35 @@ export const generateSignalFromAnchor = (constraints:string[], channel: string, 
 
         const clampedStartExtractor = collapseSignalUpdates(constraints.map(generateStartConstraints),startParentExtractor)
         const clampedStopExtractor = collapseSignalUpdates(constraints.map(generateStopConstraints),stopParentExtractor)
+
+        const depedentStartNodes = extractAllNodeNames(clampedStartExtractor)
+        const depedentStopNodes = extractAllNodeNames(clampedStopExtractor)
+
         
         return [
             {
                 name: startSignalName,
-                value: 1,
+                //value: 1,
                 on: [{
                     events: [{
                         signal: signalParent
-                    }],
+                    },...depedentStartNodes.map(node => ({
+                        signal: node
+                    }))],
                     update: clampedStartExtractor
-                }]
+                }],
             },
             {
                 name: stopSignalName,
-                value: 400,
+                //value: 400,
                 on: [{
                     events: [{
                         signal: signalParent
-                    }],
+                    },...depedentStopNodes.map(node => ({
+                        signal: node
+                    }))],
                     update: clampedStopExtractor
-                }]
+                }],
             }
         ];
     }

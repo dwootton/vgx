@@ -9,12 +9,12 @@ import { generateParams } from "../../utils/compilation";
 import { generateSignalFromAnchor, createRangeAccessor } from "../utils";
 export const rectBaseContext: Record<AnchorIdentifer, any> = {
    "x":{
-    start: 50,
-    stop: 200
+    start: 0,
+    stop: 1000
    },
    "y":{
-    start: 50,
-    stop: 100
+    start: 0,
+    stop: 1000
    },
     size: 200,
     color: "'red'", // in vega, color needs to be a string in the expression

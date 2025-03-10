@@ -44,7 +44,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
         value = value as RangeValue
 
         // range:range, means start=start, stop=stop
-        return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
+        return `nearest(${'VGX_SIGNAL_NAME'},[${value.start},${value.stop}])`
     }
     if (schema.container === 'Set') {
         value = value as SetValue

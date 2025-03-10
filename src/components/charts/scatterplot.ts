@@ -1,4 +1,3 @@
-import { AnchorProxy } from 'types/anchors';
 import { BaseChart,ChartConfig, PositionEncodingDef } from './base';
 
 

@@ -16,9 +16,6 @@ export class Histogram extends BaseChart {
       this.spec.encoding = {
         x: {
           field: (this.channelConfigs.encodingDefs.x as FieldEncodingDef).field,
-          scale:{
-            'name':'sdjkljldsk'
-          },
           type: 'quantitative',
           bin: true,
         },

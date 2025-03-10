@@ -3,13 +3,12 @@ import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeld
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer } from "types/anchors";
-import { generateAnchorsFromContext } from "../../utils/anchorProxy";
-import { generateComponentSignalName } from "../../utils/component";
-import { generateParams } from "../../utils/compilation";
+
+import { generateSignalFromAnchor, createRangeAccessor } from "../utils";
 
 export const circleBaseContext: Record<AnchorIdentifer, any> = {
-    x: null,
-    y: null,
+    x: 0,
+    y: 0,
     size: 200,
     color: "'red'", // in vega, color needs to be a string in the expression
     stroke: "'white'", 
@@ -20,63 +19,72 @@ type CircleConfig = {
     [K in keyof typeof circleBaseContext]?: typeof circleBaseContext[K]
 }
 
-
 export class Circle extends BaseComponent {
     public config: CircleConfig;
     static bindableProperties = ['x', 'y', 'size', 'color', 'stroke'] as const;
 
     constructor(config:CircleConfig={}){
         super({...config})
-        this.anchors = generateAnchorsFromContext(circleBaseContext,this);
 
-        Circle.bindableProperties.forEach(prop => {
-            if (config[prop] !== undefined) {
-                this.addContextBinding(prop, config[prop]);
+        console.log('in circle constructor')
+        this.schema = {
+            'x': {
+                container: 'Scalar',
+                valueType: 'Numeric'
+            },
+            'y': {
+                container: 'Scalar',
+                valueType: 'Numeric'
             }
-        });
-        
-        Object.entries(circleBaseContext).forEach(([key, value]) => {
-            if (config[key as keyof CircleConfig] === undefined) {
-                this.addContextBinding(key, value, 'baseContext');
-            }
-        });
+        }
 
-        this.addContextBinding('markName', this.id+"_marks", 'baseContext');
-
+        this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+            return `${this.id}_x`
+        }));
+        this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+            return `${this.id}_y`
+        }));
 
         this.config = config;
-        this.initializeAnchors()
-         
+        this.initializeAnchors();
     }
 
-    
-
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
+        const nodeId = inputContext.nodeId || this.id;
+        
+        // TODO handle missing key/anchors
+        const outputSignals = Object.keys(this.schema).map(key => 
+            generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
+        ).flat();
+        
         return {
-            // add param which will always be the value for this component
-            "params":[{
-                "name":generateComponentSignalName(inputContext.nodeId),
-                //@ts-ignore, this is acceptable because params can take expr strings
-                "expr":`{'x':${inputContext.x.fieldValue},'y':${inputContext.y.fieldValue}}`
-            }],
-            "data":inputContext.data || circleBaseContext.data,
-            "mark":{
-                "type":"circle",
-                "size": {
-                    "expr": inputContext.size || circleBaseContext.size
+            params: [
+                {
+                    "name": this.id,
+                    "value": circleBaseContext,
                 },
+                ...outputSignals
+            ],
+            data: inputContext.data || circleBaseContext.data,
+            mark: {
+                type: "circle",
+                name: `${this.id}_marks`
+            },
+            "encoding": {
                 "x": {
-                    "expr": `clamp(${inputContext.x.fieldValue}, ${inputContext.x.scale}range.min, ${inputContext.x.scale}range.max)`
+                    "value": {"expr": `${this.id}_x`},
                 },
                 "y": {
-                    // remember that y needs to be inverted (lower is higher)
-                    "expr": `clamp(${inputContext.y.fieldValue}, ${inputContext.y.scale}range.min, ${inputContext.y.scale}range.max)`
+                    "value": {"expr": `${this.id}_y`},
+                },
+                "size": {
+                    "value": {"expr": inputContext.size || circleBaseContext.size}
                 },
                 "color": {
-                    "expr": inputContext.color || circleBaseContext.color
+                    "value": {"expr": inputContext.color || circleBaseContext.color}
                 },
-                stroke: {
-                    "expr": inputContext.stroke || circleBaseContext.stroke
+                "stroke": {
+                    "value": {"expr": inputContext.stroke || circleBaseContext.stroke}
                 }
             }
         }

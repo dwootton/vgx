@@ -9,7 +9,8 @@ import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { generateSignalFromAnchor } from "../components/utils";
-import { createMergedComponent, MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { createMergedComponent, extractConstraintsForMergedComponent, MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { resolveCycles } from "./cycles";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -66,10 +67,7 @@ export class SpecCompiler {
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
-
-    // note: component Id will always be called from the root component
     public compile(fromComponentId: string): TopLevelSpec {
-
         const rootComponent = this.getBindingManager().getComponent(fromComponentId);
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
@@ -93,164 +91,23 @@ export class SpecCompiler {
         // const { nodes, edges } = bindingGraph;
 
 
-
         let edges = expandEdges(bindingGraph.edges);
-        console.log('expanded edges', edges)
         let nodes = new Map(bindingGraph.nodes);
-        // console.log('expandedEdges', expandedEdges)
 
         const { cycleNodes, cycleEdges } = findCycles(bindingGraph.nodes, edges);
 
         if (cycleEdges.length > 0) {
-            console.log('Cycles detected:', cycleNodes, cycleEdges);
             // Resolve cycles by creating merged nodes
-            const resolvedGraph = resolveCycles(bindingGraph, this.getBindingManager());
-
-            function resolveCycles(bindingGraph: BindingGraph, bindingManager: BindingManager): BindingGraph {
-                // Convert Set to Array to access elements by index
-                const cycleNodesArray = Array.from(cycleNodes);
-                const mergedComponent = createMergedComponent(cycleNodesArray[0], cycleNodesArray[1], cycleEdges[0].target.anchorId, bindingManager);
-
-                console.log('mergedComponent', mergedComponent)
-
-                // Create a new merged node ID
-                const mergedNodeId = mergedComponent.id;
+            const resolvedGraph = resolveCycles(edges, nodes, cycleNodes, cycleEdges, this.getBindingManager());
 
 
-                // Add the merged component to the binding manager
-                bindingManager.addComponent(mergedComponent);
-
-                // // Add the merged node to the graph
-                // bindingGraph.nodes.set(mergedNodeId, {
-                //     id: mergedNodeId,
-                //     type: 'merged',
-                // });
-
-                const newNodes = new Map(bindingGraph.nodes)
-                    .set(mergedNodeId, {
-                        id: mergedNodeId,
-                        type: 'merged',
-                        // component: mergedComponent
-                    });
-
-                // bindingGraph.nodes.set(mergedNodeId, {
-                //     id: mergedNodeId,
-                //     type: 'merged',
-                //     // component: mergedComponent
-                // });
-
-                // Remove cycle edges
-                const newEdges = edges.filter(edge => {
-                    // Filter out edges between cycle nodes
-                    return !(cycleNodes.has(edge.source.nodeId) && cycleNodes.has(edge.target.nodeId))
-                });
-
-                // Add new edges from each component to the merged component
-                cycleNodes.forEach(nodeId => {
-                    // For each cycle node, create an edge to the merged node
-                    // using the same anchor IDs as in the original cycle
-                    const relevantEdge = cycleEdges.find(edge =>
-                        edge.source.nodeId === nodeId || edge.target.nodeId === nodeId
-                    );
-
-                    if (relevantEdge) {
-                        const anchorId = nodeId === relevantEdge.source.nodeId
-                            ? relevantEdge.source.anchorId
-                            : relevantEdge.target.anchorId;
-
-
-
-
-                        const originalComponent = bindingManager.getComponent(nodeId);
-                        const originalAnchor = originalComponent.getAnchor(anchorId);
-
-                        // Extract component from original anchor
-                        const { component, ...anchorWithoutComponent } = originalAnchor;
-
-                        // Deep clone everything except the component
-                        const clonedAnchorProps = deepClone(anchorWithoutComponent);
-
-                        // Reconstruct the anchor with the original component reference
-                        const clonedAnchor = {
-                            ...clonedAnchorProps,
-                            component
-                        };
-
-                        const originalResult = originalAnchor.compile();
-
-                        // Modify the compile function of the cloned anchor
-                        clonedAnchor.compile = () => {
-                            console.log('originalResult', originalResult, `${originalAnchor.id.componentId}-${originalResult.value}_internal`)
-                            // Handle different SchemaValue types (ScalarValue, SetValue, RangeValue)
-                            if ('value' in originalResult) {
-                                const value = originalResult.value;
-                                console.log('prereplace', value)
-                                // Use the return value of replace since strings are immutable
-                                const updatedValue = value.replace('VGX_SIGNAL_NAME', `${originalAnchor.id.componentId}`);
-
-                                console.log('postreplace', updatedValue)
-                                return { value: `${updatedValue}_internal` };
-                            } else {
-                                // For other types, just return a modified version
-                                return originalResult;
-                            }
-                        };
-
-
-                        console.log('originalAnchor', originalAnchor)
-                        console.log('originalComponent', originalComponent)
-
-                        function deepClone(obj: any) {
-                            return JSON.parse(JSON.stringify(obj));
-                        }
-
-                        const internalAnchorId = `${anchorId}_internal`;
-                        // originalComponent.setAnchor(anchorId, clonedAnchor);
-                        console.log('clonedAnchor', clonedAnchor)
-                        originalComponent.setAnchor(internalAnchorId, clonedAnchor); // this is the same as the original
-                        //now retarget all of the inczwoming edges to this new anchor
-
-                        const incomingEdges = edges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId);
-                        incomingEdges.forEach(edge => {
-                            edge.target.anchorId = internalAnchorId;
-                        });
-                        //then add the new edge to the original anchor e.g. node_1_x. this will overwrite its value so any place it is used 
-                        // will use the merged value
-                        newEdges.push({
-                            source: { nodeId, anchorId: internalAnchorId },
-                            target: { nodeId: mergedNodeId, anchorId }
-                        });
-
-                        newEdges.push({
-                            source: { nodeId: mergedNodeId, anchorId },
-                            target: { nodeId, anchorId } // target the original anchor so anything that reads from it gets the merged value
-                        });
-
-                        // originalComponent.setAnchor(anchorId, originalAnchor);
-                    }
-
-                });
-
-                console.log('newEdges', newEdges)
-                console.log('newNodes', newNodes)
-                // Update the graph edges
-                // bindingGraph.edges = newEdges;
-
-
-                return { nodes: newNodes, edges: newEdges };
-
-            }
             nodes = resolvedGraph.nodes;
             edges = resolvedGraph.edges;
         }
 
-        console.log('resolvednodes', nodes)
-        console.log('resolvededges', edges)
-
         type ComponentId = string;
         const compileConstraints: Record<ComponentId, Record<AnchorId, Constraint[]>> = {}
-        // go through the binding tree and compile each node, passing the constraints from parents
-        // to their children, to help to compile. 
+
         const preOrderTraversal = (
             node: BindingNode,
             edges: BindingEdge[],
@@ -264,6 +121,9 @@ export class SpecCompiler {
 
             // Mark this node as visited
             visitedNodes.add(node.id);
+
+
+
 
             // Find all edges where this node is the target
             const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
@@ -289,7 +149,6 @@ export class SpecCompiler {
                 return { anchor, targetId: edge.target.anchorId };
             }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
 
-            console.log('parentAnchors', parentAnchors)
 
             const constraints: Record<AnchorId, Constraint[]> = {};
             const absoluteConstraints: Record<AnchorId, Constraint[]> = {};
@@ -333,102 +192,20 @@ export class SpecCompiler {
 
 
             });
+
             //overwrite constraints with absolute constraints
             Object.keys(absoluteConstraints).forEach(channel => {
                 constraints[channel] = absoluteConstraints[channel];
                 console.log('setting absolute constraint', absoluteConstraints[channel])
             });
 
-
-
-            console.log('constraints', constraints, component)
-
             compileConstraints[component.id] = constraints;
-            console.log('compileConstraints', compileConstraints)
 
             if ('mergedComponent' in component && component.mergedComponent === true) {
-                console.log('in mergedcomponents', compileConstraints)
-                console.log('in mergedcomponentsparentAnchors', parentAnchors)
-                // Get all parent components that feed into this merged component
-                const parentComponentIds = parentAnchors.map(anchor => anchor.anchor.id.componentId);
-                console.log('parentComponentIds for merged component:', parentComponentIds);
-
-                const mergedSignals = []
-                // For each parent component, get its compiled constraints
-                parentComponentIds.forEach(parentId => {
-
-                    const parentConstraints = compileConstraints[parentId];
-                    // find the 
-                    // if (!parentConstraints) {
-                    //     console.log(`No constraints found for parent component ${parentId}`);
-                    //     return;
-                    // }
-
-
-                    console.log(`Processing parent ${parentId} with constraints:`, parentConstraints,);
-
-                    // Get the anchors from this parent that feed into the merged component
-                    const anchorFromParent = parentAnchors.find(anchor => anchor.anchor.id.componentId == parentId);// || [];
-
-
-                    if (!anchorFromParent) {
-                        console.log(`No anchor found for parent component ${parentId}`);
-                        return;
-                    }
-
-                    const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
-                    console.log(`Parent signal name: ${parentSignalName}`);
-
-                    // For each other parent component, get its constraints
-                    const otherParentIds = parentComponentIds.filter(id => id !== parentId);
-                    console.log(`Other parent IDs for merged component:`, otherParentIds, 'og comp', component.id);
-
-                    // Get constraints for each other parent
-                    const otherParentsConstraints = otherParentIds.map(otherParentId => {
-                        const otherParentIdInternal = otherParentId;//+"_internal";
-                        const otherParentConstraints = compileConstraints[otherParentIdInternal];
-                        console.log('constraints', compileConstraints, 'otherParentConstraints', otherParentConstraints, anchorFromParent.targetId, 'otherParentIdInternal', otherParentIdInternal)
-                        if (!otherParentConstraints) {
-                            console.log(`No constraints found for other parent component ${otherParentId}`);
-                            return null;
-                        }
-                        console.log('otherParentConstraints', otherParentConstraints)
-
-
-
-                        // Okay, so at this point we need to go through and clone each of the other constraints and add
-                        // an update from them 
-                        // const parentSignalName = `${parentId}_${anchorFromParent.targetId}`;
-
-                        const channel = component.getAnchors()[0].id.anchorId;
-                        console.log('channel',channel)
-                        
-
-
-
-
-
-                        return otherParentConstraints[`${channel}_internal`].map(constraint => {
-                            console.log('constraint',constraint)
-                            return {
-                                events:{"signal":parentSignalName},
-                                
-                                update: constraint.replace(/VGX_SIGNAL_NAME/g, parentSignalName)
-                            }
-                        })
-
-                    }).filter(item => item !== null);
-
-                    console.log('Other parents constraints:', otherParentsConstraints);
-                    mergedSignals.push(...otherParentsConstraints)
-
-
-                })
-
-
+                const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, compileConstraints, component)
                 constraints[MERGED_SIGNAL_NAME] = mergedSignals
             }
-            console.log('constraints', constraints)
+
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
 

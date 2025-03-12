@@ -34,7 +34,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     }
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
-        return `clamp(${'VGX_SIGNAL_NAME'},${value},${value})`
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.value},${value.value})`
     }
     return "";
 }
@@ -55,11 +55,12 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     if (schema.container === 'Scalar') {
         // !!!!!!!!! NOTE THIS IS DIFF THAN SCALAR CODE AS WE OFFSET instead of share !!!!!!!!!
         value = value as ScalarValue
-        return `${'VGX_SIGNAL_NAME'}+${value}`
+        return `${'VGX_SIGNAL_NAME'}+${value.value}`
     }
     return "";
 }
 
+const MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME'
 // Create a merged component to manage the cycle
 function createMergedComponent(
     node1Id: string,
@@ -78,28 +79,40 @@ function createMergedComponent(
 
     // Create a merged component that will manage the cycle
     class MergedComponent extends BaseComponent {
+        mergedComponent: boolean;
         constructor() {
             super({});
+            this.mergedComponent = true;
 
             // TODO create two configurations for each of the base component types, for now we'll just do the second item
             this.schema = { [channel]: component2.schema[channel] };
 
             // // Create anchors for both inputs
             // NOTE: not rewquired, automatically "hook up" anchors 
-            this.anchors.set(`${node1Id}`, this.createAnchorProxy(
-                { [`${node1Id}_input`]: this.schema[`${node1Id}_input`] },
-                `${node1Id}_input`,
+            // this.anchors.set(`${node1Id}`, this.createAnchorProxy(
+            //     { [`${node1Id}_input`]: this.schema[`${node1Id}_input`] },
+            //     `${node1Id}_input`,
+            //     () => ({ 'absoluteValue': `${this.id}_${channel}` })
+            // ));
+
+            // this.anchors.set(`${node2Id}_input`, this.createAnchorProxy(
+            //     { [`${node2Id}_input`]: this.schema[`${node2Id}_input`] },
+            //     `${node2Id}_input`,
+            //     () => ({ 'absoluteValue': `${this.id}_${channel}` })
+            // ));
+            this.anchors.set(`${channel}`, this.createAnchorProxy(
+                { [`${channel}`]: this.schema[`${channel}`] },
+                `${channel}`,
                 () => ({ 'absoluteValue': `${this.id}_${channel}` })
             ));
 
-            this.anchors.set(`${node2Id}_input`, this.createAnchorProxy(
-                { [`${node2Id}_input`]: this.schema[`${node2Id}_input`] },
-                `${node2Id}_input`,
-                () => ({ 'absoluteValue': `${this.id}_${channel}` })
-            ));
+
         }
 
         compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+
+
+            console.log('compilingMergedComponent', inputContext)
             // Create internal signals for each node
             const nodeSignal = {
                 name: `${this.id}_${channel}`,
@@ -123,7 +136,15 @@ function createMergedComponent(
                 return signalName;
             }
 
-            const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
+            console.log('inputContextMErged', inputContext)
+
+
+
+
+
+
+
+            const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, this.id, this.schema[key].container)).flat()
 
             // now merge two signals:
             const mergedSignal = {
@@ -135,7 +156,17 @@ function createMergedComponent(
             console.log('outputSignals', outputSignals)
 
 
-            for (const signal of outputSignals) {
+
+            // TODO:
+            // fix the update statement on mergedSignal
+            // right now they're empty. I think I need to add something for absolute value
+            // then we also need to handle the other constraints. 
+            // We may need to change merged component to compile after other components (e.g. so we don;t have random unfilled VGX_SIGNAL remaining. )            
+
+            //TODO: make not 0...
+            const updateStatements = inputContext[MERGED_SIGNAL_NAME].flat()
+            console.log('inputContext[MERGED_SIGNAL_NAME]', updateStatements)
+            for (const signal of updateStatements) {
                 mergedSignal.on.push({
                     events: { signal: signal.name },
                     update: signal.update
@@ -143,6 +174,7 @@ function createMergedComponent(
             }
 
             console.log('mergedSignal', mergedSignal)
+
 
 
 
@@ -187,13 +219,16 @@ export class SpecCompiler {
 
 
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        const { nodes, edges } = bindingGraph;
+        // const { nodes, edges } = bindingGraph;
 
 
-        const expandedEdges = expandEdges(edges);
-        console.log('expandedEdges', expandedEdges)
 
-        const { cycleNodes, cycleEdges } = findCycles(nodes, expandedEdges);
+        let edges = expandEdges(bindingGraph.edges);
+        console.log('expanded edges', edges)
+        let nodes = new Map(bindingGraph.nodes);
+        // console.log('expandedEdges', expandedEdges)
+
+        const { cycleNodes, cycleEdges } = findCycles(bindingGraph.nodes, edges);
 
         if (cycleEdges.length > 0) {
             console.log('Cycles detected:', cycleNodes, cycleEdges);
@@ -208,7 +243,8 @@ export class SpecCompiler {
                 console.log('mergedComponent', mergedComponent)
 
                 // Create a new merged node ID
-                const mergedNodeId = `${cycleNodesArray[0]}_${cycleNodesArray[1]}_merged`;
+                const mergedNodeId = mergedComponent.id;
+
 
                 // Add the merged component to the binding manager
                 bindingManager.addComponent(mergedComponent);
@@ -219,14 +255,21 @@ export class SpecCompiler {
                 //     type: 'merged',
                 // });
 
-                bindingGraph.nodes.set(mergedNodeId, {
-                    id: mergedNodeId,
-                    type: 'merged',
-                    // component: mergedComponent
-                });
+                const newNodes = new Map(bindingGraph.nodes)
+                    .set(mergedNodeId, {
+                        id: mergedNodeId,
+                        type: 'merged',
+                        // component: mergedComponent
+                    });
+
+                // bindingGraph.nodes.set(mergedNodeId, {
+                //     id: mergedNodeId,
+                //     type: 'merged',
+                //     // component: mergedComponent
+                // });
 
                 // Remove cycle edges
-                const newEdges = bindingGraph.edges.filter(edge => {
+                const newEdges = edges.filter(edge => {
                     // Filter out edges between cycle nodes
                     return !(cycleNodes.has(edge.source.nodeId) && cycleNodes.has(edge.target.nodeId))
                 });
@@ -244,21 +287,18 @@ export class SpecCompiler {
                             ? relevantEdge.source.anchorId
                             : relevantEdge.target.anchorId;
 
-                        newEdges.push({
-                            source: { nodeId, anchorId },
-                            target: { nodeId: mergedNodeId, anchorId }
-                        });
 
-                        
+
+
                         const originalComponent = bindingManager.getComponent(nodeId);
                         const originalAnchor = originalComponent.getAnchor(anchorId);
 
                         // Extract component from original anchor
                         const { component, ...anchorWithoutComponent } = originalAnchor;
-                        
+
                         // Deep clone everything except the component
                         const clonedAnchorProps = deepClone(anchorWithoutComponent);
-                        
+
                         // Reconstruct the anchor with the original component reference
                         const clonedAnchor = {
                             ...clonedAnchorProps,
@@ -266,13 +306,19 @@ export class SpecCompiler {
                         };
 
                         const originalResult = originalAnchor.compile();
-                        
+
                         // Modify the compile function of the cloned anchor
                         clonedAnchor.compile = () => {
-                            
+                            console.log('originalResult', originalResult, `${originalAnchor.id.componentId}-${originalResult.value}_internal`)
                             // Handle different SchemaValue types (ScalarValue, SetValue, RangeValue)
                             if ('value' in originalResult) {
-                                return { value: `${originalResult.value}_internal` };
+                                const value = originalResult.value;
+                                console.log('prereplace', value)
+                                // Use the return value of replace since strings are immutable
+                                const updatedValue = value.replace('VGX_SIGNAL_NAME', `${originalAnchor.id.componentId}`);
+
+                                console.log('postreplace', updatedValue)
+                                return { value: `${updatedValue}_internal` };
                             } else {
                                 // For other types, just return a modified version
                                 return originalResult;
@@ -286,54 +332,52 @@ export class SpecCompiler {
                         function deepClone(obj: any) {
                             return JSON.parse(JSON.stringify(obj));
                         }
+
+                        const internalAnchorId = `${anchorId}_internal`;
                         // originalComponent.setAnchor(anchorId, clonedAnchor);
-                        originalComponent.setAnchor(`${anchorId}_internal`, clonedAnchor); // this is the same as the original
+                        console.log('clonedAnchor', clonedAnchor)
+                        originalComponent.setAnchor(internalAnchorId, clonedAnchor); // this is the same as the original
                         //now retarget all of the inczwoming edges to this new anchor
 
-                        const incomingEdges = expandedEdges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId);
+                        const incomingEdges = edges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId);
                         incomingEdges.forEach(edge => {
-                            edge.target.anchorId = `${anchorId}_internal`;
+                            edge.target.anchorId = internalAnchorId;
                         });
                         //then add the new edge to the original anchor e.g. node_1_x. this will overwrite its value so any place it is used 
                         // will use the merged value
                         newEdges.push({
+                            source: { nodeId, anchorId: internalAnchorId },
+                            target: { nodeId: mergedNodeId, anchorId }
+                        });
+
+                        newEdges.push({
                             source: { nodeId: mergedNodeId, anchorId },
-                            target: { nodeId, anchorId }
+                            target: { nodeId, anchorId } // target the original anchor so anything that reads from it gets the merged value
                         });
 
                         // originalComponent.setAnchor(anchorId, originalAnchor);
                     }
-                   
+
                 });
 
                 console.log('newEdges', newEdges)
-
+                console.log('newNodes', newNodes)
                 // Update the graph edges
-                bindingGraph.edges = newEdges;
+                // bindingGraph.edges = newEdges;
 
 
-                // create a new node (merged)
-                // currently it will have component 2's schema, but this could be made configurable with schema matching
-                // the merged node should have one schema value for the channel. 
-
-                // create 
-                // change edges from each other to the merged node
-                // compile all constraints into {'constraints_from_node_1': []}
-                // then on each node, filter constraints to all constraints other than that node_id
-                // then compile 
-
-                // then, update node_2_x to use the merged node value
-                // creatre new internal signals for previous values. 
-
-
-                return bindingGraph;
+                return { nodes: newNodes, edges: newEdges };
 
             }
-            console.log('resolvedGraph', resolvedGraph)
-            bindingGraph = resolvedGraph;
+            nodes = resolvedGraph.nodes;
+            edges = resolvedGraph.edges;
         }
 
+        console.log('resolvednodes', nodes)
+        console.log('resolvededges', edges)
 
+        type ComponentId = string;
+        const compileConstraints: Record<ComponentId, Record<AnchorId, Constraint[]>> = {}
         // go through the binding tree and compile each node, passing the constraints from parents
         // to their children, to help to compile. 
         const preOrderTraversal = (
@@ -362,6 +406,7 @@ export class SpecCompiler {
             // Get the component for the current node
             const component = this.getBindingManager().getComponent(node.id);
 
+
             // Extract parent anchors from the edge-node pairs
             const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
                 const parentComponent = this.getBindingManager().getComponent(node.id);
@@ -370,40 +415,149 @@ export class SpecCompiler {
                 // Get the anchor from the parent component using the source anchorId from the edge
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
 
-                return anchor;
-            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
+                return { anchor, targetId: edge.target.anchorId };
+            }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
 
             console.log('parentAnchors', parentAnchors)
 
             const constraints: Record<AnchorId, Constraint[]> = {};
+            const absoluteConstraints: Record<AnchorId, Constraint[]> = {};
+
 
             // for each parent anchor, create what constraints it places on the component
-            parentAnchors.forEach((anchorProxy) => {
-                Object.keys(anchorProxy.anchorSchema).forEach(channel => {
-                    const schema = anchorProxy.anchorSchema[channel];
-                    const anchorAccessor = anchorProxy.compile();
+            parentAnchors.forEach(({ anchor, targetId }) => {
+                const anchorProxy = anchor;
+                console.log('targeting', targetId)
 
-                    // Skip channels not present in component schema
-                    if (!component.schema[channel]) {
+
+
+
+                const cleanTargetId = targetId.replace('_internal', '');
+                const parentSchema = anchorProxy.anchorSchema[cleanTargetId];
+                const parentAnchorAccessor = anchorProxy.compile();
+
+                console.log('cleanTargetId', cleanTargetId, parentSchema, parentAnchorAccessor)
+                // Skip channels not present in component schema
+                if (!component.schema[cleanTargetId]) {
+                    console.log('noschemafor', cleanTargetId)
+                    return;
+                }
+
+                // using targetId as we want _x for the schema type, but _x_internal for the separate signal
+                if (!constraints[targetId]) {
+                    constraints[targetId] = [];
+                }
+
+                if (component.schema[cleanTargetId].container === "Scalar") {
+                    if ('absoluteValue' in parentAnchorAccessor) {
+                        console.log('setting absolute constraint', parentAnchorAccessor.absoluteValue)
+                        absoluteConstraints[targetId] = [parentAnchorAccessor.absoluteValue] // only constraint
+                        return;
+                    }
+                    constraints[targetId].push(generateScalarConstraints(parentSchema, parentAnchorAccessor));
+                } else if (component.schema[cleanTargetId].container === "Range") {
+                    constraints[targetId].push(generateRangeConstraints(parentSchema, parentAnchorAccessor));
+                }
+
+
+
+            });
+            //overwrite constraints with absolute constraints
+            Object.keys(absoluteConstraints).forEach(channel => {
+                constraints[channel] = absoluteConstraints[channel];
+                console.log('setting absolute constraint', absoluteConstraints[channel])
+            });
+
+
+
+            console.log('constraints', constraints, component)
+
+            compileConstraints[component.id] = constraints;
+            console.log('compileConstraints', compileConstraints)
+
+            if ('mergedComponent' in component && component.mergedComponent === true) {
+                console.log('in mergedcomponents', compileConstraints)
+                console.log('in mergedcomponentsparentAnchors', parentAnchors)
+                // Get all parent components that feed into this merged component
+                const parentComponentIds = parentAnchors.map(anchor => anchor.anchor.id.componentId);
+                console.log('parentComponentIds for merged component:', parentComponentIds);
+
+                const mergedSignals = []
+                // For each parent component, get its compiled constraints
+                parentComponentIds.forEach(parentId => {
+
+                    const parentConstraints = compileConstraints[parentId];
+                    // find the 
+                    // if (!parentConstraints) {
+                    //     console.log(`No constraints found for parent component ${parentId}`);
+                    //     return;
+                    // }
+
+
+                    console.log(`Processing parent ${parentId} with constraints:`, parentConstraints,);
+
+                    // Get the anchors from this parent that feed into the merged component
+                    const anchorFromParent = parentAnchors.find(anchor => anchor.anchor.id.componentId == parentId);// || [];
+
+
+                    if (!anchorFromParent) {
+                        console.log(`No anchor found for parent component ${parentId}`);
                         return;
                     }
 
-                    // Initialize constraint array if needed
-                    if (!constraints[channel]) {
-                        constraints[channel] = [];
-                    }
+                    const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
+                    console.log(`Parent signal name: ${parentSignalName}`);
 
-                    if (component.schema[channel].container === "Scalar") {
-                        console.log('generateScalarConstraints', anchorAccessor, generateScalarConstraints(schema, anchorAccessor))
-                        constraints[channel].push(generateScalarConstraints(schema, anchorAccessor));
-                    } else if (component.schema[channel].container === "Range") {
-                        constraints[channel].push(generateRangeConstraints(schema, anchorAccessor));
-                    }
-                });
-            });
+                    // For each other parent component, get its constraints
+                    const otherParentIds = parentComponentIds.filter(id => id !== parentId);
+                    console.log(`Other parent IDs for merged component:`, otherParentIds, 'og comp', component.id);
 
+                    // Get constraints for each other parent
+                    const otherParentsConstraints = otherParentIds.map(otherParentId => {
+                        const otherParentIdInternal = otherParentId;//+"_internal";
+                        const otherParentConstraints = compileConstraints[otherParentIdInternal];
+                        console.log('constraints', compileConstraints, 'otherParentConstraints', otherParentConstraints, anchorFromParent.targetId, 'otherParentIdInternal', otherParentIdInternal)
+                        if (!otherParentConstraints) {
+                            console.log(`No constraints found for other parent component ${otherParentId}`);
+                            return null;
+                        }
+                        console.log('otherParentConstraints', otherParentConstraints)
+
+
+
+                        // Okay, so at this point we need to go through and clone each of the other constraints and add
+                        // an update from them 
+                        // const parentSignalName = `${parentId}_${anchorFromParent.targetId}`;
+
+                        const channel = component.getAnchors()[0].id.anchorId;
+                        console.log('channel',channel)
+                        
+
+
+
+
+
+                        return otherParentConstraints[`${channel}_internal`].map(constraint => {
+                            console.log('constraint',constraint)
+                            return {
+                                events:{"signal":parentSignalName},
+                                
+                                update: constraint.replace(/VGX_SIGNAL_NAME/g, parentSignalName)
+                            }
+                        })
+
+                    }).filter(item => item !== null);
+
+                    console.log('Other parents constraints:', otherParentsConstraints);
+                    mergedSignals.push(...otherParentsConstraints)
+
+
+                })
+
+
+                constraints[MERGED_SIGNAL_NAME] = mergedSignals
+            }
             console.log('constraints', constraints)
-
             // Compile the current node with the context
             const compiledNode = component.compileComponent(constraints);
 
@@ -422,8 +576,9 @@ export class SpecCompiler {
             return [compiledNode, ...children.flat()];
         };
 
+        // const {nodes, edges} = bindingGraph;
         // Start traversal with an empty visited set
-        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges, new Set<string>());
+        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, edges, new Set<string>());
 
         return compiledComponents;
     }
@@ -899,7 +1054,7 @@ function expandEdges(edges: BindingEdge[]): BindingEdge[] {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
         return expandAllAnchors(edge, sourceComponent, targetComponent)
-    });
+    }).filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
 }
 
 // we need to check for cycles here, and if there are cycles, we need to add super nodes

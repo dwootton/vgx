@@ -156,6 +156,7 @@ export class Drag extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        console.log('dragcompileComponent', inputContext)
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
             name: this.id, // base signal
@@ -172,16 +173,31 @@ export class Drag extends BaseComponent {
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
             }]
         }; 
+
+        console.log('drag inputContext', inputContext)
        
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
         // then , may through each item
 
-        console.log('outputSignals', signal,outputSignals)
+        const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
+            inputContext[key].map((updateStatement:string) => ({
+                
+                name: this.id+'_'+key,
+                "on": [{
+                    "events": {
+                        "signal": this.id
+                    },
+                    "update": updateStatement
+                }]
+            }))
+        ).flat();
+
+        console.log('outputSignals', signal,outputSignals,'internal',internalSignals)
 
         return {
             //@ts-ignore as signals can exist in VL
-            params: [signal, ...outputSignals]
+            params: [signal, ...outputSignals, ...internalSignals]
 
         };
     }
@@ -215,6 +231,8 @@ export class DragSpan extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        console.log('dragSpan compileComponent', inputContext)
+
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
             name: this.id,

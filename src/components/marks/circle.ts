@@ -39,10 +39,10 @@ export class Circle extends BaseComponent {
         }
 
         this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return `${this.id}_x`
+            return {value: `${this.id}_x`}
         }));
         this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return `${this.id}_y`
+            return {value: `${this.id}_y`}
         }));
 
         this.config = config;
@@ -52,12 +52,29 @@ export class Circle extends BaseComponent {
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         
+        console.log('circle inputContext', inputContext)
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => 
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
         ).flat();
 
-        console.log('outputSignals circle', outputSignals)
+        // if there is an inputContext key that ends with _internal, then
+            // extract the channel from it {channel}_internal
+
+        const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
+            inputContext[key].map((updateStatement:string) => ({
+                
+                name: this.id+'_'+key,
+                "on": [{
+                    "events": {
+                        "signal": this.id
+                    },
+                    "update": updateStatement
+                }]
+            }))
+        ).flat();
+
+        console.log('outputSignals circlexxx', internalSignals)
         
         return {
             params: [
@@ -65,7 +82,8 @@ export class Circle extends BaseComponent {
                     "name": this.id,
                     "value": circleBaseContext,
                 },
-                ...outputSignals
+                ...outputSignals,
+                ...internalSignals
             ],
             data: inputContext.data || circleBaseContext.data,
             mark: {

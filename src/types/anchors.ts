@@ -69,7 +69,7 @@ export type InteractorSchema = {
 export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding'// | 'Boolean';
 
 // Base container types
-export type ContainerType = 'Scalar' | 'Set' | 'Range';
+export type ContainerType = 'Scalar' | 'Set' | 'Range' | 'Absolute';
 
 export interface SchemaType {
   container: ContainerType;
@@ -118,7 +118,7 @@ export type RangeValue = {
   stop: string; // maps to the expression for the value
 }
 
-export type SchemaValue = SetValue | ScalarValue | RangeValue;
+export type SchemaValue = SetValue | ScalarValue | RangeValue | AbsoluteValue;
 
 // {X:X<range>}
 

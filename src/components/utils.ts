@@ -12,7 +12,7 @@ export const createRangeAccessor = (id: string, channel: string) => {
 
 
 export function generateCompiledValue(channel: string) {
-    return `VGX_SIGNAL_NAME_${channel}` // min value
+    return  `VGX_SIGNAL_NAME_${channel}` // min value
 }
 
 function extractAllNodeNames(input: string): string[] {
@@ -51,11 +51,12 @@ function extractAllNodeNames(input: string): string[] {
     return nodeNames;
 }
 
-export const generateSignalFromAnchor = (constraints: string[], channel: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
+export const generateSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
     
     // If channel has "_internal" suffix, remove it
-    channel = channel.replace(/_internal$/, '');
-
+    // let channel = anchorId.replace(/_internal$/, '');
+    let channel = anchorId;
+    console.log('generateSignalFromAnchor', channel)
 
     // For Scalar type
     if (schemaType === 'Scalar') {

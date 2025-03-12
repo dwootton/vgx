@@ -38,7 +38,7 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     component,
     bind: bindFn,
     anchorSchema: anchor,
-    compile: compileFn || (() => ({source:'baseContext',value:''}))
+    compile: compileFn //|| (() => ({source:'baseContext',value:''}))// TODO change to regular schema type
   };
   // console.log('anchorProxy', proxy);
   return proxy;

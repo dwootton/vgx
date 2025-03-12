@@ -146,11 +146,11 @@ export class Drag extends BaseComponent {
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return generateCompiledValue('x')
+            return {'value':generateCompiledValue('x')}
           }));
 
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return generateCompiledValue('y')
+            return {'value':generateCompiledValue('y')}
           }));
 
     }

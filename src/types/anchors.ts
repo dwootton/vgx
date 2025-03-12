@@ -109,6 +109,10 @@ export type SetValue = {
   values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
 }
 
+export type AbsoluteValue = {
+  absoluteValue: string; // maps to the expression for the value
+}
+
 export type RangeValue = {
   start: string; // maps to the expression for the value
   stop: string; // maps to the expression for the value
@@ -125,7 +129,7 @@ export interface AnchorProxy {
   id: AnchorId;
   anchorSchema: AnchorSchema;
   bind: (target: AnchorProxy) => BaseComponent;
-  compile: (nodeId?: string) => {source:string,value:any}; // produces a expr string
+  compile: (nodeId?: string) =>SchemaValue; // produces a expr string
 }
 
 // brush.sides.top 

@@ -169,6 +169,10 @@ export abstract class BaseComponent {
     return Array.from(this.anchors.values());
   }
 
+  public setAnchor(anchorId: string, anchor: AnchorProxy) {
+    this.anchors.set(anchorId, anchor);
+  }
+
 
 
 

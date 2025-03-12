@@ -9,6 +9,8 @@ import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { BaseChart } from "../components/charts/base";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+import { generateSignalFromAnchor } from "../components/utils";
+import { channel } from "diagnostics_channel";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -58,6 +60,102 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     return "";
 }
 
+// Create a merged component to manage the cycle
+function createMergedComponent(
+    node1Id: string,
+    node2Id: string,
+    channel: string,
+    bindingManager: BindingManager
+): BaseComponent {
+    const component1 = bindingManager.getComponent(node1Id);
+    const component2 = bindingManager.getComponent(node2Id);
+
+
+
+    if (!component1 || !component2) {
+        throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
+    }
+
+    // Create a merged component that will manage the cycle
+    class MergedComponent extends BaseComponent {
+        constructor() {
+            super({});
+
+            // TODO create two configurations for each of the base component types, for now we'll just do the second item
+            this.schema = { [channel]: component2.schema[channel] };
+
+            // // Create anchors for both inputs
+            // NOTE: not rewquired, automatically "hook up" anchors 
+            this.anchors.set(`${node1Id}`, this.createAnchorProxy(
+                { [`${node1Id}_input`]: this.schema[`${node1Id}_input`] },
+                `${node1Id}_input`,
+                () => ({ 'absoluteValue': `${this.id}_${channel}` })
+            ));
+
+            this.anchors.set(`${node2Id}_input`, this.createAnchorProxy(
+                { [`${node2Id}_input`]: this.schema[`${node2Id}_input`] },
+                `${node2Id}_input`,
+                () => ({ 'absoluteValue': `${this.id}_${channel}` })
+            ));
+        }
+
+        compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+            // Create internal signals for each node
+            const nodeSignal = {
+                name: `${this.id}_${channel}`,
+                value: 0,
+                on: [] as any[]
+            };
+
+            // const node2InternalSignal = {
+            //   name: `${this.id}_${node2Id}_internal`,
+            //   value: 0,
+            //   on: [] as any[]
+            // };
+
+            // TODO refactor Helper function to generate constraint application code
+            function applyConstraints(signalName: string, containerType: string): string {
+                if (containerType === 'Scalar') {
+                    return `clamp(${signalName}, min_value, max_value)`;
+                } else if (containerType === 'Range') {
+                    return `nearest(${signalName}, [min_value, max_value])`;
+                }
+                return signalName;
+            }
+
+            const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
+
+            // now merge two signals:
+            const mergedSignal = {
+                name: `${this.id}_${channel}`,
+                value: 0,
+                on: [] as any[]
+            };
+
+            console.log('outputSignals', outputSignals)
+
+
+            for (const signal of outputSignals) {
+                mergedSignal.on.push({
+                    events: { signal: signal.name },
+                    update: signal.update
+                });
+            }
+
+            console.log('mergedSignal', mergedSignal)
+
+
+
+            return {
+                params: [mergedSignal]
+            };
+        }
+    }
+
+    return new MergedComponent();
+}
+
+
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
@@ -95,12 +193,152 @@ export class SpecCompiler {
         const expandedEdges = expandEdges(edges);
         console.log('expandedEdges', expandedEdges)
 
+        const { cycleNodes, cycleEdges } = findCycles(nodes, expandedEdges);
+
+        if (cycleEdges.length > 0) {
+            console.log('Cycles detected:', cycleNodes, cycleEdges);
+            // Resolve cycles by creating merged nodes
+            const resolvedGraph = resolveCycles(bindingGraph, this.getBindingManager());
+
+            function resolveCycles(bindingGraph: BindingGraph, bindingManager: BindingManager): BindingGraph {
+                // Convert Set to Array to access elements by index
+                const cycleNodesArray = Array.from(cycleNodes);
+                const mergedComponent = createMergedComponent(cycleNodesArray[0], cycleNodesArray[1], cycleEdges[0].target.anchorId, bindingManager);
+
+                console.log('mergedComponent', mergedComponent)
+
+                // Create a new merged node ID
+                const mergedNodeId = `${cycleNodesArray[0]}_${cycleNodesArray[1]}_merged`;
+
+                // Add the merged component to the binding manager
+                bindingManager.addComponent(mergedComponent);
+
+                // // Add the merged node to the graph
+                // bindingGraph.nodes.set(mergedNodeId, {
+                //     id: mergedNodeId,
+                //     type: 'merged',
+                // });
+
+                bindingGraph.nodes.set(mergedNodeId, {
+                    id: mergedNodeId,
+                    type: 'merged',
+                    // component: mergedComponent
+                });
+
+                // Remove cycle edges
+                const newEdges = bindingGraph.edges.filter(edge => {
+                    // Filter out edges between cycle nodes
+                    return !(cycleNodes.has(edge.source.nodeId) && cycleNodes.has(edge.target.nodeId))
+                });
+
+                // Add new edges from each component to the merged component
+                cycleNodes.forEach(nodeId => {
+                    // For each cycle node, create an edge to the merged node
+                    // using the same anchor IDs as in the original cycle
+                    const relevantEdge = cycleEdges.find(edge =>
+                        edge.source.nodeId === nodeId || edge.target.nodeId === nodeId
+                    );
+
+                    if (relevantEdge) {
+                        const anchorId = nodeId === relevantEdge.source.nodeId
+                            ? relevantEdge.source.anchorId
+                            : relevantEdge.target.anchorId;
+
+                        newEdges.push({
+                            source: { nodeId, anchorId },
+                            target: { nodeId: mergedNodeId, anchorId }
+                        });
+
+                        
+                        const originalComponent = bindingManager.getComponent(nodeId);
+                        const originalAnchor = originalComponent.getAnchor(anchorId);
+
+                        // Extract component from original anchor
+                        const { component, ...anchorWithoutComponent } = originalAnchor;
+                        
+                        // Deep clone everything except the component
+                        const clonedAnchorProps = deepClone(anchorWithoutComponent);
+                        
+                        // Reconstruct the anchor with the original component reference
+                        const clonedAnchor = {
+                            ...clonedAnchorProps,
+                            component
+                        };
+
+                        const originalResult = originalAnchor.compile();
+                        
+                        // Modify the compile function of the cloned anchor
+                        clonedAnchor.compile = () => {
+                            
+                            // Handle different SchemaValue types (ScalarValue, SetValue, RangeValue)
+                            if ('value' in originalResult) {
+                                return { value: `${originalResult.value}_internal` };
+                            } else {
+                                // For other types, just return a modified version
+                                return originalResult;
+                            }
+                        };
+
+
+                        console.log('originalAnchor', originalAnchor)
+                        console.log('originalComponent', originalComponent)
+
+                        function deepClone(obj: any) {
+                            return JSON.parse(JSON.stringify(obj));
+                        }
+                        // originalComponent.setAnchor(anchorId, clonedAnchor);
+                        originalComponent.setAnchor(`${anchorId}_internal`, clonedAnchor); // this is the same as the original
+                        //now retarget all of the inczwoming edges to this new anchor
+
+                        const incomingEdges = expandedEdges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId);
+                        incomingEdges.forEach(edge => {
+                            edge.target.anchorId = `${anchorId}_internal`;
+                        });
+                        //then add the new edge to the original anchor e.g. node_1_x. this will overwrite its value so any place it is used 
+                        // will use the merged value
+                        newEdges.push({
+                            source: { nodeId: mergedNodeId, anchorId },
+                            target: { nodeId, anchorId }
+                        });
+
+                        // originalComponent.setAnchor(anchorId, originalAnchor);
+                    }
+                   
+                });
+
+                console.log('newEdges', newEdges)
+
+                // Update the graph edges
+                bindingGraph.edges = newEdges;
+
+
+                // create a new node (merged)
+                // currently it will have component 2's schema, but this could be made configurable with schema matching
+                // the merged node should have one schema value for the channel. 
+
+                // create 
+                // change edges from each other to the merged node
+                // compile all constraints into {'constraints_from_node_1': []}
+                // then on each node, filter constraints to all constraints other than that node_id
+                // then compile 
+
+                // then, update node_2_x to use the merged node value
+                // creatre new internal signals for previous values. 
+
+
+                return bindingGraph;
+
+            }
+            console.log('resolvedGraph', resolvedGraph)
+            bindingGraph = resolvedGraph;
+        }
+
 
         // go through the binding tree and compile each node, passing the constraints from parents
         // to their children, to help to compile. 
         const preOrderTraversal = (
-            node: BindingNode, 
-            edges: BindingEdge[], 
+            node: BindingNode,
+            edges: BindingEdge[],
             visitedNodes = new Set<string>()
         ): Partial<UnitSpec<Field>>[] => {
             // If this node has already been processed, skip it
@@ -108,10 +346,10 @@ export class SpecCompiler {
                 console.log('visitedNodes', visitedNodes)
                 return [];
             }
-            
+
             // Mark this node as visited
             visitedNodes.add(node.id);
-            
+
             // Find all edges where this node is the target
             const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
 
@@ -662,4 +900,62 @@ function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         }
         return expandAllAnchors(edge, sourceComponent, targetComponent)
     });
+}
+
+// we need to check for cycles here, and if there are cycles, we need to add super nodes
+function findCycles(nodes: Map<string, BindingNode>, edges: BindingEdge[]): { cycleNodes: Set<string>, cycleEdges: BindingEdge[] } {
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+    const cycleNodes = new Set<string>();
+    const cycleEdges: BindingEdge[] = [];
+    console.log('edges', edges, 'nodes', nodes)
+
+    function dfs(nodeId: string, path: string[] = []) {
+        if (stack.has(nodeId)) {
+            // Found a cycle
+            const cycleStart = path.indexOf(nodeId);
+            const cycle = path.slice(cycleStart);
+
+            // Add all nodes in the cycle
+            cycle.forEach(node => cycleNodes.add(node));
+
+            // Add all edges in the cycle
+            for (let i = 0; i < cycle.length - 1; i++) {
+                const sourceId = cycle[i];
+                const targetId = cycle[i + 1];
+                const edge = edges.find(e =>
+                    e.source.nodeId === sourceId && e.target.nodeId === targetId);
+                if (edge) cycleEdges.push(edge);
+            }
+
+            // Add the edge that completes the cycle
+            const lastEdge = edges.find(e =>
+                e.source.nodeId === cycle[cycle.length - 1] && e.target.nodeId === cycle[0]);
+            if (lastEdge) cycleEdges.push(lastEdge);
+
+            return;
+        }
+
+        if (visited.has(nodeId)) {
+            return;
+        }
+
+        visited.add(nodeId);
+        stack.add(nodeId);
+        path.push(nodeId);
+
+        const outgoingEdges = edges.filter(edge => edge.source.nodeId === nodeId);
+        for (const edge of outgoingEdges) {
+            dfs(edge.target.nodeId, [...path]);
+        }
+
+        stack.delete(nodeId);
+        path.pop();
+    }
+
+    for (const node of nodes.keys()) {
+        dfs(node);
+    }
+
+    return { cycleNodes, cycleEdges };
 }

@@ -52,6 +52,11 @@ function extractAllNodeNames(input: string): string[] {
 }
 
 export const generateSignalFromAnchor = (constraints: string[], channel: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
+    
+    // If channel has "_internal" suffix, remove it
+    channel = channel.replace(/_internal$/, '');
+
+
     // For Scalar type
     if (schemaType === 'Scalar') {
         const parentExtractor = signalParent + "." + channel;

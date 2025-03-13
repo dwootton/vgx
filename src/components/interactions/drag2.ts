@@ -177,12 +177,14 @@ export class Drag extends BaseComponent {
         console.log('drag inputContext', inputContext)
        
         // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
+        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [`${this.id}_${key}`], key, this.id, nodeId, this.schema[key].container)).flat()
         // then , may through each item
 
         const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
             inputContext[key].map((updateStatement:string) => ({
-                
+                // const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+
+                // console.log('internalSignal', signal)
                 name: this.id+'_'+key,
                 "on": [{
                     "events": {

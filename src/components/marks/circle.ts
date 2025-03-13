@@ -2,7 +2,7 @@ import { BaseComponent } from "../base";
 import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import {compilationContext} from '../../binding/binding';
-import { AnchorProxy, AnchorIdentifer } from "types/anchors";
+import { AnchorProxy, AnchorIdentifer } from "../../types/anchors";
 
 import { generateSignalFromAnchor, createRangeAccessor } from "../utils";
 
@@ -62,17 +62,21 @@ export class Circle extends BaseComponent {
             // extract the channel from it {channel}_internal
 
         const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
-            inputContext[key].map((updateStatement:string) => ({
-                
+            inputContext[key].map((updateStatement:string) => {
+                console.log('internalSignalCIRCLE', updateStatement, this.schema, key)
+                const channel = key.replace('_internal', '')
+                const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[channel].container)[0]
+                console.log('internalSignalCIRCLE', signal)
+                return {
                 name: this.id+'_'+key,
                 "on": [{
                     "events": {
                         "signal": this.id
                     },
-                    "update": updateStatement
+                    "update": updateStatement.replace(/VGX_SIGNAL_NAME/g, `${this.id}_${key}`)
                 }]
-            }))
-        ).flat();
+            }
+        })).flat();
 
         console.log('outputSignals circlexxx', internalSignals)
         

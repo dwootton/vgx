@@ -97,6 +97,7 @@ export class SpecCompiler {
         const { cycleNodes, cycleEdges } = findCycles(bindingGraph.nodes, edges);
 
         if (cycleEdges.length > 0) {
+            console.log('cycles!!!', cycleEdges, cycleNodes)
             // Resolve cycles by creating merged nodes
             const resolvedGraph = resolveCycles(edges, nodes, cycleNodes, cycleEdges, this.getBindingManager());
 

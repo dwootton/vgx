@@ -15,7 +15,7 @@ export function generateCompiledValue(channel: string) {
     return  `VGX_SIGNAL_NAME_${channel}` // min value
 }
 
-function extractAllNodeNames(input: string): string[] {
+export function extractAllNodeNames(input: string): string[] {
     const nodeNames: string[] = [];
 
     // Find all node_X.something patterns (return just node_X)

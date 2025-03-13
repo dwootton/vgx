@@ -193,6 +193,28 @@ export class Drag extends BaseComponent {
             }))
         ).flat();
 
+        if(internalSignals.length === 0) {
+            // console.log('no internal signals', signal,outputSignals)
+            // check if any of the inputContexts have merged components in them 
+            const mergedComponents = Object.keys(inputContext).filter(key => inputContext[key].some(update => update.includes('merge')));
+
+            console.log('mergedComponentsDRAG', mergedComponents)
+            const key = mergedComponents[0]
+            console.log('dragkey', key)
+
+            const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+            console.log('mergedComponentsDRAGSIG', signal)
+            signal.name = signal.name+'_internal'
+            internalSignals.push(signal);
+            // internalSignals.push({
+            //     name: nodeId.id+mergedComponents+'_internal',
+            //     "on": [{
+            //         "events": {
+            //             "signal": this.id
+            //         },
+            //         "update": `merge(${nodeId}, ${mergedComponents})`
+        }
+
         console.log('outputSignals', signal,outputSignals,'internal',internalSignals)
 
         return {

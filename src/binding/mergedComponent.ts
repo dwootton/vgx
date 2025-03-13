@@ -2,12 +2,11 @@ import { BaseComponent } from "../components/base";
 import { BindingManager } from "./BindingManager";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
-import { generateSignalFromAnchor } from "../components/utils";
+import { extractAllNodeNames, generateSignalFromAnchor } from "../components/utils";
 import { AnchorProxy } from "types/anchors";
 
 export const MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME'
-export function extractConstraintsForMergedComponent(parentAnchors: { anchor: AnchorProxy, targetId: string }[], compileConstraints: Record<string, any>) {
-    console.log('in mergedcomponents', compileConstraints)
+export function extractConstraintsForMergedComponent(parentAnchors: { anchor: AnchorProxy, targetId: string }[], compileConstraints: Record<string, any>, component: BaseComponent) {
     console.log('in mergedcomponentsparentAnchors', parentAnchors)
     // Get all parent components that feed into this merged component
     const parentComponentIds = parentAnchors.map(anchor => anchor.anchor.id.componentId);
@@ -79,7 +78,6 @@ export function extractConstraintsForMergedComponent(parentAnchors: { anchor: An
 
         }).filter(item => item !== null);
 
-        console.log('Other parents constraints:', otherParentsConstraints);
         mergedSignals.push(...otherParentsConstraints)
 
 
@@ -110,6 +108,7 @@ export function createMergedComponent(
         mergedComponent: boolean;
         constructor() {
             super({});
+            this.id = this.id+'_merged';
             this.mergedComponent = true;
 
             // TODO create two configurations for each of the base component types, for now we'll just do the second item
@@ -177,8 +176,10 @@ export function createMergedComponent(
             const updateStatements = inputContext[MERGED_SIGNAL_NAME].flat()
             console.log('inputContext[MERGED_SIGNAL_NAME]', updateStatements)
             for (const signal of updateStatements) {
+                const nodeNames = extractAllNodeNames(signal.update)
+                console.log('nodeNames', nodeNames)
                 mergedSignal.on.push({
-                    events: { signal: signal.name },
+                    events: [...nodeNames.map(name => ({signal: name}))],
                     update: signal.update
                 });
             }

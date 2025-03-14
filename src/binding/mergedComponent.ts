@@ -3,17 +3,21 @@ import { BindingManager } from "./BindingManager";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { extractAllNodeNames, generateSignalFromAnchor } from "../components/utils";
-import { AnchorProxy } from "types/anchors";
+import { AnchorProxy, SchemaType } from "../types/anchors";
+import { MergedComponent } from "./MergedComponentClass";
+
 
 export const MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME'
+
 export function extractConstraintsForMergedComponent(parentAnchors: { anchor: AnchorProxy, targetId: string }[], compileConstraints: Record<string, any>, component: BaseComponent) {
-    console.log('in mergedcomponentsparentAnchors', parentAnchors)
+    console.log('in mergedcomponentsparentAnchors', parentAnchors,'all compileConstraints', JSON.parse(JSON.stringify(compileConstraints)))
     // Get all parent components that feed into this merged component
     const parentComponentIds = parentAnchors.map(anchor => anchor.anchor.id.componentId);
     console.log('parentComponentIds for merged component:', parentComponentIds);
 
     const mergedSignals = []
-    // For each parent component, get its compiled constraints
+
+    // For each input into the merged component, get what their constraints were so they can be applied to the other update statements
     parentComponentIds.forEach(parentId => {
 
         const parentConstraints = compileConstraints[parentId];
@@ -24,7 +28,7 @@ export function extractConstraintsForMergedComponent(parentAnchors: { anchor: An
         // }
 
 
-        console.log(`Processing parent ${parentId} with constraints:`, parentConstraints,);
+        console.log(`Processing parent ${parentId} with constraints:`, JSON.parse(JSON.stringify(parentConstraints || {})),);
 
         // Get the anchors from this parent that feed into the merged component
         const anchorFromParent = parentAnchors.find(anchor => anchor.anchor.id.componentId == parentId);// || [];
@@ -46,7 +50,7 @@ export function extractConstraintsForMergedComponent(parentAnchors: { anchor: An
         const otherParentsConstraints = otherParentIds.map(otherParentId => {
             const otherParentIdInternal = otherParentId;//+"_internal";
             const otherParentConstraints = compileConstraints[otherParentIdInternal];
-            console.log('constraints', compileConstraints, 'otherParentConstraints', otherParentConstraints, anchorFromParent.targetId, 'otherParentIdInternal', otherParentIdInternal)
+            console.log('constraints', JSON.parse(JSON.stringify(compileConstraints || {})), 'otherParentConstraints', JSON.parse(JSON.stringify(otherParentConstraints || {})), otherParentIdInternal, anchorFromParent.targetId, 'otherParentIdInternal', otherParentIdInternal)
             if (!otherParentConstraints) {
                 console.log(`No constraints found for other parent component ${otherParentId}`);
                 return null;
@@ -60,14 +64,14 @@ export function extractConstraintsForMergedComponent(parentAnchors: { anchor: An
             // const parentSignalName = `${parentId}_${anchorFromParent.targetId}`;
 
             const channel = component.getAnchors()[0].id.anchorId;
-            console.log('channel', channel)
+            console.log('channel', channel,"otherParentConstraints", JSON.parse(JSON.stringify(otherParentConstraints)))
 
 
 
 
 
 
-            return otherParentConstraints[`${channel}_internal`].map(constraint => {
+            return (otherParentConstraints[`${channel}_internal`] || []).map(constraint => {
                 console.log('constraint', constraint)
                 return {
                     events: { "signal": parentSignalName },
@@ -103,76 +107,37 @@ export function createMergedComponent(
         throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
     }
 
-    // Create a merged component that will manage the cycle
     class MergedComponent extends BaseComponent {
         mergedComponent: boolean;
-        constructor() {
+        signalName: string;
+        constructor(channel:string, schema: SchemaType) {
             super({});
             this.id = this.id+'_merged';
             this.mergedComponent = true;
-
+            this.signalName = `${this.id}_${channel}`;
+    
             // TODO create two configurations for each of the base component types, for now we'll just do the second item
-            this.schema = { [channel]: component2.schema[channel] };
-
+            this.schema = { [channel]: schema };
+    
             this.anchors.set(`${channel}`, this.createAnchorProxy(
                 { [`${channel}`]: this.schema[`${channel}`] },
                 `${channel}`,
                 () => ({ 'absoluteValue': `${this.id}_${channel}` })
             ));
-
-
+    
+    
         }
-
+    
         compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
-
-
-            console.log('compilingMergedComponent', inputContext)
-            // Create internal signals for each node
-            const nodeSignal = {
-                name: `${this.id}_${channel}`,
-                value: 0,
-                on: [] as any[]
-            };
-
-           
-            // TODO refactor Helper function to generate constraint application code
-            function applyConstraints(signalName: string, containerType: string): string {
-                if (containerType === 'Scalar') {
-                    return `clamp(${signalName}, min_value, max_value)`;
-                } else if (containerType === 'Range') {
-                    return `nearest(${signalName}, [min_value, max_value])`;
-                }
-                return signalName;
-            }
-
-            console.log('inputContextMErged', inputContext)
-
-
-
-
-
-
-
-            const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, this.id, this.schema[key].container)).flat()
-
+    
+            // const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, this.id, this.schema[key].container)).flat()
             // now merge two signals:
             const mergedSignal = {
-                name: `${this.id}_${channel}`,
+                name: this.signalName,
                 value: 0,
                 on: [] as any[]
             };
-
-            console.log('outputSignals', outputSignals)
-
-
-
-            // TODO:
-            // fix the update statement on mergedSignal
-            // right now they're empty. I think I need to add something for absolute value
-            // then we also need to handle the other constraints. 
-            // We may need to change merged component to compile after other components (e.g. so we don;t have random unfilled VGX_SIGNAL remaining. )            
-
-            //TODO: make not 0...
+    
             const updateStatements = inputContext[MERGED_SIGNAL_NAME].flat()
             console.log('inputContext[MERGED_SIGNAL_NAME]', updateStatements)
             for (const signal of updateStatements) {
@@ -183,17 +148,21 @@ export function createMergedComponent(
                     update: signal.update
                 });
             }
-
+    
             console.log('mergedSignal', mergedSignal)
-
-
-
-
+    
+    
+    
+    
             return {
                 params: [mergedSignal]
             };
         }
     }
 
-    return new MergedComponent();
+    // Create a merged component that will manage the cycle
+    
+
+    return new MergedComponent(channel, component2.getAnchors()[0].anchorSchema[channel]);
 }
+

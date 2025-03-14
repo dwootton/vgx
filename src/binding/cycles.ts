@@ -2,9 +2,19 @@ import { BindingManager } from "./BindingManager";
 import { BindingEdge, BindingGraph, BindingNode } from "./GraphManager";
 import { createMergedComponent } from "./mergedComponent";
 
-export function resolveCycles(expandedEdges: BindingEdge[], nodes: Map<string, BindingNode>, cycleNodes: Set<string>, cycleEdges: BindingEdge[], bindingManager: BindingManager): BindingGraph {
+function deepClone(obj: any) {
+    return JSON.parse(JSON.stringify(obj));
+}
+// export function resolveCycle2()
+export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, BindingNode>, cycleNodes: Set<string>, cycleEdges: BindingEdge[], bindingManager: BindingManager): BindingGraph {
+    
+    
     // Convert Set to Array to access elements by index
+    const targetAnchorId = cycleEdges[0].target.anchorId;
+    const expandedEdges = deepClone(edges);
+
     const cycleNodesArray = Array.from(cycleNodes);
+    console.log('cycleNodesArray', JSON.parse(JSON.stringify(cycleNodesArray)), JSON.parse(JSON.stringify(cycleEdges)),'creating:',cycleEdges[0].target.anchorId,JSON.parse(JSON.stringify(cycleEdges)))
     const mergedComponent = createMergedComponent(cycleNodesArray[0], cycleNodesArray[1], cycleEdges[0].target.anchorId, bindingManager);
 
     console.log('mergedComponent', mergedComponent)
@@ -22,7 +32,7 @@ export function resolveCycles(expandedEdges: BindingEdge[], nodes: Map<string, B
     //     type: 'merged',
     // });
 
-    const newNodes = new Map(nodes)
+    const newNodes = new Map(allNodes)
         .set(mergedNodeId, {
             id: mergedNodeId,
             type: 'merged',
@@ -34,19 +44,22 @@ export function resolveCycles(expandedEdges: BindingEdge[], nodes: Map<string, B
     //     type: 'merged',
     //     // component: mergedComponent
     // });
+    console.log('cycleNodes', JSON.parse(JSON.stringify(cycleNodes)))
 
     // Remove cycle edges
     const newEdges = expandedEdges.filter(edge => {
         // Filter out edges between cycle nodes
-        return !(cycleNodes.has(edge.source.nodeId) && cycleNodes.has(edge.target.nodeId))
+        return !(cycleNodesArray.find(node => node === edge.source.nodeId) && cycleNodesArray.find(node => node === edge.target.nodeId) && edge.target.anchorId !== targetAnchorId )
     });
+
+    console.log('newEdges', JSON.parse(JSON.stringify(newEdges)))
 
     // Add new edges from each component to the merged component
     cycleNodes.forEach(nodeId => {
         // For each cycle node, create an edge to the merged node
         // using the same anchor IDs as in the original cycle
         const relevantEdge = cycleEdges.find(edge =>
-            edge.source.nodeId === nodeId || edge.target.nodeId === nodeId
+            (edge.source.nodeId === nodeId && edge.source.anchorId === targetAnchorId) || (edge.target.nodeId === nodeId && edge.target.anchorId === targetAnchorId)    
         );
 
         if (relevantEdge) {
@@ -106,7 +119,7 @@ export function resolveCycles(expandedEdges: BindingEdge[], nodes: Map<string, B
             originalComponent.setAnchor(internalAnchorId, clonedAnchor); // this is the same as the original
             //now retarget all of the inczwoming edges to this new anchor
 
-            const incomingEdges = expandedEdges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId);
+            const incomingEdges = expandedEdges.filter(edge => edge.target.nodeId === nodeId && edge.target.anchorId === anchorId && edge.source.anchorId !== targetAnchorId && edge.target.anchorId !== targetAnchorId);
             incomingEdges.forEach(edge => {
                 edge.target.anchorId = internalAnchorId;
             });

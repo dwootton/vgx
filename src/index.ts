@@ -11,7 +11,7 @@ export { GraphManager } from './binding/GraphManager';
 // Main ALX object (backward compatibility)
 export { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 export { Circle } from './components/marks';
-export { Brush, Drag } from './components/interactions';
+export { Drag } from './components/interactions';
 
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 import { Circle } from './components/marks';

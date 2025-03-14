@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import { AnchorGroupSchema, AnchorId, AnchorProxy, AnchorSchema, AnchorIdentifer, SchemaType, SchemaValue } from '../types/anchors';
+import {  AnchorProxy, AnchorSchema, AnchorIdentifer, SchemaType, SchemaValue } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager, VirtualBindingEdge } from '../binding/BindingManager';

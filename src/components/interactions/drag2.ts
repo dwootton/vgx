@@ -1,13 +1,9 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext } from '../../binding/binding';
-import { generateComponentSignalName } from "../../utils/component";
-import { generateParams } from "../../utils/compilation";
-import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
 import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
-export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
-export const dragBaseContext = {"x":0,"y":0},
+export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}};
+export const dragBaseContext = {"x":0,"y":0};
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -204,8 +200,9 @@ export class Drag extends BaseComponent {
             const key = mergedComponents[0]
             console.log('dragkey', key)
 
-            const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
-            console.log('mergedComponentsDRAGSIG', signal)
+            const signals= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)
+            const signal = signals[0]
+            console.log('mergedComponentsDRAGSIG', signal,signals)
             signal.name = signal.name+'_internal'
             internalSignals.push(signal);
             // internalSignals.push({

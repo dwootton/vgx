@@ -11,15 +11,6 @@ import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, MERGED_SIGNAL_NAME } from "./mergedComponent";
 // import { resolveCycles } from "./cycles";
 import { resolveCycles,expandEdges } from "./cycles_CLEAN";
-import { 
-  Constraint, 
-  ConstraintType, 
-  createConstraintFromSchema, 
-  createAbsoluteConstraint,
-  constraintToUpdateRule,
-  createExpressionConstraint
-} from './constraints';
-
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -29,6 +20,7 @@ export type Edge = AnchorEdge | VirtualBindingEdge;
 type Parameter = VariableParameter | TopLevelSelectionParameter
 
 type AnchorId = string;
+type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
     if (schema.container === 'Range') {
@@ -214,6 +206,37 @@ export class SpecCompiler {
 
 
     /**
+     * Add appropriate constraint based on channel schema type
+     */
+    private addConstraintForChannel(
+        constraints: Record<AnchorId, Constraint[]>,
+        targetAnchorId: string,
+        cleanTargetId: string,
+        channelSchema: any,
+        anchorProxy: AnchorProxy
+    ): void {
+        const schema = anchorProxy.anchorSchema[cleanTargetId];
+        const anchorAccessor = anchorProxy.compile();
+
+        // Handle special case for absolute values
+        if ('absoluteValue' in anchorAccessor) {
+            console.log('setting absolute constraint', anchorAccessor.absoluteValue)
+            constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
+            return;
+        }
+
+        // Add constraints based on container type
+        if (channelSchema.container === "Scalar") {
+            constraints[targetAnchorId].push(
+                generateScalarConstraints(schema, anchorAccessor)
+            );
+        } else if (channelSchema.container === "Range") {
+            constraints[targetAnchorId].push(
+                generateRangeConstraints(schema, anchorAccessor)
+            );
+        }
+    }
+    /**
      * Build constraint objects from parent nodes
      */
     private buildNodeConstraints(
@@ -223,92 +246,45 @@ export class SpecCompiler {
     ): Record<AnchorId, Constraint[]> {
         const component = this.getBindingManager().getComponent(node.id);
         if (!component) return {};
-        
-        // Find parent edges
+
+        // Find parent edges and nodes
         const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
         const constraints: Record<AnchorId, Constraint[]> = {};
-        
-        console.log('allNodes', JSON.parse(JSON.stringify(allNodes)))
+
         // Process each parent edge
-        for (const edge of parentEdges) {
-            const sourceNode = allNodes.find(n => n.id === edge.source.nodeId);
-            if (!sourceNode) continue;
-            
-            const sourceComponent = this.getBindingManager().getComponent(sourceNode.id);
-            if (!sourceComponent) continue;
-            
-            const sourceAnchor = sourceComponent.getAnchor(edge.source.anchorId);
-            if (!sourceAnchor) continue;
-            
-            const targetAnchorId = edge.target.anchorId;
+        for (const parentEdge of parentEdges) {
+            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
+            if (!parentNode) continue;
+
+            const parentComponent = this.getBindingManager().getComponent(parentNode.id);
+            if (!parentComponent) continue;
+
+            const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
+            if (!anchorProxy) continue;
+
+            // Get the schema and value from the parent anchor
+            const targetAnchorId = parentEdge.target.anchorId;
             const cleanTargetId = targetAnchorId.replace('_internal', '');
-            
-            // Skip if component doesn't have schema for this channel
+
+            // Skip if no schema exists for this channel
             if (!component.schema[cleanTargetId]) continue;
-            
-            // Initialize constraint array
+
+            // Initialize constraint array if needed
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            
-            // Generate proper constraint based on the component and anchor
+
+            // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
                 targetAnchorId,
                 cleanTargetId,
                 component.schema[cleanTargetId],
-                sourceAnchor,
-                sourceComponent.id
+                anchorProxy
             );
         }
-        
-        return constraints;
-    }
 
-    /**
-     * Add appropriate constraint based on channel schema
-     */
-    private addConstraintForChannel(
-        constraints: Record<AnchorId, Constraint[]>,
-        targetAnchorId: string,
-        cleanTargetId: string,
-        channelSchema: any,
-        anchorProxy: AnchorProxy,
-        sourceComponentId: string
-    ): void {
-        const anchorSchema = anchorProxy.anchorSchema[cleanTargetId];
-        const anchorResult = anchorProxy.compile();
-        
-        // Initialize constraint array if needed
-        if (!constraints[targetAnchorId]) {
-            constraints[targetAnchorId] = [];
-        }
-        
-        // Handle absolute value constraints
-        if ('absoluteValue' in anchorResult) {
-            constraints[targetAnchorId].push(
-                createAbsoluteConstraint(anchorResult.absoluteValue)
-            );
-            return;
-        }
-        
-        // Handle expressions from anchor compilation
-        if (typeof anchorResult === 'string') {
-            // Direct expression string
-            const sourceSignal = `${sourceComponentId}_${cleanTargetId}`;
-            constraints[targetAnchorId].push(
-                createExpressionConstraint(anchorResult, sourceSignal)
-            );
-            return;
-        }
-        
-        // Handle other value types through schema-based constraints
-        if (anchorSchema) {
-            const sourceSignal = `${sourceComponentId}_${cleanTargetId}`;
-            constraints[targetAnchorId].push(
-                createConstraintFromSchema(anchorSchema, anchorResult, sourceSignal)
-            );
-        }
+        return constraints;
     }
 
     /**

@@ -202,7 +202,7 @@ export class Drag extends BaseComponent {
 
             const signals= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)
             const signal = signals[0]
-            console.log('mergedComponentsDRAGSIG', signal,signals)
+            console.log('mergedComponentsDRAGSIG', signal)
             signal.name = signal.name+'_internal'
             internalSignals.push(signal);
             // internalSignals.push({

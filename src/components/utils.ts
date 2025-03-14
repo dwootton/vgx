@@ -53,6 +53,7 @@ export function extractAllNodeNames(input: string): string[] {
 
 export const generateSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
     
+    console.log('generateSignalFromAnchor', constraints, anchorId, signalParent, mergedParent, schemaType)
     // If channel has "_internal" suffix, remove it
     // let channel = anchorId.replace(/_internal$/, '');
     let channel = anchorId;
@@ -64,6 +65,7 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
         const signalName = mergedParent + '_' + channel;
 
         const generateConstraints = (update: string) => {
+            console.log('generateConstraints', update)
             return {
                 events: {
                     signal: signalName

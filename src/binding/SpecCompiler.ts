@@ -106,7 +106,7 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
-        console.log('nodes and edges', JSON.parse(JSON.stringify(edges)))
+        console.log('nodes and edges', JSON.parse(JSON.stringify(nodes)),JSON.parse(JSON.stringify(edges)))
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -123,11 +123,13 @@ export class SpecCompiler {
          * Main pre-order traversal function
          */
         const traverseGraph = (nodeId: string): Partial<UnitSpec<Field>>[] => {
+            console.log('builtconstraints0', nodeId)
             // Skip if already visited
             if (visitedNodes.has(nodeId)) {
                 return [];
             }
             visitedNodes.add(nodeId);
+            console.log('allNodeValues', JSON.parse(JSON.stringify(nodes)),nodeId)
 
             // Get the node and component
             const node = nodes.find(n => n.id === nodeId);
@@ -141,24 +143,30 @@ export class SpecCompiler {
                 console.warn(`Component ${nodeId} not found`);
                 return [];
             }
+            
 
+            console.log('builtconstraints1', node)
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-
+            console.log('builtconstraints2', node,JSON.parse(JSON.stringify(constraints)))
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
 
-            // Skip merged nodes during first traversal - we'll process them separately
-            if (mergedNodeIds.has(nodeId)) {
-                return [];
-            }
+            
 
             // Compile the current component
             const compiledNode = component.compileComponent(constraints);
 
             // Find and traverse child nodes
             const childNodeIds = this.findChildNodes(node, edges, nodes);
+            console.log(
+            'current',nodeId,'childNodeIds', childNodeIds,JSON.parse(JSON.stringify(nodes)),JSON.parse(JSON.stringify(edges)))
             const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
+
+            // Skip merged nodes during first traversal - we'll process them separately
+            if (mergedNodeIds.has(nodeId)) {
+                return [...childSpecs];
+            }
 
             return [compiledNode, ...childSpecs];
         };

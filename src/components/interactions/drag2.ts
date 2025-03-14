@@ -197,14 +197,16 @@ export class Drag extends BaseComponent {
             const mergedComponents = Object.keys(inputContext).filter(key => inputContext[key].some(update => update.includes('merge')));
 
             console.log('mergedComponentsDRAG', mergedComponents)
-            const key = mergedComponents[0]
-            console.log('dragkey', key)
+            const keys = mergedComponents
 
-            const signals= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)
-            const signal = signals[0]
-            console.log('mergedComponentsDRAGSIG', signal)
-            signal.name = signal.name+'_internal'
-            internalSignals.push(signal);
+            const signals = [];
+            for(const key of keys) {
+                const signal= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+                signals.push(signal)
+                console.log('mergedComponentsDRAGSIG', signal,signals,inputContext)
+                signal.name = signal.name+'_internal'
+                internalSignals.push(signal);
+            }
             // internalSignals.push({
             //     name: nodeId.id+mergedComponents+'_internal',
             //     "on": [{

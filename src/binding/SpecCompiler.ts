@@ -126,6 +126,7 @@ export class SpecCompiler {
             console.log('builtconstraints0', nodeId)
             // Skip if already visited
             if (visitedNodes.has(nodeId)) {
+                console.log('already visited', nodeId)
                 return [];
             }
             visitedNodes.add(nodeId);

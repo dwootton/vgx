@@ -7,9 +7,10 @@ import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { BaseChart } from "../components/charts/base";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
-
+import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
+// import { resolveCycles } from "./cycles";
+import { resolveCycles,expandEdges } from "./cycles_CLEAN";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -32,7 +33,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     }
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
-        return `clamp(${'VGX_SIGNAL_NAME'},${value},${value})`
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.value},${value.value})`
     }
     return "";
 }
@@ -44,7 +45,8 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
         value = value as RangeValue
 
         // range:range, means start=start, stop=stop
-        return `nearest(${'VGX_SIGNAL_NAME'},[${value.start},${value.stop}])`
+        // return `nearest(${'VGX_SIGNAL_NAME'},[${value.start},${value.stop}])`
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
     }
     if (schema.container === 'Set') {
         value = value as SetValue
@@ -53,10 +55,11 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     if (schema.container === 'Scalar') {
         // !!!!!!!!! NOTE THIS IS DIFF THAN SCALAR CODE AS WE OFFSET instead of share !!!!!!!!!
         value = value as ScalarValue
-        return `${'VGX_SIGNAL_NAME'}+${value}`
+        return `${'VGX_SIGNAL_NAME'}+${value.value}`
     }
     return "";
 }
+
 
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
@@ -65,10 +68,7 @@ export class SpecCompiler {
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
-
-    // note: component Id will always be called from the root component
     public compile(fromComponentId: string): TopLevelSpec {
-
         const rootComponent = this.getBindingManager().getComponent(fromComponentId);
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
@@ -77,8 +77,14 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
+        // expand any _all anchors to individual anchors
+        bindingGraph.edges = expandEdges(bindingGraph.edges);
+
+        const processedGraph = resolveCycles(bindingGraph, this.getBindingManager());
+
+
         // Compile the updated graph
-        const compiledSpecs = this.compileBindingGraph(fromComponentId, bindingGraph);
+        const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
         //const compiledSpecs = this.compileBindingGraph(bindingGraph);
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
@@ -86,213 +92,215 @@ export class SpecCompiler {
         return removeUndefinedInSpec(mergedSpec);
     }
 
-
-
+    /**
+     * Compiles a binding graph into a collection of Vega-Lite specifications.
+     * This is the core function that traverses the processed graph and compiles
+     * each component while respecting their constraints.
+     * 
+     * @param rootId ID of the root component to start traversal from
+     * @param bindingGraph The processed binding graph with cycles resolved
+     * @returns Array of compiled Vega-Lite specifications
+     */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
+        const visitedNodes = new Set<string>();
+        const constraintsByNode: Record<string, Record<string, any[]>> = {};
+        const mergedNodeIds = new Set<string>();
 
+        // Find all merged nodes for special handling
+        nodes.forEach((node) => {
+            if (node.type === 'merged') {
+                mergedNodeIds.add(node.id);
+            }
+        });
 
-        const expandedEdges = expandEdges(edges);
-        console.log('expandedEdges', expandedEdges)
+        /**
+         * Main pre-order traversal function
+         */
+        const traverseGraph = (nodeId: string): Partial<UnitSpec<Field>>[] => {
+            // Skip if already visited
+            if (visitedNodes.has(nodeId)) {
+                return [];
+            }
+            visitedNodes.add(nodeId);
 
+            // Get the node and component
+            const node = nodes.find(n => n.id === nodeId);
+            if (!node) {
+                console.warn(`Node ${nodeId} not found in binding graph`);
+                return [];
+            }
 
-        // go through the binding tree and compile each node, passing the constraints from parents
-        // to their children, to help to compile. 
-        const preOrderTraversal = (
-            node: BindingNode, 
-            edges: BindingEdge[], 
-            visitedNodes = new Set<string>()
-        ): Partial<UnitSpec<Field>>[] => {
-            // If this node has already been processed, skip it
-            if (visitedNodes.has(node.id)) {
-                console.log('visitedNodes', visitedNodes)
+            const component = this.getBindingManager().getComponent(nodeId);
+            if (!component) {
+                console.warn(`Component ${nodeId} not found`);
                 return [];
             }
             
-            // Mark this node as visited
-            visitedNodes.add(node.id);
-            
-            // Find all edges where this node is the target
-            const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
 
-            // Create a list of {edge, node} pairs to preserve the relationship between edges and nodes
+            // Build constraints for this node
+            const constraints = this.buildNodeConstraints(node, edges, nodes);
+            // Store constraints for later use by merged nodes
+            constraintsByNode[nodeId] = constraints;
+
+            
+
+            // Compile the current component
+            const compiledNode = component.compileComponent(constraints);
+
+            // Find and traverse child nodes
+            const childNodeIds = this.findChildNodes(node, edges, nodes);
+            const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
+
+            // Skip merged nodes during first traversal - we'll process them separately
+            if (mergedNodeIds.has(nodeId)) {
+                return [...childSpecs];
+            }
+
+            return [compiledNode, ...childSpecs];
+        };
+
+        // First pass: Traverse the graph starting from the root
+        const regularSpecs = traverseGraph(rootId);
+
+        // Now process all merged nodes after the regular traversal is complete
+        const mergedSpecs = Array.from(mergedNodeIds).map(nodeId => {
+            const component = this.getBindingManager().getComponent(nodeId);
+
+            // Find all edges where this node is the target
+            const parentEdges = edges.filter(edge => edge.target.nodeId === nodeId);
             const parentEdgePairs = parentEdges.map(edge => {
-                const parentNode = nodes.get(edge.source.nodeId);
+                const parentNode = nodes.find(n => n.id === edge.source.nodeId);
                 return parentNode ? { edge, node: parentNode } : null;
             }).filter((pair): pair is { edge: BindingEdge, node: BindingNode } => pair !== null);
 
-            // Get the component for the current node
-            const component = this.getBindingManager().getComponent(node.id);
-
-            // Extract parent anchors from the edge-node pairs
             const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
                 const parentComponent = this.getBindingManager().getComponent(node.id);
                 if (!parentComponent) return undefined;
-
-                // Get the anchor from the parent component using the source anchorId from the edge
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
+                return { anchor, targetId: edge.target.anchorId };
+            }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
 
-                return anchor;
-            }).filter((anchor): anchor is AnchorProxy => anchor !== undefined);
+            // console.log('parentAnchors:::', parentAnchors, JSON.parse(JSON.stringify(compileConstraints)), component)
+            // Extract constraints for merged component
+            const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, constraintsByNode, component);
+            const constraints: Record<AnchorId, Constraint[]> = {
+                ['VGX_MERGED_SIGNAL_NAME']: mergedSignals
+            };
 
-            console.log('parentAnchors', parentAnchors)
+            // Compile the merged component with its constraints
+            return component.compileComponent(constraints);
+        });
 
-            const constraints: Record<AnchorId, Constraint[]> = {};
+        // Second pass: Process merged nodes
+        // const mergedSpecs = this.compileMergedNodes(mergedNodeIds, constraintsByNode);
 
-            // for each parent anchor, create what constraints it places on the component
-            parentAnchors.forEach((anchorProxy) => {
-                Object.keys(anchorProxy.anchorSchema).forEach(channel => {
-                    const schema = anchorProxy.anchorSchema[channel];
-                    const anchorAccessor = anchorProxy.compile();
+        // Combine and return all specs
+        return [...regularSpecs, ...mergedSpecs];
+    }
 
-                    // Skip channels not present in component schema
-                    if (!component.schema[channel]) {
-                        return;
-                    }
 
-                    // Initialize constraint array if needed
-                    if (!constraints[channel]) {
-                        constraints[channel] = [];
-                    }
+    /**
+     * Add appropriate constraint based on channel schema type
+     */
+    private addConstraintForChannel(
+        constraints: Record<AnchorId, Constraint[]>,
+        targetAnchorId: string,
+        cleanTargetId: string,
+        channelSchema: any,
+        anchorProxy: AnchorProxy
+    ): void {
+        const schema = anchorProxy.anchorSchema[cleanTargetId];
+        const anchorAccessor = anchorProxy.compile();
 
-                    if (component.schema[channel].container === "Scalar") {
-                        console.log('generateScalarConstraints', anchorAccessor, generateScalarConstraints(schema, anchorAccessor))
-                        constraints[channel].push(generateScalarConstraints(schema, anchorAccessor));
-                    } else if (component.schema[channel].container === "Range") {
-                        constraints[channel].push(generateRangeConstraints(schema, anchorAccessor));
-                    }
-                });
-            });
+        // Handle special case for absolute values
+        if ('absoluteValue' in anchorAccessor) {
+            constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
+            return;
+        }
 
-            console.log('constraints', constraints)
-
-            // Compile the current node with the context
-            const compiledNode = component.compileComponent(constraints);
-
-            // Find child nodes from edges where this node is the source
-            const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
-            const childNodes = childEdges.map(edge =>
-                nodes.get(edge.target.nodeId)
-            ).filter((n): n is BindingNode => n !== undefined);
-
-            // Recursively process child nodes
-            const children = childNodes.map(child =>
-                preOrderTraversal(child, edges, visitedNodes)  // Pass the visited set to track nodes
+        // Add constraints based on container type
+        if (channelSchema.container === "Scalar") {
+            constraints[targetAnchorId].push(
+                generateScalarConstraints(schema, anchorAccessor)
             );
-
-            // Flatten the results
-            return [compiledNode, ...children.flat()];
-        };
-
-        // Start traversal with an empty visited set
-        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, expandedEdges, new Set<string>());
-
-        return compiledComponents;
+        } else if (channelSchema.container === "Range") {
+            constraints[targetAnchorId].push(
+                generateRangeConstraints(schema, anchorAccessor)
+            );
+        }
     }
+    /**
+     * Build constraint objects from parent nodes
+     */
+    private buildNodeConstraints(
+        node: BindingNode,
+        edges: BindingEdge[],
+        allNodes: BindingNode[]
+    ): Record<AnchorId, Constraint[]> {
+        const component = this.getBindingManager().getComponent(node.id);
+        if (!component) return {};
 
+        // Find parent edges and nodes
+        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
+        const constraints: Record<AnchorId, Constraint[]> = {};
 
+        // Process each parent edge
+        for (const parentEdge of parentEdges) {
+            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
+            if (!parentNode) continue;
 
+            const parentComponent = this.getBindingManager().getComponent(parentNode.id);
+            if (!parentComponent) continue;
 
-    private compileNode(node: BindingNode, graphEdges: BindingEdge[]): Partial<UnitSpec<Field>> {
+            const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
+            if (!anchorProxy) continue;
 
+            // Get the schema and value from the parent anchor
+            const targetAnchorId = parentEdge.target.anchorId;
+            const cleanTargetId = targetAnchorId.replace('_internal', '');
 
-        const filteredEdges = graphEdges.filter(edge => edge.target.nodeId === node.id)
+            // Skip if no schema exists for this channel
+            if (!component.schema[cleanTargetId]) continue;
 
-
-        // maybe instead of turn edges into anchors, we should just keep edges, and add anchor property
-        const incomingAnchors: AnchorEdge[] = this.prepareEdges(filteredEdges)
-
-
-
-        const anchorProxies = incomingAnchors.map(edge => edge.anchorProxy);
-        //then, as we compile the node, we pass in the edges and it groups on edge.target.anchorId (then compiles)
-
-
-        const superNodeMap: Map<string, string> = this.graphManager.getSuperNodeMap();
-
-        let compilationContext = { nodeId: superNodeMap.get(node.id) || node.id };
-
-        let component = this.getBindingManager().getComponent(node.id);
-
-        compilationContext = this.buildPersonalizedCompilationContext(component, incomingAnchors, compilationContext);
-
-        compilationContext = this.scalePropagation(node.id, compilationContext);
-
-
-
-
-        const compiledSpec = this.compileComponentWithContext(node.id, compilationContext);
-        return compiledSpec;
-    }
-
-    private findRootNode(nodeId: string): string {
-        const bindingManager = this.getBindingManager();
-        let currentId = nodeId;
-
-        // Keep traversing up until we find a BaseChart component
-        const visited = new Set<string>();
-        while (true) {
-            if (visited.has(currentId)) {
-                // We've detected a cycle, return the current node
-                break;
-            }
-            visited.add(currentId);
-
-            const currentComponent = bindingManager.getComponent(currentId);
-            // If this is a chart component (has encoding property), we've found our root
-            //@ts-ignore
-            if (currentComponent && 'spec' in currentComponent && currentComponent.spec.encoding) {
-                break;
+            // Initialize constraint array if needed
+            if (!constraints[targetAnchorId]) {
+                constraints[targetAnchorId] = [];
             }
 
-            const incomingBindings = bindingManager.getBindingsForComponent(currentId, 'target');
-            if (incomingBindings.length === 0) {
-                break;
-            }
-            // Take the first incoming binding's source as the next node to check
-            currentId = incomingBindings[0].sourceId;
+            // Add appropriate constraint based on component schema type
+            this.addConstraintForChannel(
+                constraints,
+                targetAnchorId,
+                cleanTargetId,
+                component.schema[cleanTargetId],
+                anchorProxy
+            );
         }
 
-        return currentId;
+        return constraints;
     }
 
-    private scalePropagation(nodeId: string, compilationContext: compilationContext): compilationContext {
-        // Find root node by traversing up the binding graph
-        const rootNodeId = this.findRootNode(nodeId)//'node_3' //this.findRootNode(nodeId);
+    /**
+     * Find child nodes for a given node
+     */
+    private findChildNodes(
+        node: BindingNode,
+        edges: BindingEdge[],
+        allNodes: BindingNode[]
+    ): string[] {
+        // Find edges where this node is the source
+        const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
 
-        if (!rootNodeId) return compilationContext;
-
-        const rootComponent = this.getBindingManager().getComponent(rootNodeId);
-        if (!rootComponent) return compilationContext;
-
-        // For each key in compilation context
-        for (const [key, value] of Object.entries(compilationContext)) {
-            if (key === 'nodeId') continue;
-            // Get all anchors from root component
-            const rootAnchors = rootComponent.getAnchors();
-
-            // Try to find matching anchor by id or channel name
-            const rootAnchor = rootAnchors.find(anchor => {
-                const anchorId = anchor.id.anchorId;
-                const channelName = getChannelFromEncoding(key);
-
-                return anchorId === key || channelName === anchorId;
-            });
-            if (!rootAnchor) continue;
-
-            // Compile the root anchor's value
-            const compiledValue = rootAnchor.compile?.(rootNodeId);
-            if (!compiledValue) continue;
-            // Add scale and scaleType from root to current context if they exist
-            if (compiledValue.value?.scale) {
-                compilationContext[key].scale = compiledValue.value.scale;
-            }
-            if (compiledValue.value?.scaleType) {
-                compilationContext[key].scaleType = compiledValue.value.scaleType;
-            }
-        }
-        return compilationContext;
+        // Extract unique child node IDs
+        return Array.from(new Set(
+            childEdges
+                .map(edge => edge.target.nodeId)
+                .filter(id => allNodes.find(n => n.id === id))
+        ));
     }
+
+
 
     private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
 
@@ -357,42 +365,7 @@ export class SpecCompiler {
         });
     }
 
-    private buildPersonalizedCompilationContext(component: BaseComponent, edges: AnchorEdge[], compilationContext: compilationContext): compilationContext {
-        const groupedEdges = edges.reduce((acc, edge) => {
-            const targetAnchorId = edge.originalEdge.target.anchorId;
-            if (!acc.has(targetAnchorId)) {
-                acc.set(targetAnchorId, []);
-            }
-            acc.get(targetAnchorId)?.push(edge);
-            return acc;
-        }, new Map<string, Edge[]>());
 
-
-        // now for each of the anchorMatchedEdges, we need to resolve the value of the edges
-        for (const [anchorId, edges] of groupedEdges.entries()) {
-
-            const resolvedValue = edges.map(edge => edge.anchorProxy.compile(edge.originalEdge.source.nodeId));
-
-            // i need to know what the parent and what the child interaction schema is here. 
-
-
-            compilationContext[anchorId] = resolvedValue;
-        }
-
-        return compilationContext
-    }
-
-
-
-    private compileComponentWithContext(nodeId: string, context: compilationContext): Partial<UnitSpec<Field>> {
-        const component = this.getBindingManager().getComponent(nodeId);
-        if (!component) {
-            throw new Error(`Component "${nodeId}" not found.`);
-        }
-        validateComponent(component, nodeId);
-
-        return component.compileComponent(context);
-    }
 
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
         const bindingGraph = this.graphManager.generateBindingGraph(startComponentId);
@@ -626,40 +599,3 @@ interface EdgeGroup {
 
 
 
-
-// Interactor schema fn 
-function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-    const getAnchors = (component: BaseComponent, anchorId: string) =>
-        anchorId === '_all'
-            ? [...component.getAnchors().values()].map(a => a.id.anchorId)
-            : [anchorId];
-
-    const sourceAnchors = getAnchors(source, edge.source.anchorId);
-    const targetAnchors = getAnchors(target, edge.target.anchorId);
-
-    function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-        return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
-    }
-
-    return sourceAnchors.flatMap(sourceAnchor =>
-        targetAnchors
-            .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
-            .map(targetAnchor => ({
-                source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
-                target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
-            }))
-    );
-}
-function expandEdges(edges: BindingEdge[]): BindingEdge[] {
-    return edges.flatMap(edge => {
-        const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
-        if (!sourceComponent) {
-            throw new Error(`Source component ${edge.source.nodeId} not found`);
-        }
-        const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
-        if (!targetComponent) {
-            throw new Error(`Target component ${edge.target.nodeId} not found`);
-        }
-        return expandAllAnchors(edge, sourceComponent, targetComponent)
-    });
-}

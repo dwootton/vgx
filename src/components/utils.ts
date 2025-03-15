@@ -3,19 +3,26 @@
 //Components: 
 
 // creates the accessor for the signal backing the range
+// export const createRangeAccessor = (id: string, channel: string) => {
+//     return {
+//         'start': `${id}.${channel}.start`,
+//         'stop': `${id}.${channel}.stop`,
+//     }
+// }
+
 export const createRangeAccessor = (id: string, channel: string) => {
-    return {
-        'start': `${id}.${channel}.start`,
-        'stop': `${id}.${channel}.stop`,
+        return {
+            'start': `${id}_${channel}_start`,
+            'stop': `${id}_${channel}_stop`,
+        }
     }
+    
+
+export function generateCompiledValue(id: string, channel: string) {
+    return  `${id}_${channel}` // min value
 }
 
-
-export function generateCompiledValue(channel: string) {
-    return `VGX_SIGNAL_NAME_${channel}` // min value
-}
-
-function extractAllNodeNames(input: string): string[] {
+export function extractAllNodeNames(input: string): string[] {
     const nodeNames: string[] = [];
 
     // Find all node_X.something patterns (return just node_X)
@@ -38,6 +45,16 @@ function extractAllNodeNames(input: string): string[] {
         }
     }
 
+    // Find merged node patterns like node_X_node_Y_merged
+    const mergedNodePattern = /\b(merged_node_\d+_node_\d+(?:_[^,)\s.]+)?)\b/g;
+    let mergedNodeMatch;
+
+    while ((mergedNodeMatch = mergedNodePattern.exec(input)) !== null) {
+        if (mergedNodeMatch[1] && !nodeNames.includes(mergedNodeMatch[1])) {
+            nodeNames.push(mergedNodeMatch[1]);
+        }
+    }
+
     // Find any remaining bare node_X patterns that weren't caught above
     const barePattern = /\b(node_\d+)\b(?![\._])/g;
     let bareMatch;
@@ -51,7 +68,13 @@ function extractAllNodeNames(input: string): string[] {
     return nodeNames;
 }
 
-export const generateSignalFromAnchor = (constraints: string[], channel: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
+export const generateSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
+    
+    // If channel has "_internal" suffix, remove it
+    // let channel = anchorId.replace(/_internal$/, '');
+    let channel = anchorId;
+
+
     // For Scalar type
     if (schemaType === 'Scalar') {
         const parentExtractor = signalParent + "." + channel;
@@ -59,9 +82,9 @@ export const generateSignalFromAnchor = (constraints: string[], channel: string,
 
         const generateConstraints = (update: string) => {
             return {
-                events: {
-                    signal: signalName
-                },
+                events: [ extractAllNodeNames(update).map(node => ({
+                    signal: node
+                }))],
                 update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
             }
         };

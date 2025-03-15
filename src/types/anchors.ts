@@ -69,7 +69,7 @@ export type InteractorSchema = {
 export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding'// | 'Boolean';
 
 // Base container types
-export type ContainerType = 'Scalar' | 'Set' | 'Range';
+export type ContainerType = 'Scalar' | 'Set' | 'Range' | 'Absolute';
 
 export interface SchemaType {
   container: ContainerType;
@@ -109,12 +109,16 @@ export type SetValue = {
   values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
 }
 
+export type AbsoluteValue = {
+  absoluteValue: string; // maps to the expression for the value
+}
+
 export type RangeValue = {
   start: string; // maps to the expression for the value
   stop: string; // maps to the expression for the value
 }
 
-export type SchemaValue = SetValue | ScalarValue | RangeValue;
+export type SchemaValue = SetValue | ScalarValue | RangeValue | AbsoluteValue;
 
 // {X:X<range>}
 
@@ -125,7 +129,7 @@ export interface AnchorProxy {
   id: AnchorId;
   anchorSchema: AnchorSchema;
   bind: (target: AnchorProxy) => BaseComponent;
-  compile: (nodeId?: string) => {source:string,value:any}; // produces a expr string
+  compile: (nodeId?: string) =>SchemaValue; // produces a expr string
 }
 
 // brush.sides.top 

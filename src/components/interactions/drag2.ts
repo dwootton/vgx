@@ -1,13 +1,9 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext } from '../../binding/binding';
-import { generateComponentSignalName } from "../../utils/component";
-import { generateParams } from "../../utils/compilation";
-import { SchemaType, NumericScalar, AnchorProxy } from "../../types/anchors";
 import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
-export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}},
-export const dragBaseContext = {"x":0,"y":0},
+export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}};
+export const dragBaseContext = {"x":0,"y":0};
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -146,11 +142,11 @@ export class Drag extends BaseComponent {
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return generateCompiledValue('x')
+            return {'value':generateCompiledValue(this.id,'x')}
           }));
 
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return generateCompiledValue('y')
+            return {'value':generateCompiledValue(this.id,'y')}
           }));
 
     }
@@ -172,16 +168,48 @@ export class Drag extends BaseComponent {
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
             }]
         }; 
+
+       
        
         // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)).flat()
+        const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [`${this.id}_${key}`], key, this.id, nodeId, this.schema[key].container)).flat()
         // then , may through each item
 
-        console.log('outputSignals', signal,outputSignals)
+        const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
+            inputContext[key].map((updateStatement:string) => ({
+                // const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+
+                // console.log('internalSignal', signal)
+                name: this.id+'_'+key,
+                "on": [{
+                    "events": {
+                        "signal": this.id
+                    },
+                    "update": updateStatement
+                }]
+            }))
+        ).flat();
+
+        if(internalSignals.length === 0) {
+            // check if any of the inputContexts have merged components in them 
+            const mergedComponents = Object.keys(inputContext).filter(key => inputContext[key].some(update => update.includes('merge')));
+
+            const keys = mergedComponents
+
+            const signals = [];
+            for(const key of keys) {
+                const signal= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+                signals.push(signal)
+                signal.name = signal.name+'_internal'
+                internalSignals.push(signal);
+            }
+         
+        }
+
 
         return {
             //@ts-ignore as signals can exist in VL
-            params: [signal, ...outputSignals]
+            params: [signal, ...outputSignals, ...internalSignals]
 
         };
     }
@@ -205,16 +233,26 @@ export class DragSpan extends BaseComponent {
 
        
     
-          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+        //   this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+        //     return createRangeAccessor(this.id,'x')
+        //   }));
+         
+        this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
             return createRangeAccessor(this.id,'x')
           }));
+
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
             return createRangeAccessor(this.id,'y')
           }));
 
+        //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+        //     return createRangeAccessor(this.id,'y')
+        //   }));
+
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
             name: this.id,

@@ -1,7 +1,4 @@
-import { IntervalSelect } from "../interval-select";
 import { DragSpan } from "../drag2";
-import { Rect } from "../../marks/rect";
-import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
     constructor(config:any) {
@@ -14,7 +11,7 @@ export class Brush {
         
 
         // // Set up internal bindings
-        // bindingManager.addBinding(
+    // bindingManager.addBinding(
         //     rect.id,
         //     drag2.id,
         //     'x', 'x1'

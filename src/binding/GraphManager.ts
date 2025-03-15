@@ -13,7 +13,7 @@ export interface BindingEdge {
 
 
 export interface BindingGraph {
-    nodes: Map<string, BindingNode>;
+    nodes: BindingNode[];
     edges: BindingEdge[];
 }
 
@@ -30,13 +30,16 @@ export class GraphManager {
     }
 
     public generateBindingGraph(startComponentId: string): BindingGraph {
-        const nodes = new Map<string, BindingNode>();
+        const nodes: BindingNode[] = [];
+        new Map<string, BindingNode>();
         const edges: BindingEdge[] = [];
         const visited = new Set<string>();
 
         const addNode = (component: BaseComponent) => {
-            if (!nodes.has(component.id)) {
-                nodes.set(component.id, {
+            if(nodes.find(node => node.id === component.id)) {
+                return;
+            } else {
+                nodes.push({
                     id: component.id,
                     type: component.constructor.name,
                 });
@@ -71,6 +74,7 @@ export class GraphManager {
         };
 
         traverse(startComponentId);
+
         return { nodes, edges };
     }
 

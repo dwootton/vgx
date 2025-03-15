@@ -3,16 +3,23 @@
 //Components: 
 
 // creates the accessor for the signal backing the range
+// export const createRangeAccessor = (id: string, channel: string) => {
+//     return {
+//         'start': `${id}.${channel}.start`,
+//         'stop': `${id}.${channel}.stop`,
+//     }
+// }
+
 export const createRangeAccessor = (id: string, channel: string) => {
-    return {
-        'start': `${id}.${channel}.start`,
-        'stop': `${id}.${channel}.stop`,
+        return {
+            'start': `${id}_${channel}_start`,
+            'stop': `${id}_${channel}_stop`,
+        }
     }
-}
+    
 
-
-export function generateCompiledValue(channel: string) {
-    return  `VGX_SIGNAL_NAME_${channel}` // min value
+export function generateCompiledValue(id: string, channel: string) {
+    return  `${id}_${channel}` // min value
 }
 
 export function extractAllNodeNames(input: string): string[] {
@@ -43,7 +50,6 @@ export function extractAllNodeNames(input: string): string[] {
     let mergedNodeMatch;
 
     while ((mergedNodeMatch = mergedNodePattern.exec(input)) !== null) {
-        console.log('mergedNodeMatch', mergedNodeMatch)
         if (mergedNodeMatch[1] && !nodeNames.includes(mergedNodeMatch[1])) {
             nodeNames.push(mergedNodeMatch[1]);
         }
@@ -64,11 +70,10 @@ export function extractAllNodeNames(input: string): string[] {
 
 export const generateSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
     
-    console.log('generateSignalFromAnchor', constraints, anchorId, signalParent, mergedParent, schemaType)
     // If channel has "_internal" suffix, remove it
     // let channel = anchorId.replace(/_internal$/, '');
     let channel = anchorId;
-    console.log('generateSignalFromAnchor', channel)
+
 
     // For Scalar type
     if (schemaType === 'Scalar') {
@@ -76,7 +81,6 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
         const signalName = mergedParent + '_' + channel;
 
         const generateConstraints = (update: string) => {
-            console.log('generateConstraints', update, extractAllNodeNames(update))
             return {
                 events: [ extractAllNodeNames(update).map(node => ({
                     signal: node

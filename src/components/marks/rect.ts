@@ -31,7 +31,6 @@ export class Rect extends BaseComponent {
     constructor(config:RectConfig={}){
         super({...config})
 
-        console.log('in rect constructor')
         this.schema = {
             'x': {
                 container: 'Range',

@@ -27,7 +27,6 @@ export class Circle extends BaseComponent {
     constructor(config:CircleConfig={}){
         super({...config})
 
-        console.log('in circle constructor')
         this.schema = {
             'x': {
                 container: 'Scalar',
@@ -53,7 +52,6 @@ export class Circle extends BaseComponent {
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         
-        console.log('circle inputContext', inputContext)
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => 
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
@@ -64,10 +62,8 @@ export class Circle extends BaseComponent {
 
         const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
             inputContext[key].map((updateStatement:string) => {
-                console.log('internalSignalCIRCLE', updateStatement, this.schema, key)
                 const channel = key.replace('_internal', '')
                 const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[channel].container)[0]
-                console.log('internalSignalCIRCLE', signal)
                 return {
                 name: this.id+'_'+key,
                 "on": [{
@@ -79,7 +75,6 @@ export class Circle extends BaseComponent {
             }
         })).flat();
 
-        console.log('outputSignals circlexxx', internalSignals)
         
         return {
             params: [

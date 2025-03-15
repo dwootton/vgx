@@ -8,7 +8,7 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
-import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
 import { resolveCycles,expandEdges } from "./cycles_CLEAN";
 interface AnchorEdge {
@@ -45,7 +45,8 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
         value = value as RangeValue
 
         // range:range, means start=start, stop=stop
-        return `nearest(${'VGX_SIGNAL_NAME'},[${value.start},${value.stop}])`
+        // return `nearest(${'VGX_SIGNAL_NAME'},[${value.start},${value.stop}])`
+        return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
     }
     if (schema.container === 'Set') {
         value = value as SetValue
@@ -68,7 +69,6 @@ export class SpecCompiler {
     ) { }
 
     public compile(fromComponentId: string): TopLevelSpec {
-        console.log('compilingfdsfsd', fromComponentId)
         const rootComponent = this.getBindingManager().getComponent(fromComponentId);
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
@@ -77,17 +77,14 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
-        console.log('generatedbindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
         // expand any _all anchors to individual anchors
         bindingGraph.edges = expandEdges(bindingGraph.edges);
 
         const processedGraph = resolveCycles(bindingGraph, this.getBindingManager());
 
-        console.log('processedGraph', JSON.parse(JSON.stringify(processedGraph)))
 
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
-        console.log('compiledSpecs', JSON.parse(JSON.stringify(compiledSpecs)))
 
         //const compiledSpecs = this.compileBindingGraph(bindingGraph);
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
@@ -106,14 +103,12 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
-        console.log('nodes and edges', JSON.parse(JSON.stringify(nodes)),JSON.parse(JSON.stringify(edges)))
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
 
         // Find all merged nodes for special handling
         nodes.forEach((node) => {
-            console.log('nodeNONO', node)
             if (node.type === 'merged') {
                 mergedNodeIds.add(node.id);
             }
@@ -123,14 +118,11 @@ export class SpecCompiler {
          * Main pre-order traversal function
          */
         const traverseGraph = (nodeId: string): Partial<UnitSpec<Field>>[] => {
-            console.log('builtconstraints0', nodeId)
             // Skip if already visited
             if (visitedNodes.has(nodeId)) {
-                console.log('already visited', nodeId)
                 return [];
             }
             visitedNodes.add(nodeId);
-            console.log('allNodeValues', JSON.parse(JSON.stringify(nodes)),nodeId)
 
             // Get the node and component
             const node = nodes.find(n => n.id === nodeId);
@@ -146,10 +138,8 @@ export class SpecCompiler {
             }
             
 
-            console.log('builtconstraints1', node)
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-            console.log('builtconstraints2', node,JSON.parse(JSON.stringify(constraints)))
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
 
@@ -160,8 +150,6 @@ export class SpecCompiler {
 
             // Find and traverse child nodes
             const childNodeIds = this.findChildNodes(node, edges, nodes);
-            console.log(
-            'current',nodeId,'childNodeIds', childNodeIds,JSON.parse(JSON.stringify(nodes)),JSON.parse(JSON.stringify(edges)))
             const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
 
             // Skip merged nodes during first traversal - we'll process them separately
@@ -175,8 +163,6 @@ export class SpecCompiler {
         // First pass: Traverse the graph starting from the root
         const regularSpecs = traverseGraph(rootId);
 
-            console.log('mergedNodes', JSON.parse(JSON.stringify(mergedNodeIds)))
-            console.log('constraintsByNode', JSON.parse(JSON.stringify(constraintsByNode)))
         // Now process all merged nodes after the regular traversal is complete
         const mergedSpecs = Array.from(mergedNodeIds).map(nodeId => {
             const component = this.getBindingManager().getComponent(nodeId);
@@ -199,7 +185,7 @@ export class SpecCompiler {
             // Extract constraints for merged component
             const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, constraintsByNode, component);
             const constraints: Record<AnchorId, Constraint[]> = {
-                [VGX_MERGED_SIGNAL_NAME]: mergedSignals
+                ['VGX_MERGED_SIGNAL_NAME']: mergedSignals
             };
 
             // Compile the merged component with its constraints
@@ -229,7 +215,6 @@ export class SpecCompiler {
 
         // Handle special case for absolute values
         if ('absoluteValue' in anchorAccessor) {
-            console.log('setting absolute constraint', anchorAccessor.absoluteValue)
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
             return;
         }
@@ -315,178 +300,6 @@ export class SpecCompiler {
         ));
     }
 
-
-
-
-
-    private compileBindingGraph2(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        // const { nodes, edges } = bindingGraph;
-
-
-        let edges = expandEdges(bindingGraph.edges);
-        let nodes = new Map(bindingGraph.nodes);
-
-        const cycles = findCycles(new Map(bindingGraph.nodes), [...edges]);
-
-
-        for (const cycle of cycles) {
-            // for each cycle, we need to create a new merged component node and then swap the edges to point to the new node
-
-
-            // Resolve cycles by creating merged nodes
-            const resolvedGraph = resolveCycles(edges, nodes, cycle.nodes, cycle.edges, this.getBindingManager());
-
-            nodes = new Map(resolvedGraph.nodes);
-            edges = resolvedGraph.edges;
-        }
-
-
-        type ComponentId = string;
-        const compileConstraints: Record<ComponentId, Record<AnchorId, Constraint[]>> = {}
-
-        const preOrderTraversal = (
-            node: BindingNode,
-            edges: BindingEdge[],
-            visitedNodes = new Set<string>(),
-            mergedNodes: BindingNode[] = []
-        ): Partial<UnitSpec<Field>>[] => {
-            // If this node has already been processed, skip it
-            if (visitedNodes.has(node.id)) {
-                console.log('visitedNodes', visitedNodes)
-                return [];
-            }
-
-            // Mark this node as visited
-            visitedNodes.add(node.id);
-
-            // Get the component for the current node
-            const component = this.getBindingManager().getComponent(node.id);
-
-            // If this is a merged component, add it to the list to process later
-            if ('mergedComponent' in component && component.mergedComponent === true) {
-                mergedNodes.push(node);
-                return []; // Skip processing for now
-            }
-
-            // Find all edges where this node is the target
-            const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-
-            // Create a list of {edge, node} pairs to preserve the relationship between edges and nodes
-            const parentEdgePairs = parentEdges.map(edge => {
-                const parentNode = nodes.get(edge.source.nodeId);
-                return parentNode ? { edge, node: parentNode } : null;
-            }).filter((pair): pair is { edge: BindingEdge, node: BindingNode } => pair !== null);
-
-            // Extract parent anchors from the edge-node pairs
-            const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
-                const parentComponent = this.getBindingManager().getComponent(node.id);
-                if (!parentComponent) return undefined;
-
-                // Get the anchor from the parent component using the source anchorId from the edge
-                const anchor = parentComponent.getAnchor(edge.source.anchorId);
-
-                return { anchor, targetId: edge.target.anchorId };
-            }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
-
-            const constraints: Record<AnchorId, Constraint[]> = {};
-            const absoluteConstraints: Record<AnchorId, Constraint[]> = {};
-
-            // for each parent anchor, create what constraints it places on the component
-            parentAnchors.forEach(({ anchor, targetId }) => {
-                const anchorProxy = anchor;
-                console.log('targeting', targetId);
-
-                const cleanTargetId = targetId.replace('_internal', '');
-                const parentSchema = anchorProxy.anchorSchema[cleanTargetId];
-                const parentAnchorAccessor = anchorProxy.compile();
-
-                console.log('cleanTargetId', cleanTargetId, targetId);
-                // Skip channels not present in component schema
-                if (!component.schema[cleanTargetId]) {
-                    console.log('noschemafor', cleanTargetId);
-                    return;
-                }
-
-                // using targetId as we want _x for the schema type, but _x_internal for the separate signal
-                if (!constraints[targetId]) {
-                    constraints[targetId] = [];
-                }
-
-                if (component.schema[cleanTargetId].container === "Scalar") {
-                    if ('absoluteValue' in parentAnchorAccessor) {
-                        console.log('setting absolute constraint', parentAnchorAccessor.absoluteValue);
-                        absoluteConstraints[targetId] = [parentAnchorAccessor.absoluteValue]; // only constraint
-                        return;
-                    }
-                    constraints[targetId].push(generateScalarConstraints(parentSchema, parentAnchorAccessor));
-                } else if (component.schema[cleanTargetId].container === "Range") {
-                    constraints[targetId].push(generateRangeConstraints(parentSchema, parentAnchorAccessor));
-                }
-            });
-
-            //overwrite constraints with absolute constraints
-            Object.keys(absoluteConstraints).forEach(channel => {
-                console.log('overwritting', JSON.parse(JSON.stringify(constraints[channel])), 'all constraints', JSON.parse(JSON.stringify(constraints)));
-                constraints[channel] = absoluteConstraints[channel];
-                console.log('setting absolute constraint', absoluteConstraints[channel]);
-            });
-
-            compileConstraints[component.id] = constraints;
-
-            // Compile the current node with the context
-            const compiledNode = component.compileComponent(constraints);
-
-            // Find child nodes from edges where this node is the source
-            const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
-            const childNodes = childEdges.map(edge =>
-                nodes.get(edge.target.nodeId)
-            ).filter((n): n is BindingNode => n !== undefined);
-
-            // Recursively process child nodes
-            const children = childNodes.map(child =>
-                preOrderTraversal(child, edges, visitedNodes, mergedNodes)  // Pass the merged nodes list
-            );
-
-            // Flatten the results
-            return [compiledNode, ...children.flat()];
-        };
-
-        // Start traversal with an empty visited set and empty merged nodes list
-        const mergedNodes: BindingNode[] = [];
-        const compiledComponents = preOrderTraversal(nodes.get(rootId)!, edges, new Set<string>(), mergedNodes);
-
-        console.log('mergedNodes', JSON.parse(JSON.stringify(mergedNodes)))
-        // Now process all merged nodes after the regular traversal is complete
-        const mergedComponents = mergedNodes.map(node => {
-            const component = this.getBindingManager().getComponent(node.id);
-
-            // Find all edges where this node is the target
-            const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-            const parentEdgePairs = parentEdges.map(edge => {
-                const parentNode = nodes.get(edge.source.nodeId);
-                return parentNode ? { edge, node: parentNode } : null;
-            }).filter((pair): pair is { edge: BindingEdge, node: BindingNode } => pair !== null);
-
-            const parentAnchors = parentEdgePairs.map(({ edge, node }) => {
-                const parentComponent = this.getBindingManager().getComponent(node.id);
-                if (!parentComponent) return undefined;
-                const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                return { anchor, targetId: edge.target.anchorId };
-            }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
-
-            console.log('parentAnchors:::', parentAnchors, JSON.parse(JSON.stringify(compileConstraints)), component)
-            // Extract constraints for merged component
-            const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, compileConstraints, component);
-            const constraints: Record<AnchorId, Constraint[]> = {
-                ['VGX_MERGED_SIGNAL_NAME']: mergedSignals
-            };
-
-            // Compile the merged component with its constraints
-            return component.compileComponent(constraints);
-        });
-
-        return [...compiledComponents, ...mergedComponents];
-    }
 
 
     private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
@@ -786,118 +599,3 @@ interface EdgeGroup {
 
 
 
-
-
-// we need to check for cycles here, and if there are cycles, we need to add super nodes
-// This version partitions the graph by anchor ID and detects cycles within each partition
-function findCycles(nodes: Map<string, BindingNode>, edges: BindingEdge[]): { nodes: Set<string>, edges: BindingEdge[] }[] {
-    const allCycles: Array<{ nodes: Set<string>, edges: BindingEdge[] }> = [];
-
-    console.log('edges', edges, 'nodes', nodes);
-
-    // Group edges by anchor ID
-    const edgesByAnchor = new Map<string, BindingEdge[]>();
-
-    // Extract all unique anchor IDs from edges
-    const anchorIds = new Set<string>();
-    edges.forEach(edge => {
-        // We assume that in a valid edge, source and target anchors are of the same type
-        anchorIds.add(edge.source.anchorId);
-    });
-
-    // Partition edges by anchor ID
-    anchorIds.forEach(anchorId => {
-        const filteredEdges = edges.filter(edge =>
-            edge.source.anchorId === anchorId && edge.target.anchorId === anchorId
-        );
-        edgesByAnchor.set(anchorId, filteredEdges);
-    });
-
-    // For each anchor partition, find cycles
-    edgesByAnchor.forEach((partitionEdges, anchorId) => {
-        if (partitionEdges.length === 0) return;
-
-        // Standard DFS cycle detection for each partition
-        const visited = new Set<string>();
-        const inStack = new Set<string>();
-        const pathMap = new Map<string, { prev: string, edge: BindingEdge }>();
-
-        function dfs(nodeId: string): boolean {
-            if (inStack.has(nodeId)) {
-                // Found a cycle, reconstruct it
-                const cycleNodeIds = new Set<string>();
-                const cycleEdgesList: BindingEdge[] = [];
-
-                // Start from the current node
-                let currentNode = nodeId;
-                let startNode = nodeId;
-
-                // Reconstruct the cycle path
-                do {
-                    const pathInfo = pathMap.get(currentNode);
-                    if (!pathInfo) break;
-
-                    cycleNodeIds.add(currentNode);
-                    cycleEdgesList.unshift(pathInfo.edge);
-                    currentNode = pathInfo.prev;
-                } while (currentNode !== startNode);
-
-                // Add the start node to complete the cycle
-                cycleNodeIds.add(startNode);
-
-                // Verify that the cycle has exactly 2 nodes and 2 edges
-                if (cycleNodeIds.size !== 2 || cycleEdgesList.length !== 2) {
-                    throw new Error(`Cycles must have exactly 2 nodes and 2 edges. Found cycle with ${cycleNodeIds.size} nodes and ${cycleEdgesList.length} edges.`);
-                }
-
-                // Record this cycle
-                allCycles.push({
-                    nodes: cycleNodeIds,
-                    edges: cycleEdgesList
-                });
-
-                return true;
-            }
-
-            if (visited.has(nodeId)) {
-                return false;
-            }
-
-            visited.add(nodeId);
-            inStack.add(nodeId);
-
-            // Find all outgoing edges from this node in the current partition
-            const outgoingEdges = partitionEdges.filter(edge => edge.source.nodeId === nodeId);
-
-            for (const edge of outgoingEdges) {
-                const nextNodeId = edge.target.nodeId;
-
-                // Record the path
-                pathMap.set(nextNodeId, { prev: nodeId, edge: edge });
-
-                if (dfs(nextNodeId)) {
-                    return true;
-                }
-            }
-
-            inStack.delete(nodeId);
-            return false;
-        }
-
-        // Start DFS from each node in this partition
-        const partitionNodes = new Set<string>();
-        partitionEdges.forEach(edge => {
-            partitionNodes.add(edge.source.nodeId);
-            partitionNodes.add(edge.target.nodeId);
-        });
-
-        partitionNodes.forEach(nodeId => {
-            if (!visited.has(nodeId)) {
-                dfs(nodeId);
-            }
-        });
-    });
-
-    console.log('Found cycles:', allCycles);
-    return allCycles;
-}

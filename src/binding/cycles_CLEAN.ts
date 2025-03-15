@@ -55,19 +55,16 @@ export function resolveCycles(
     bindingGraph: BindingGraph,
     bindingManager: BindingManager
 ): BindingGraph {
-    console.log('prebindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
     // Make deep copies to avoid modifying the original
     let { nodes, edges } = cloneGraph(bindingGraph);
 
     // Find all cycles in the graph
     const cycles = detectCyclesByChannel(edges);
-    console.log('cycles@!', JSON.parse(JSON.stringify(cycles)))
 
     if (cycles.length === 0) {
         return bindingGraph; // No cycles to resolve
     }
 
-    console.log('clonedGraph', JSON.parse(JSON.stringify(nodes)), JSON.parse(JSON.stringify(edges)))
 
     // Process each cycle
     let transformedGraph: BindingGraph = { nodes, edges };
@@ -76,7 +73,6 @@ export function resolveCycles(
         transformedGraph = resolveCycle(transformedGraph, cycle, bindingManager);
     }
 
-    console.log('transformedGraph', JSON.parse(JSON.stringify(transformedGraph)))
     return transformedGraph;
 }
 
@@ -89,12 +85,10 @@ function resolveCycle(
     bindingManager: BindingManager
 ): BindingGraph {
     const { nodes, edges } = graph;
-    console.log('Notnodes',graph,)
     const cycleNodesArray = [...cycle.nodes];
 
     // Only handle 2-node cycles for now (most common case)
     if (cycleNodesArray.length !== 2) {
-        console.log('cycleNodesArray', JSON.parse(JSON.stringify(cycleNodesArray)))
         console.warn("Only 2-node cycles are supported for automatic resolution");
         return graph;
     }
@@ -110,12 +104,10 @@ function resolveCycle(
         bindingManager
     );
 
-    console.log('mergedComponedsadent', mergedComponent)
 
     // Add merged component to binding manager
     bindingManager.addComponent(mergedComponent);
 
-    console.log('nodesaSDFfd', JSON.parse(JSON.stringify(nodes)))
     // Add merged node to graph
     const newNodes = nodes.map(node => ({
         id: node.id,
@@ -137,8 +129,6 @@ function resolveCycle(
         mergedComponent.id,
         bindingManager
     );
-    console.log('newEdges', JSON.parse(JSON.stringify(newEdges)))
-    console.log('newNodes', JSON.parse(JSON.stringify(newNodes)))
 
 
     return { nodes: newNodes, edges: newEdges };
@@ -414,7 +404,6 @@ function cloneAnchor(anchor: any): any {
  * Creates a deep clone of the binding graph.
  */
 function cloneGraph(graph: BindingGraph): BindingGraph {
-    console.log('cloning graph', JSON.parse(JSON.stringify(graph)))
     return {
         nodes: graph.nodes.map(node => ({
             id: node.id,

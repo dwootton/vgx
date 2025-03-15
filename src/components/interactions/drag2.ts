@@ -142,17 +142,16 @@ export class Drag extends BaseComponent {
          
     
           this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return {'value':generateCompiledValue('x')}
+            return {'value':generateCompiledValue(this.id,'x')}
           }));
 
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return {'value':generateCompiledValue('y')}
+            return {'value':generateCompiledValue(this.id,'y')}
           }));
 
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        console.log('dragcompileComponent', inputContext)
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
             name: this.id, // base signal
@@ -170,7 +169,7 @@ export class Drag extends BaseComponent {
             }]
         }; 
 
-        console.log('drag inputContext', inputContext)
+       
        
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [`${this.id}_${key}`], key, this.id, nodeId, this.schema[key].container)).flat()
@@ -192,25 +191,21 @@ export class Drag extends BaseComponent {
         ).flat();
 
         if(internalSignals.length === 0) {
-            // console.log('no internal signals', signal,outputSignals)
             // check if any of the inputContexts have merged components in them 
             const mergedComponents = Object.keys(inputContext).filter(key => inputContext[key].some(update => update.includes('merge')));
 
-            console.log('mergedComponentsDRAG', mergedComponents)
             const keys = mergedComponents
 
             const signals = [];
             for(const key of keys) {
                 const signal= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
                 signals.push(signal)
-                console.log('mergedComponentsDRAGSIG', signal,signals,inputContext)
                 signal.name = signal.name+'_internal'
                 internalSignals.push(signal);
             }
          
         }
 
-        console.log('outputSignals', signal,outputSignals,'internal',internalSignals)
 
         return {
             //@ts-ignore as signals can exist in VL
@@ -238,17 +233,25 @@ export class DragSpan extends BaseComponent {
 
        
     
-          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+        //   this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
+        //     return createRangeAccessor(this.id,'x')
+        //   }));
+         
+        this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
             return createRangeAccessor(this.id,'x')
           }));
+
           this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
             return createRangeAccessor(this.id,'y')
           }));
 
+        //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
+        //     return createRangeAccessor(this.id,'y')
+        //   }));
+
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        console.log('dragSpan compileComponent', inputContext)
 
         const nodeId = inputContext.nodeId || this.id;
         const signal = {

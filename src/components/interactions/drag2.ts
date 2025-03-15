@@ -207,13 +207,7 @@ export class Drag extends BaseComponent {
                 signal.name = signal.name+'_internal'
                 internalSignals.push(signal);
             }
-            // internalSignals.push({
-            //     name: nodeId.id+mergedComponents+'_internal',
-            //     "on": [{
-            //         "events": {
-            //             "signal": this.id
-            //         },
-            //         "update": `merge(${nodeId}, ${mergedComponents})`
+         
         }
 
         console.log('outputSignals', signal,outputSignals,'internal',internalSignals)

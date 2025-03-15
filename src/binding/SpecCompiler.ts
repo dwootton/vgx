@@ -8,7 +8,7 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
-import { extractConstraintsForMergedComponent, MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
 // import { resolveCycles } from "./cycles";
 import { resolveCycles,expandEdges } from "./cycles_CLEAN";
 interface AnchorEdge {
@@ -199,7 +199,7 @@ export class SpecCompiler {
             // Extract constraints for merged component
             const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, constraintsByNode, component);
             const constraints: Record<AnchorId, Constraint[]> = {
-                [MERGED_SIGNAL_NAME]: mergedSignals
+                [VGX_MERGED_SIGNAL_NAME]: mergedSignals
             };
 
             // Compile the merged component with its constraints
@@ -478,7 +478,7 @@ export class SpecCompiler {
             // Extract constraints for merged component
             const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, compileConstraints, component);
             const constraints: Record<AnchorId, Constraint[]> = {
-                [MERGED_SIGNAL_NAME]: mergedSignals
+                ['VGX_MERGED_SIGNAL_NAME']: mergedSignals
             };
 
             // Compile the merged component with its constraints

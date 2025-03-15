@@ -7,7 +7,7 @@ import { AnchorProxy, SchemaType } from "../types/anchors";
 import { MergedComponent } from "./MergedComponentClass";
 
 
-export const MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME'
+export const VGX_MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME'
 
 export function extractConstraintsForMergedComponent(parentAnchors: { anchor: AnchorProxy, targetId: string }[], compileConstraints: Record<string, any>, component: BaseComponent) {
     console.log('in mergedcomponentsparentAnchors', parentAnchors,'all compileConstraints', JSON.parse(JSON.stringify(compileConstraints)))
@@ -66,19 +66,21 @@ export function extractConstraintsForMergedComponent(parentAnchors: { anchor: An
             const channel = component.getAnchors()[0].id.anchorId;
             console.log('channel', channel,"otherParentConstraints", JSON.parse(JSON.stringify(otherParentConstraints)))
 
-
-
-
-
-
-            return (otherParentConstraints[`${channel}_internal`] || []).map(constraint => {
-                console.log('constraint', constraint)
+            const constraints = (otherParentConstraints[`${channel}_internal`] || ["VGX_SIGNAL_NAME"]).map(constraint => {
+                console.log('constraindsasadt', constraint)
                 return {
                     events: { "signal": parentSignalName },
 
                     update: constraint.replace(/VGX_SIGNAL_NAME/g, parentSignalName)
                 }
             })
+
+
+
+            console.log('conssadasdtraints', constraints)
+
+
+            return constraints
 
         }).filter(item => item !== null);
 
@@ -138,7 +140,7 @@ export function createMergedComponent(
                 on: [] as any[]
             };
     
-            const updateStatements = inputContext[MERGED_SIGNAL_NAME].flat()
+            const updateStatements = inputContext[VGX_MERGED_SIGNAL_NAME].flat()
             console.log('inputContext[MERGED_SIGNAL_NAME]', updateStatements)
             for (const signal of updateStatements) {
                 const nodeNames = extractAllNodeNames(signal.update)

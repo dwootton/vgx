@@ -67,9 +67,9 @@ export function createMergedComponent(
      */
     compileComponent(context: any): Partial<UnitSpec<Field>> {
       // Extract merged signal constraints, if any
-      const mergedSignalConstraints = context[MERGED_SIGNAL_NAME] || [];
+      const mergedSignalConstraints = context['VGX_MERGED_SIGNAL_NAME'] || [];
 
-      console.log('mergedSignalConstraints', JSON.parse(JSON.stringify(mergedSignalConstraints)))
+      console.log('mergedSignalConstraints', JSON.parse(JSON.stringify(mergedSignalConstraints)),context)
       
       // Create the merged signal with update rules
       const mergedSignal = {
@@ -93,6 +93,8 @@ export function createMergedComponent(
       const flatConstraints = Array.isArray(constraintUpdates[0]) 
         ? constraintUpdates.flat() 
         : constraintUpdates;
+
+      console.log('flatConstraints', JSON.parse(JSON.stringify(flatConstraints)))
       
       // Apply each constraint as an update rule
       flatConstraints.forEach(constraint => {
@@ -121,7 +123,7 @@ export function createMergedComponent(
 /**
  * Extracts node signal names from an update expression.
  */
-function extractSignalNames(updateExpr: string): string[] {
+export function extractSignalNames(updateExpr: string): string[] {
   // This is a simplified implementation - in practice, you would
   // use a more sophisticated parser to extract signal references
   const signalRegex = /\b(\w+)_(\w+)(?:_internal)?\b/g;

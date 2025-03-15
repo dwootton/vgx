@@ -38,6 +38,17 @@ export function extractAllNodeNames(input: string): string[] {
         }
     }
 
+    // Find merged node patterns like node_X_node_Y_merged
+    const mergedNodePattern = /\b(merged_node_\d+_node_\d+(?:_[^,)\s.]+)?)\b/g;
+    let mergedNodeMatch;
+
+    while ((mergedNodeMatch = mergedNodePattern.exec(input)) !== null) {
+        console.log('mergedNodeMatch', mergedNodeMatch)
+        if (mergedNodeMatch[1] && !nodeNames.includes(mergedNodeMatch[1])) {
+            nodeNames.push(mergedNodeMatch[1]);
+        }
+    }
+
     // Find any remaining bare node_X patterns that weren't caught above
     const barePattern = /\b(node_\d+)\b(?![\._])/g;
     let bareMatch;
@@ -65,11 +76,11 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
         const signalName = mergedParent + '_' + channel;
 
         const generateConstraints = (update: string) => {
-            console.log('generateConstraints', update)
+            console.log('generateConstraints', update, extractAllNodeNames(update))
             return {
-                events: {
-                    signal: signalName
-                },
+                events: [ extractAllNodeNames(update).map(node => ({
+                    signal: node
+                }))],
                 update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
             }
         };

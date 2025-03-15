@@ -5,6 +5,7 @@ import {compilationContext} from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer } from "../../types/anchors";
 
 import { generateSignalFromAnchor, createRangeAccessor } from "../utils";
+import { extractSignalNames } from "../../binding/mergedComponent_CLEAN";
 
 export const circleBaseContext: Record<AnchorIdentifer, any> = {
     x: 0,

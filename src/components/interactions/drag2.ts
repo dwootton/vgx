@@ -2,8 +2,8 @@ import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
-export const dragSpanBaseContext = {"x":{"start":1,"stop":100},"y":{"start":1,"stop":100}};
-export const dragBaseContext = {"x":0,"y":0};
+export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
+export const dragBaseContext = { "x": 0, "y": 0 };
 
 const currentExtractor = (channel: string) => ({
     type: 'Scalar',
@@ -13,7 +13,7 @@ const currentExtractor = (channel: string) => ({
 
 const rangeExtractor = (channel: string) => ({
     type: 'Range',
-    channel: channel,   
+    channel: channel,
     update: `{
         start: VGX_SIGNAL_NAME.start.${channel},
         stop: VGX_SIGNAL_NAME.stop.${channel}
@@ -36,26 +36,26 @@ const startExtractor = (channel: string) => ({
 // element: string
 
 // schema 
-    // span: 
-        // schema: range
-        // // events: 
-        
-        // {
-        //         events: {
-        //             type: 'pointermove',
-        //             between: [
-        //                 { type: "pointerdown", "markname": inputContext.markName},
-        //                 { type: "pointerup" }
-        //             ]
-        //         },
-        //         update: `merge(${nodeId}, {'x': x(), 'y': y() })`
-        //     },
+// span: 
+// schema: range
+// // events: 
+
+// {
+//         events: {
+//             type: 'pointermove',
+//             between: [
+//                 { type: "pointerdown", "markname": inputContext.markName},
+//                 { type: "pointerup" }
+//             ]
+//         },
+//         update: `merge(${nodeId}, {'x': x(), 'y': y() })`
+//     },
 
 // any encoding types will compile down to 
 
 // brush.top, this is a anchor for dragspan(y,x) and 
 // when a new anchorname is bound, check top level anchor properties
-    // then if not, check the generated anchors from each schema. 
+// then if not, check the generated anchors from each schema. 
 
 // anchornames are generated via taking in both schema types (x,y)
 // 
@@ -119,6 +119,109 @@ type CompilationContext = Record<string, constrain_expr[]>;
 //     }
 // }
 
+const configurations = [{
+    'id': 'point',
+    "default": true,
+    "schema": {
+        "x": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "y": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        }
+    },
+    "transforms": [{
+        "x": {
+            "update": "PARENT_ID.x" // replace the parent id + get the channel value
+        },
+        "y": {
+            "update": "PARENT_ID.y" // replace the parent id + get the channel value
+        }
+    }]
+}, {
+    'id': 'span',
+    "schema": {
+        "x": {
+            "container": "Range",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "y": {
+            "container": "Range",
+            "valueType": "Numeric",
+            "interactive": true
+        }
+    },
+    "transforms": [{
+        "x": {
+            "update": "{'min':PARENT_ID.x.start, 'max':PARENT_ID.x.stop}" // replace the parent id + get the channel value
+        },
+        "y": {
+            "update": "{'min':PARENT_ID.y.start, 'max':PARENT_ID.y.stop}" // replace the parent id + get the channel value
+        }
+    }]
+},{
+    'id': 'start',
+    "schema": {
+        "x": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "y": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        }
+    },
+    "transforms": [{
+        "x": {
+            "update": "PARENT_ID.start.x" // replace the parent id + get the channel value
+        },
+        "y": {
+            "update": "PARENT_ID.start.y" // replace the parent id + get the channel value
+        }
+    }]
+}]
+
+function generateConfigurationAnchors(id:string, config:any) {
+    if(config.schema[id].container === 'Scalar') {
+        return {
+                'value':generateCompiledValue(id,'x')
+            }
+    } else if(config.schema[id].container === 'Range') {
+        return {
+            'value':createRangeAccessor(id,'x')
+        }
+    }
+    
+}
+
+
+
+let createRangeAccessor = (id: string, channel: string) => {
+    return {
+        'start': `${id}_${channel}_start`,
+        'stop': `${id}_${channel}_stop`,
+    }
+}
+
+
+let generateCompiledValue = (id: string, channel: string) => {
+    return `${id}_${channel}` // min value
+}
+
+export class CombinedDrag extends BaseComponent {
+    constructor(config: any = {}) {
+        super(config);
+
+
+    }
+}
 
 export class Drag extends BaseComponent {
     constructor(config: any = {}) {
@@ -137,17 +240,17 @@ export class Drag extends BaseComponent {
             }
         }
 
-    
-     
-         
-    
-          this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return {'value':generateCompiledValue(this.id,'x')}
-          }));
 
-          this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return {'value':generateCompiledValue(this.id,'y')}
-          }));
+
+
+
+        this.anchors.set('x', this.createAnchorProxy({ 'x': this.schema['x'] }, 'x', () => {
+            return { 'value': generateCompiledValue(this.id, 'x') }
+        }));
+
+        this.anchors.set('y', this.createAnchorProxy({ 'y': this.schema['y'] }, 'y', () => {
+            return { 'value': generateCompiledValue(this.id, 'y') }
+        }));
 
     }
 
@@ -159,28 +262,28 @@ export class Drag extends BaseComponent {
             on: [{
                 events: {
                     type: 'pointermove',
-                    source:"window",
+                    source: "window",
                     between: [
-                        { type: "pointerdown", "markname": inputContext.markName},
-                        { type: "pointerup",    source:"window", }
+                        { type: "pointerdown", "markname": inputContext.markName },
+                        { type: "pointerup", source: "window", }
                     ]
                 },
                 update: `merge(${nodeId}, {'x': x(), 'y': y()})`
             }]
-        }; 
+        };
 
-       
-       
+
+
         // TODO handle missing key/anchors
         const outputSignals = Object.keys(this.schema).map(key => generateSignalFromAnchor(inputContext[key] || [`${this.id}_${key}`], key, this.id, nodeId, this.schema[key].container)).flat()
         // then , may through each item
 
-        const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key => 
-            inputContext[key].map((updateStatement:string) => ({
+        const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key =>
+            inputContext[key].map((updateStatement: string) => ({
                 // const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
 
                 // console.log('internalSignal', signal)
-                name: this.id+'_'+key,
+                name: this.id + '_' + key,
                 "on": [{
                     "events": {
                         "signal": this.id
@@ -190,20 +293,20 @@ export class Drag extends BaseComponent {
             }))
         ).flat();
 
-        if(internalSignals.length === 0) {
+        if (internalSignals.length === 0) {
             // check if any of the inputContexts have merged components in them 
             const mergedComponents = Object.keys(inputContext).filter(key => inputContext[key].some(update => update.includes('merge')));
 
             const keys = mergedComponents
 
             const signals = [];
-            for(const key of keys) {
-                const signal= generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
+            for (const key of keys) {
+                const signal = generateSignalFromAnchor(['SIGNALVAL'], key, this.id, nodeId, this.schema[key].container)[0]
                 signals.push(signal)
-                signal.name = signal.name+'_internal'
+                signal.name = signal.name + '_internal'
                 internalSignals.push(signal);
             }
-         
+
         }
 
 
@@ -231,19 +334,20 @@ export class DragSpan extends BaseComponent {
             }
         }
 
-       
-    
+
+
         //   this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
         //     return createRangeAccessor(this.id,'x')
         //   }));
-         
-        this.anchors.set('x', this.createAnchorProxy({'x':this.schema['x']}, 'x', () => {
-            return createRangeAccessor(this.id,'x')
-          }));
 
-          this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
-            return createRangeAccessor(this.id,'y')
-          }));
+
+        this.anchors.set('x', this.createAnchorProxy({ 'x': this.schema['x'] }, 'x', () => {
+            return createRangeAccessor(this.id, 'x')
+        }));
+
+        this.anchors.set('y', this.createAnchorProxy({ 'y': this.schema['y'] }, 'y', () => {
+            return createRangeAccessor(this.id, 'y')
+        }));
 
         //   this.anchors.set('y', this.createAnchorProxy({'y':this.schema['y']}, 'y', () => {
         //     return createRangeAccessor(this.id,'y')
@@ -260,25 +364,25 @@ export class DragSpan extends BaseComponent {
             on: [{
                 events: {
                     type: 'pointermove',
-                    source:"window",
+                    source: "window",
                     between: [
-                        { type: "pointerdown", "markname": inputContext.markName},
-                        { type: "pointerup",    source:"window", }
+                        { type: "pointerdown", "markname": inputContext.markName },
+                        { type: "pointerup", source: "window", }
                     ]
                 },
                 update: `{'x':merge(${this.id}.x, {'stop':x()}), 'y':merge(${this.id}.y, {'stop':y()})}`
 
-            },{
+            }, {
                 events: {
-                     type: "pointerdown", "markname": inputContext.markName,
+                    type: "pointerdown", "markname": inputContext.markName,
                 },
                 update: `{'x':{'start':x()},'y':{'start':y()}}`
             }]
         };
-      
-       
+
+
         // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key => 
+        const outputSignals = Object.keys(this.schema).map(key =>
             generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
         ).flat()
 

@@ -25,7 +25,7 @@ export const all = {
   heatmap: (config: any) => new Heatmap(config),
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
-  drag: (config:any)=> new Drag(config),
+  drag: (config:any)=> new CombinedDrag(config),
   brush: (config:any)=> new CombinedDrag(config),
   rect: (config:any)=> new Rect(config),
 };

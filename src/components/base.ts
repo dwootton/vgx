@@ -112,15 +112,23 @@ export abstract class BaseComponent {
         console.log('in component!',binding)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
 
+        console.log('binding.anchors',binding.anchors)
         // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
         binding.anchors.forEach((anchor) => {
-          if(anchor.anchorSchema.interactive){
+          console.log('in adsadfaschor!',binding,anchor.anchorSchema, anchor)
 
-            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
+          const anchorSchema = Object.values(anchor.anchorSchema)[0];
+          console.log('anchorSchedsffsdma', anchorSchema)
+          if(anchorSchema && anchorSchema.interactive){
+            console.log('adding inverse binding', anchor.id.anchorId, this.id,'bindingProperty',bindingProperty)
+
+            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, bindingProperty);
           }
         })
 
       } else {
+        // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
+        console.log('in ADDBINDING!',binding)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if (binding.anchorSchema.interactive) {
           this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);

@@ -121,15 +121,15 @@ const configurations = [{
         }
     },
     "transforms": [{
-        "name":"x",
-        "channel":"x",
+        "name": "x",
+        "channel": "x",
         "value": "PARENT_ID.x" // replace the parent id + get the channel value
-        },          
-        {
-        "name":"y",
-        "channel":"y",
+    },
+    {
+        "name": "y",
+        "channel": "y",
         "value": "PARENT_ID.y" // replace the parent id + get the channel value
-        }
+    }
     ]
 }, {
     'id': 'span',
@@ -137,22 +137,22 @@ const configurations = [{
         "x": {
             "container": "Range",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true
         },
         "y": {
             "container": "Range",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true // TODO add back in when it won't screw with the chart domains
         }
     },
 
     // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
     // transforms extract info from the underlying data, then can be parameterized
     "transforms": [
-        {"name":"x_start", "channel":"x", "value":"PARENT_ID.start.x"},
-        {"name":"x_stop", "channel":"x", "value":"PARENT_ID.stop.x"},
-        {"name":"y_start", "channel":"y", "value":"PARENT_ID.start.y"},
-        {"name":"y_stop", "channel":"y", "value":"PARENT_ID.stop.y"},
+        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
+        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
+        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
+        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
     ]
 }, {
     'id': 'begin',
@@ -169,8 +169,8 @@ const configurations = [{
         }
     },
     "transforms": [
-        {"name":"x", "channel":"x", "value":"PARENT_ID.start.x"},
-        {"name":"y", "channel":"y", "value":"PARENT_ID.start.y"}
+        { "name": "x", "channel": "x", "value": "PARENT_ID.start.x" },
+        { "name": "y", "channel": "y", "value": "PARENT_ID.start.y" }
     ]
 }]
 
@@ -261,8 +261,8 @@ export class CombinedDrag extends BaseComponent {
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{events: {type: 'pointerdown', 'markname': inputContext.markName}, update: `{'start': {'x': x(), 'y': y()}}`},
-                {
+            on: [{ events: { type: 'pointerdown', 'markname': inputContext.markName }, update: `{'start': {'x': x(), 'y': y()}}` },
+            {
                 events: {
                     type: 'pointermove',
                     source: "window",
@@ -280,28 +280,29 @@ export class CombinedDrag extends BaseComponent {
 
 
 
-       // Generate all signals from configurations in a clean, concise way
-    const outputSignals = Object.values(this.configurations)
-        .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-        .flatMap(config => {
-        // Build constraint map from inputContext
-        const constraintMap = {};
-        console.log('in your config', config)
-        Object.keys(config.schema).forEach(channel => {
-            const key = `${config.id}_${channel}`;
-            constraintMap[channel] = inputContext[key] || [];
-        });
-        
-        const signalPrefix = this.id + '_' + config.id
-        // Generate signals for this configuratio
-        console.log('nodeID: ', 'constraintMap', constraintMap)
-        return generateSignalsFromTransforms(
-            config.transforms,
-            nodeId,
-            signalPrefix,
-            constraintMap
-        );
-        });
+        console.log('this.configurationsDRAG', this.configurations,inputContext)
+        // Generate all signals
+        const outputSignals = Object.values(this.configurations)
+            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+            .flatMap(config => {
+                // Build constraint map from inputContext
+                const constraintMap = {};
+                console.log('in your config', config)
+                Object.keys(config.schema).forEach(channel => {
+                    const key = `${config.id}_${channel}`;
+                    constraintMap[channel] = inputContext[key] || [];
+                });
+
+                const signalPrefix = this.id + '_' + config.id
+                // Generate signals for this configuratio
+                console.log('nodeID: ', 'constraintMap', constraintMap)
+                return generateSignalsFromTransforms(
+                    config.transforms,
+                    nodeId,
+                    signalPrefix,
+                    constraintMap
+                );
+            });
         // Additional signals can be added here and will be available in input contexts
         const otherSignals = [];
         console.log('DRAG outputSignals', outputSignals)

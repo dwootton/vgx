@@ -194,6 +194,7 @@ interface Transform {
    */
   export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
+    console.log('generateSifdsfdgnal', config)
     
     // Skip if constraints are invalid
     if (constraints.some(c => c === undefined || c.includes('undefined'))) {
@@ -248,12 +249,15 @@ interface Transform {
         const channel = transform.channel;
         const outputName = `${outputPrefix}_${transform.name || channel}`;
         
-        return generateSignal({
+        console.log('dasfsadfas', transform,constraints[channel], parentId, outputPrefix)
+        const signal = generateSignal({
           id: parentId,
           transform,
           output: outputName,
           constraints: constraints[channel] || [],
         });
+        console.log('signal', signal)
+        return signal
       })
       .filter(signal => signal !== null); // Remove any nulls from skipped signals
   }

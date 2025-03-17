@@ -1,7 +1,7 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { AnchorSchema, SchemaType, SchemaValue } from "types/anchors";
 export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
 export const dragBaseContext = { "x": 0, "y": 0 };
@@ -289,6 +289,8 @@ export class CombinedDrag extends BaseComponent {
 
                 const signalPrefix = this.id + '_' + config.id
                 // Generate signals for this configuratio
+
+                
                 return generateSignalsFromTransforms(
                     config.transforms,
                     nodeId,
@@ -296,11 +298,33 @@ export class CombinedDrag extends BaseComponent {
                     constraintMap
                 );
             });
-        // Additional signals can be added here and will be available in input contexts
-        const otherSignals = [];
-        console.log('DRAG outputSignals', outputSignals)
+        // Additional signals can be added here and will be av  ilable in input contexts
+        console.log('this.anchors', [...this.anchors.keys()].filter(key => key.endsWith('_internal')))
+        const internalSignals = [...this.anchors.keys()]
+            .filter(key => key.endsWith('_internal'))
+            .map(key => {
+                //no need to get constraints as constraints would have had it be already
+                // get the transform 
+                console.log('keys', key, key.split('_'), this.configurations)
+                const config = this.configurations[key.split('_')[0]];
+                console.log('generatedKEYSIGNAL', config, config.transforms)
+
+                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+
+                console.log('compatibleTransformsDRAG', compatibleTransforms)
+
+                return compatibleTransforms.map(transform => generateSignal({
+                    id: nodeId,
+                    transform: transform,
+                    output: nodeId + '_' + key,
+                    constraints: ["VGX_SIGNAL_NAME"]
+                }))
+            }
+             
+            ).flat();
+        console.log('DRAG outputSignals', outputSignals, internalSignals)
         return {
-            params: [signal, ...outputSignals]
+            params: [signal, ...outputSignals, ...internalSignals]
         }
     }
 }

@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent_CLEAN";
 
 
@@ -38,7 +38,9 @@ const configurations = [{
         { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
         { "name": "y", "channel": "y", "value": "PARENT_ID.y" }
     ]
-}, {
+}];
+/*
+{
     'id': 'appearance',
     "schema": {
         "size": {
@@ -69,7 +71,8 @@ const configurations = [{
         { "name": "strokeWidth", "channel": "strokeWidth", "value": "PARENT_ID.strokeWidth" },
         { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
     ]
-}];
+}
+*/
 
 import { generateConfigurationAnchors } from "../interactions/drag2";
 export class Circle extends BaseComponent {
@@ -161,18 +164,46 @@ export class Circle extends BaseComponent {
                 );
             });
 
-        // Handle internal signals (for merged components)
-        const internalSignals = Object.keys(inputContext)
+
+            const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
-            .map(key =>
-                inputContext[key].map((updateStatement: string) => ({
-                    name: this.id + '_' + key,
-                    "on": [{
-                        "events": { "signal": this.id },
-                        "update": updateStatement
-                    }]
+            .map(key => {
+                //no need to get constraints as constraints would have had it be already
+                // get the transform 
+                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
+               
+                console.log('keys', key, key.split('_'), this.configurations)
+                const config = this.configurations[key.split('_')[0]];
+                console.log('generatedKEYSIGNAL', config, config.transforms)
+                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+                console.log('compatibleTransforms', compatibleTransforms)
+                return compatibleTransforms.map(transform => generateSignal({
+                    id: nodeId,
+                    transform: transform,
+                    output: nodeId + '_' + key,
+                    constraints: constraints
                 }))
+            }
+             
             ).flat();
+        // console.log('DRAG outputSignals',
+
+        // // Handle internal signals (for merged components)
+        // const internalSignals = Object.keys(inputContext)
+        //     .filter(key => key.endsWith('_internal'))
+        //     .map(key =>
+        //         inputContext[key].map((updateStatement: string) => (
+                    
+                    
+                    
+        //             {
+        //             name: this.id + '_' + key,
+        //             "on": [{
+        //                 "events": { "signal": this.id },
+        //                 "update": updateStatement.replace(/VGX_SIGNAL_NAME/g, `${this.id}_${key}`)
+        //             }]
+        //         }))
+        //     ).flat();
 
         // // if there is an inputContext key that ends with _internal, then
         // // extract the channel from it {channel}_internal
@@ -218,7 +249,7 @@ export class Circle extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            data: inputContext.data || circleBaseContext.data,
+            "data":{"values":[{}]}, //TODO FIX
             mark: {
                 type: "circle",
                 name: `${this.id}_marks`
@@ -230,15 +261,12 @@ export class Circle extends BaseComponent {
                 "y": {
                     "value": { "expr": `${this.id}_position_y` },
                 },
-                "size": {
-                    "value": { "expr": inputContext.size || circleBaseContext.size }
-                },
-                "color": {
-                    "value": { "expr": inputContext.color || circleBaseContext.color }
-                },
-                "stroke": {
-                    "value": { "expr": inputContext.stroke || circleBaseContext.stroke }
-                }
+                "size": {"value": {"expr": 200}},
+                "color": {"value": {"expr": "'red'"}},
+                "stroke": {"value": {"expr": "'white'"}}
+                // "stroke": {
+                //     "value": { "expr": inputContext.stroke || circleBaseContext.stroke }
+                // }
             }
         }
     }

@@ -65,7 +65,7 @@ export function extractAllNodeNames(input: string): string[] {
         }
     }
 
-    return nodeNames;
+    return [...new Set(nodeNames)];
 }
 export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: string, parentExtractor: string, mergedParent: string): any[] => {
     let channel = anchorId;
@@ -201,7 +201,7 @@ interface Transform {
     
     // Process constraints
     const processedConstraints = constraints.map(constraint => ({
-      events: extractAllNodeNames(constraint).map(node => ({ signal: node })),
+      events: {"signal":id},//extractAllNodeNames(constraint).map(node => ({ signal: node })), TODO FIX DEPENDENCTS
       update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
     }));
 
@@ -212,15 +212,16 @@ interface Transform {
     const dependentNodes = extractAllNodeNames(finalUpdate)
       .filter(node => node !== output);
     
+      const triggerEvents = [{ signal: id },]
+       // ...dependentNodes.map(node => ({ signal: node }))] TODO FIX DEPENDENCTS
+    const uniqueTriggerEvents = [...new Set(triggerEvents.map(JSON.stringify))].map(JSON.parse);
+    console.log('uniqueTriggerEvents', uniqueTriggerEvents)
     // Return the signal definition
     return {
       name: output,
       value: null,
       on: [{
-        events: [
-          { signal: id },
-          ...dependentNodes.map(node => ({ signal: node }))
-        ],
+        events: uniqueTriggerEvents,
         update: finalUpdate
       }]
     };

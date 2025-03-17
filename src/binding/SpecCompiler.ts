@@ -40,6 +40,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
+    console.log('generating range constraints for', schema, value)
     if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
@@ -92,7 +93,24 @@ export class SpecCompiler {
         //const compiledSpecs = this.compileBindingGraph(bindingGraph);
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
-        return removeUndefinedInSpec(mergedSpec);
+        const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
+        console.log('undefinedRemoved', undefinedRemoved);
+        
+
+        // IDK why this is needed, but something is deeply wrong with Vega signals and apparently param order matters
+        // Sort params and move nodes ending with _start to the end
+        const sortedParams = undefinedRemoved.params?.sort((a, b) => {
+            const aEndsWithStart = a.name.endsWith('span_start_x');
+            const bEndsWithStart = b.name.endsWith('span_start_x');
+            
+            if (aEndsWithStart && !bEndsWithStart) return 1;
+            if (!aEndsWithStart && bEndsWithStart) return -1;
+            return a.name.localeCompare(b.name);
+        });
+
+        undefinedRemoved.params=sortedParams
+        
+        return undefinedRemoved;
     }
 
     /**
@@ -106,6 +124,7 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
+        console.log('FINALedges', edges)
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -140,11 +159,11 @@ export class SpecCompiler {
                 return [];
             }
 
-
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
+            console.log('constraintsByNode', constraintsByNode)
             // Compile the current component
             const compiledNode = component.compileComponent(constraints);
 
@@ -206,26 +225,30 @@ export class SpecCompiler {
     private addConstraintForChannel(
         constraints: Record<AnchorId, Constraint[]>,
         targetAnchorId: string,
-        cleanTargetId: string,
-        channelSchema: any,
+        currentNodeSchema: any,
+        parentNodeSchema: any,
         anchorProxy: AnchorProxy
     ): void {
-        const schema = anchorProxy.anchorSchema[cleanTargetId];
+
         const anchorAccessor = anchorProxy.compile();
         // Handle special case for absolute values
         if ('absoluteValue' in anchorAccessor) {
+            console.log('adding absolute value constraint for', anchorAccessor.absoluteValue)
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
             return;
         }
 
         // Add constraints based on container type
-        if (channelSchema.container === "Scalar") {
+        if (currentNodeSchema.container === "Scalar") {
+            console.log('adding constraint for2', targetAnchorId, parentNodeSchema, anchorAccessor,generateScalarConstraints(parentNodeSchema, anchorAccessor))
+
             constraints[targetAnchorId].push(
-                generateScalarConstraints(channelSchema, anchorAccessor)
+                generateScalarConstraints(parentNodeSchema, anchorAccessor)
             );
-        } else if (channelSchema.container === "Range") {
+        } else if (currentNodeSchema.container === "Range") {
+            console.log('adding constraint for', parentNodeSchema, anchorAccessor,generateRangeConstraints(parentNodeSchema, anchorAccessor))
             constraints[targetAnchorId].push(
-                generateRangeConstraints(channelSchema, anchorAccessor)
+                generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
         }
     }
@@ -264,6 +287,8 @@ export class SpecCompiler {
             const cleanTargetId = targetAnchorId.replace('_internal', '');
 
             const currentNodeSchema = component.schema[cleanTargetId]
+            const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
+            console.log('aprentNodeSchema', parentNodeSchema)
             
             // Skip if no schema exists for this channel
             if (!currentNodeSchema) continue;
@@ -273,16 +298,18 @@ export class SpecCompiler {
                 constraints[targetAnchorId] = [];
             }
             
+            console.log('adding constraint for', component, targetAnchorId, anchorProxy,anchorProxy.compile(), JSON.parse(JSON.stringify(constraints)))
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
                 targetAnchorId,
-                cleanTargetId,
                 currentNodeSchema,
+                parentNodeSchema,
                 anchorProxy
             );
         }
 
+        console.log('final constraints', constraints)
         return constraints;
     }
 

@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { AnchorProxy, SchemaType } from "../types/anchors";
 import { Constraint, ConstraintType, constraintToUpdateRule } from './constraints';
-import { extractChannel } from "./cycles_CLEAN";
+import { extractChannel, isCompatible } from "./cycles_CLEAN";
 
 // Identifier for merged component signals in constraints
 export const VGX_MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME';
@@ -277,23 +277,22 @@ export function extractConstraintsForMergedComponent(
 
   
     // For each input component in the cycle
-    parentComponentIds.forEach(parentId => {
+    parentAnchors.forEach(anchorFromParent => {
+        const parentId = anchorFromParent.anchor.id.componentId
       
-      // Get the anchors from this parent that feed into the merged component
-      const anchorFromParent = parentAnchors.find(anchor => 
-        anchor.anchor.id.componentId === parentId
-      );
-  
-      if (!anchorFromParent) {
-        return;
-      }
-   
+     
+        if (!anchorFromParent) {
+            return;
+        }
 
+    
       const parentSignalName = `${parentId}_${anchorFromParent.anchor.id.anchorId}_internal`
+      console.log('parentSignalName', parentSignalName)
      
       // Get all other components in the cycle
       const otherParentIds = parentComponentIds.filter(id => id !== parentId);
   
+      console.log('internalConstraints otherParentIds', otherParentIds)
       // Process constraints from each other parent
       const otherParentsConstraints = otherParentIds.map(otherParentId => {
         const otherParentConstraints = compileConstraints[otherParentId];
@@ -307,19 +306,52 @@ export function extractConstraintsForMergedComponent(
         const channel = component.getAnchors()[0]?.id.anchorId;
         if (!channel) return null;
 
+        console.log('internalConstraintsdassda',otherParentConstraints)
+
+        const internalConstraints = Object.keys(otherParentConstraints).filter(key => key.endsWith('_internal')).filter(key=>isCompatible(key.replace('_internal', ''), channel))
+
+        console.log('internalConstraintsdassda2', internalConstraints)
+        // if no interna constraints it means it didn't have any other constraints
+        if(internalConstraints.length === 0) {
+            console.log('returning baseconstraint')
+            return {
+                events: { "signal": parentSignalName },
+                update: parentSignalName
+              };
+            
+        }
   
         // Create constraints that update based on this parent's signal
-        const constraints = (otherParentConstraints[`${channel}_internal`] || [])
-          .map(constraint => ({
-            events: { "signal": parentSignalName },
-            update: constraint.replace(/VGX_SIGNAL_NAME/g, parentSignalName)
-          }));
-  
-        return constraints;
-      }).filter(item => item !== null);
+        const constraints = internalConstraints
+            .map(internalKeys => {
+                // Okay, so currently we're getting a bit weird behavior: like clamp(node_2_point_x_internal,node_2_begin_x,node_2_begin_x)
+                // so we'll want to do something around no-self-node constraints (maybe), and I'll need to figure out why 
+                // valid constraints like the scales are not being passed.
+                // I think has to deal with the merge constraints logic...
+                
+                const constraints = otherParentConstraints[internalKeys]
+                console.log('constraint COMPONTNETANCHOR', anchorFromParent.anchor.id.componentId)
+                return constraints.map(constraint => {
+                    console.log('in self reference?', constraint,constraint.includes(anchorFromParent.anchor.id.componentId))
+                    if(constraint.includes('undefined') || constraint.includes(anchorFromParent.anchor.id.componentId)) return null;
+                    return {
+                        events: { "signal": parentSignalName },
+                        update: constraint.replace(/VGX_SIGNAL_NAME/g, parentSignalName)
+                      }
+                }).filter(item => item !== null)
+             
+            })
+
+        console.log("COMPILEDCONSTRAINTS1", constraints)
+        return constraints.flat();
+      }).filter(item => item !== null).flat();
+
+      console.log("COMPILEDCONSTRAINTS2", otherParentsConstraints)
   
       mergedSignals.push(...otherParentsConstraints);
     });
+
+    console.log("COMPILEDCONSTRAINTS3", mergedSignals)
   
     return mergedSignals;
   }

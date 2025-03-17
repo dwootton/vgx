@@ -203,8 +203,10 @@ function rewireMultiNodeConnections(
             return;
         }
 
+        console.log('creating internal anchor for', component.id, anchorId)
         // Create internal anchor
         createInternalAnchor(component, anchorId);
+        console.log('created internal anchor for2', component)
         
         // Redirect incoming edges to internal anchors
         redirectIncomingEdges(edges, nodeId, anchorId);
@@ -224,6 +226,8 @@ function rewireMultiNodeConnections(
             source: { nodeId: mergedNodeId, anchorId: `${channel}` },
             target: { nodeId, anchorId }
         });
+
+        console.log('pushed edges from ',nodeId, internalAnchorId, "to ", mergedNodeId, channel)
     });
     
     // Remove the original cycle edges
@@ -560,6 +564,7 @@ function createInternalAnchor(component: BaseComponent, anchorId: string): void 
         return originalResult;
     };
 
+    console.log('about to set anchor', internalAnchorId, clonedAnchor)
     component.setAnchor(internalAnchorId, clonedAnchor);
 }
 

@@ -107,6 +107,10 @@ export abstract class BaseComponent {
       // }
       // console.log('configId', configId, 'binding',binding,'prop',bindingProperty)
       // bindingProperty = configId;
+      
+      // Check if this is a BaseChart by using instanceof or checking for chart-specific properties
+      const isParentChart = ['Scatterplot','Histogram','BarChart'].includes(this.constructor.name);
+      console.log('isParentChart', isParentChart, this,this.constructor.name)
 
       if (isComponent(binding)) {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
@@ -115,7 +119,8 @@ export abstract class BaseComponent {
         binding.anchors.forEach((anchor) => {
 
           const anchorSchema = Object.values(anchor.anchorSchema)[0];
-          if(anchorSchema && anchorSchema.interactive){
+          if(anchorSchema && anchorSchema.interactive && !isParentChart){ // TODO FIX such that chart isn't ddded...
+            console.log('dsadsaddads',this.id, this)
 
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, bindingProperty);
           }
@@ -124,7 +129,9 @@ export abstract class BaseComponent {
       } else {
         // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
-        if (binding.anchorSchema.interactive) {
+        if (binding.anchorSchema.interactive && !isParentChart) {
+          console.log('dsadsaddads2',this.id, this)
+
           this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }

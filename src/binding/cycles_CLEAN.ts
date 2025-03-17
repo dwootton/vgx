@@ -1,12 +1,11 @@
 import { BindingEdge, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
-import { createMergedComponent } from "./mergedComponent_CLEAN";
+import { createMergedComponentForChannel } from "./mergedComponent_CLEAN";
 // import { expandEdges } from "./SpecCompiler";
-import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+import { getChannelFromEncoding,} from "../utils/anchorGeneration/rectAnchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
-    console.log('expanding edges2', JSON.parse(JSON.stringify(edges)))
     const expanded= edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
         if (!sourceComponent) {
@@ -19,7 +18,6 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         return expandGroupAnchors(edge, sourceComponent, targetComponent)
     })
     
-    console.log('expanded edges', JSON.parse(JSON.stringify(edges)), JSON.parse(JSON.stringify(expanded)))
     
     return expanded.filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
 }
@@ -29,22 +27,17 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     // Helper function to get anchors based on configuration ID or _all
     const getAnchors = (component: BaseComponent, anchorId: string) => {
-        console.log('dsadadsad', component, anchorId)
         // If it's _all, return all anchors
         if (anchorId === '_all') {
-            console.log('dsadadsad in all', component.getAnchors())
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
 
-        console.log('dsfsfsdfsd config', component, 'anchorId', component.configurations)
 
         if(component.configurations[anchorId]) {
-            console.log('dsadadsad in config', component.configurations)
 
             const componentAnchors = [...component.getAnchors().values()]
             const filteredAnchors = componentAnchors.filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
             const mappedAnchors = filteredAnchors.map(a => a.id.anchorId)
-            console.log('dasdas',anchorId, componentAnchors, 'filteredAnchors', filteredAnchors, 'mappedAnchors', mappedAnchors)
             return mappedAnchors
         }
         
@@ -56,21 +49,16 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             
         // If we found configuration-based anchors, return those
         if (configAnchors.length > 0) {
-            console.log('dsadadsad', configAnchors)
             return configAnchors;
         }
 
-        console.log('dsadadsad retunr original', anchorId)
 
         const baseAnchorId = anchorId
-        console.log('dsadadsad baseAnchorId', baseAnchorId)
         try {
             component.getAnchor(baseAnchorId); // This will throw if anchor doesn't exist
-            console.log('dsadadsaddasdsa', baseAnchorId, component, component.getAnchor(baseAnchorId))
             return [baseAnchorId];
         } catch (error) {
             // Anchor doesn't exist, continue with empty array
-            console.log('Anchor not found:', baseAnchorId);
             return [];
         }
         
@@ -84,36 +72,7 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     
     console.log('wdsdsf', sourceAnchors, 'targetAnchors', targetAnchors)
 
-    function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
-        // Extract the base channel from anchor IDs of various formats
-        function extractChannel(anchorId: string): string | undefined {
-            if (anchorId === '_all') return undefined;
-            console.log('extracting anchorId', anchorId)
-            // If it's a simple channel name like 'x', 'y', return as is
-            if (['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(anchorId)) {
-                return anchorId;
-            }
-            
-            // For complex IDs like 'point_x', 'span_pla_x', extract the last part
-            const parts = anchorId.split('_');
-            const lastPart = parts[parts.length - 1];
-            
-            // Return the last part if it's a valid channel, otherwise undefined
-            return ['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(lastPart) 
-                ? lastPart 
-                : undefined;
-        }
-        
-        console.log('fdsfkljsdlk', sourceAnchorId, 'targetAnchorId', targetAnchorId)
-        const sourceChannel = extractChannel(sourceAnchorId);
-        const targetChannel = extractChannel(targetAnchorId);
-        console.log('sourceChannel', sourceChannel, 'targetChannel', targetChannel)
-        if(!sourceChannel || !targetChannel) {
-            return false;
-        }
-        console.log('isCompatifsdfsble', sourceAnchorId, 'targetAnchorId', targetAnchorId, 'channel',sourceChannel, 'targetChannel', targetChannel, getChannelFromEncoding(sourceChannel),getChannelFromEncoding(targetChannel))
-        return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
-    }
+   
 
     console.log('sourceAnchorsFIMAL', sourceAnchors, 'targetAnchors', targetAnchors)
     return sourceAnchors.flatMap(sourceAnchor =>
@@ -124,6 +83,38 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
                 target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
             }))
     );
+}
+
+export function extractChannel(anchorId: string): string | undefined {
+    if (anchorId === '_all') return undefined;
+    console.log('extracting anchorId', anchorId)
+    // If it's a simple channel name like 'x', 'y', return as is
+    if (['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(anchorId)) {
+        return anchorId;
+    }
+    
+    // For complex IDs like 'point_x', 'span_pla_x', extract the last part
+    const parts = anchorId.split('_');
+    const lastPart = parts[parts.length - 1];
+    
+    // Return the last part if it's a valid channel, otherwise undefined
+    return ['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(lastPart) 
+        ? lastPart 
+        : undefined;
+}
+export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
+    // Extract the base channel from anchor IDs of various formats
+    
+    
+    console.log('fdsfkljsdlk', sourceAnchorId, 'targetAnchorId', targetAnchorId)
+    const sourceChannel = extractChannel(sourceAnchorId);
+    const targetChannel = extractChannel(targetAnchorId);
+    console.log('sourceChannel', sourceChannel, 'targetChannel', targetChannel)
+    if(!sourceChannel || !targetChannel) {
+        return false;
+    }
+    console.log('isCompatifsdfsble', sourceAnchorId, 'targetAnchorId', targetAnchorId, 'channel',sourceChannel, 'targetChannel', targetChannel, getChannelFromEncoding(sourceChannel),getChannelFromEncoding(targetChannel))
+    return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
 }
 
 /**
@@ -158,62 +149,177 @@ export function resolveCycles(
     return transformedGraph;
 }
 
+
+/**
+ * Detects the channel that a cycle is based on
+ */
+function detectCycleChannel(edges: BindingEdge[]): string | undefined {
+    // Extract channels from first edge as a starting point
+    const channelCounts = new Map<string, number>();
+    
+    edges.forEach(edge => {
+        const sourceChannel = extractChannel(edge.source.anchorId);
+        const targetChannel = extractChannel(edge.target.anchorId);
+        
+        if (sourceChannel && targetChannel && sourceChannel === targetChannel) {
+            channelCounts.set(sourceChannel, (channelCounts.get(sourceChannel) || 0) + 1);
+        }
+    });
+    
+    // Return the most common channel in the cycle
+    let maxCount = 0;
+    let primaryChannel: string | undefined = undefined;
+    
+    channelCounts.forEach((count, channel) => {
+        if (count > maxCount) {
+            maxCount = count;
+            primaryChannel = channel;
+        }
+    });
+    
+    return primaryChannel;
+}
+
+/**
+ * Rewires connections for multiple nodes to go through a merged component
+ */
+function rewireMultiNodeConnections(
+    cycleEdges: BindingEdge[],
+    cycleNodeIds: string[],
+    allEdges: BindingEdge[],
+    mergedNodeId: string,
+    bindingManager: BindingManager
+): BindingEdge[] {   
+    const edges = [...allEdges];
+    
+    // Create internal anchors for all nodes in the cycle
+    cycleNodeIds.forEach(nodeId => {
+        const component = bindingManager.getComponent(nodeId);
+        if (!component) {
+            console.warn(`Component not found: ${nodeId}`);
+            return;
+        }
+
+        //find the anchorIds for this node via cycleEdges
+        const anchorIds = cycleEdges.filter(edge => edge.source.nodeId === nodeId || edge.target.nodeId === nodeId).map(edge => edge.source.anchorId === edge.target.anchorId ? edge.source.anchorId : edge.target.anchorId)
+
+        // Get the anchor for this component that uses this channel
+        const anchorId = component.getAnchors().find(anchor => 
+            anchorIds.includes(anchor.id.anchorId)
+        )?.id.anchorId as string;
+
+        const channel = extractChannel(anchorId)
+
+        if (!anchorId || !channel) {
+            console.warn(`No anchor found for channel in component ${nodeId}`);
+            return;
+        }
+
+        // Create internal anchor
+        createInternalAnchor(component, anchorId);
+        
+        // Redirect incoming edges to internal anchors
+        redirectIncomingEdges(edges, nodeId, anchorId);
+        
+        const internalAnchorId = `${anchorId}_internal`;
+
+        
+        // Add connections to and from merged node
+        // Component internal -> merged
+        edges.push({
+            source: { nodeId, anchorId: internalAnchorId },
+            target: { nodeId: mergedNodeId, anchorId: channel}
+        });
+        
+        // Merged -> component original
+        edges.push({
+            source: { nodeId: mergedNodeId, anchorId: `${channel}` },
+            target: { nodeId, anchorId }
+        });
+    });
+    
+    // Remove the original cycle edges
+    const filteredEdges = edges.filter(edge => {
+        // Check if this edge is part of the original cycle
+        return !cycleEdges.some(cycleEdge => 
+            cycleEdge.source.nodeId === edge.source.nodeId && 
+            cycleEdge.source.anchorId === edge.source.anchorId &&
+            cycleEdge.target.nodeId === edge.target.nodeId &&
+            cycleEdge.target.anchorId === edge.target.anchorId
+        );
+    });
+    
+    return filteredEdges;
+}
+
 /**
  * Resolves a single cycle by creating a merged node and rewiring connections.
  */
-function resolveCycle(
+export function resolveCycleMulti(
     graph: BindingGraph,
-    cycle: { nodes: string[], edges: BindingEdge[] },
     bindingManager: BindingManager
 ): BindingGraph {
-    const { nodes, edges } = graph;
-    const cycleNodesArray = [...cycle.nodes];
+    let processedGraph = cloneGraph(graph);
+    
+    // Keep resolving cycles until none are left
+    let cycles = detectCyclesByChannel(processedGraph.edges);
+    console.log('fpoudCycles:',cycles, processedGraph.edges)
+    let count = 10;
+    // while (cycles.length > 0 && count > 0) {
+        // Process each cycle
+        count--;
+        // if(count < 0)break;
+        cycles.forEach(cycle => {
+            const { nodes, edges } = cycle;
+            
+            // Get the channel this cycle is based on
+            const cycleChannel = extractChannel(edges[0].source.anchorId)
+            console.log('cycleChanndsasel', cycleChannel)
+            if (!cycleChannel) {
+                console.warn("Could not determine consistent channel for cycle", cycle);
+                return;
+            }
+            
+            // Create merged component for this cycle
+            const mergedComponent = createMergedComponentForChannel(
+                nodes,
+                cycleChannel,
+                bindingManager
+            );
 
-    // Only handle 2-node cycles for now (most common case)
-    if (cycleNodesArray.length !== 2) {
-        console.warn("Only 2-node cycles are supported for automatic resolution");
-        return graph;
-    }
+            console.log('mergedCfdsflkjasljomponent', mergedComponent)
+            
+            // Add merged component to binding manager
+            bindingManager.addComponent(mergedComponent);
+            
+            // Add merged node to graph
+            processedGraph.nodes.push({
+                id: mergedComponent.id,
+                type: 'merged'
+            });
 
-    const [node1Id, node2Id] = cycleNodesArray;
-    const targetAnchorId = cycle.edges[0].target.anchorId;
+            //now for each edge, lets now modify it to use the merged component
+            
+            // Rewire connections for all nodes in the cycle
+            const rewiredEdges = rewireMultiNodeConnections(
+                edges,
+                nodes,
+                processedGraph.edges,
+                mergedComponent.id,
+                bindingManager
+            );
+            
+            console.log('BOTH EDGdasdasdES', cycle, rewiredEdges)
+            // Remove direct cycle edges
+            processedGraph.edges = filterOutCycleEdges(rewiredEdges, cycle);
+        });
 
-    // Create merged component
-    const mergedComponent = createMergedComponent(
-        node1Id,
-        node2Id,
-        targetAnchorId,
-        bindingManager
-    );
-
-
-    // Add merged component to binding manager
-    bindingManager.addComponent(mergedComponent);
-
-    // Add merged node to graph
-    const newNodes = nodes.map(node => ({
-        id: node.id,
-        type: node.type
-    }));
-    newNodes.push({
-        id: mergedComponent.id,
-        type: 'merged'
-    });
-
-    // Filter out direct cycle edges
-    const newEdges = filterOutCycleEdges(edges, cycle);
-    // Create internal anchors and rewire connections
-    rewireNodeConnections(
-        newEdges,
-        node1Id,
-        node2Id,
-        targetAnchorId,
-        mergedComponent.id,
-        bindingManager
-    );
-
-
-    return { nodes: newNodes, edges: newEdges };
+        
+        // Look for any remaining cycles
+        //cycles = detectCyclesByChannel(processedGraph.edges);
+    // }
+    
+    return processedGraph;
 }
 
 /**
@@ -230,17 +336,24 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
 
     // Extract all unique anchor IDs
     edges.forEach(edge => {
-        anchorIds.add(edge.source.anchorId);
+        const sourceAnchor = extractChannel(edge.source.anchorId);
+        console.log('sourceAnchor', sourceAnchor)
+        if(!sourceAnchor) return;
+        anchorIds.add(sourceAnchor);
     });
 
+    console.log('fsdfsadanchorIds', anchorIds)
     // Partition edges by anchor ID
     anchorIds.forEach(anchorId => {
         const filteredEdges = edges.filter(edge =>
-            edge.source.anchorId === anchorId && edge.target.anchorId === anchorId
+            (extractChannel(edge.source.anchorId) === anchorId || extractChannel(edge.target.anchorId) === anchorId) && isCompatible(edge.source.anchorId, edge.target.anchorId)
         );
+        console.log('filteredEdges', filteredEdges)
+
         edgesByAnchor.set(anchorId, filteredEdges);
     });
 
+    console.log('edgesByAnchor', edgesByAnchor)
     // For each partition, run cycle detection
     edgesByAnchor.forEach((partitionEdges, anchorId) => {
         if (partitionEdges.length === 0) return;
@@ -383,7 +496,8 @@ function rewireNodeConnections(
     edges: BindingEdge[],
     node1Id: string,
     node2Id: string,
-    anchorId: string,
+    node1AnchorId: string,
+    node2AnchorId: string,
     mergedNodeId: string,
     bindingManager: BindingManager
 ): void {
@@ -395,37 +509,47 @@ function rewireNodeConnections(
         throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
     }
 
+    console.log('rewiringNodeConnections', node1AnchorId, component1)
+    console.log('rewiringNodeConnectionsNode2', node2AnchorId, component2)
+
+    //TODO: need to not just cycle cycles[0], but instead get the anchorIOd from thedges and then use thart. 
     // Create _internal anchors
-    createInternalAnchor(component1, anchorId);
-    createInternalAnchor(component2, anchorId);
+    createInternalAnchor(component1, node1AnchorId);
+    createInternalAnchor(component2, node2AnchorId);
 
     // Redirect incoming edges to internal anchors
-    redirectIncomingEdges(edges, node1Id, anchorId);
-    redirectIncomingEdges(edges, node2Id, anchorId);
+    redirectIncomingEdges(edges, node1Id, node1AnchorId);
+    redirectIncomingEdges(edges, node2Id, node2AnchorId);
+
+    const channel = extractChannel(node1AnchorId);
+    // get the channel and use that
 
     // Add connections to and from merged node
-    const internalAnchorId = `${anchorId}_internal`;
+    
+    const internalNode1AnchorId = `${node1Id}_internal_${channel}`;
+    const internalNode2AnchorId = `${node2Id}_internal_${channel}`;
+
 
     // node1 internal -> merged -> node1
     edges.push({
-        source: { nodeId: node1Id, anchorId: internalAnchorId },
-        target: { nodeId: mergedNodeId, anchorId }
+        source: { nodeId: node1Id, anchorId: internalNode1AnchorId },
+        target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
     });
 
     edges.push({
-        source: { nodeId: mergedNodeId, anchorId },
-        target: { nodeId: node1Id, anchorId }
+        source: { nodeId: mergedNodeId, anchorId: internalNode1AnchorId },
+        target: { nodeId: node1Id, anchorId: internalAnchorId }
     });
 
     // node2 internal -> merged -> node2
     edges.push({
-        source: { nodeId: node2Id, anchorId: internalAnchorId },
-        target: { nodeId: mergedNodeId, anchorId }
+        source: { nodeId: node2Id, anchorId: internalNode2AnchorId },
+        target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
     });
 
     edges.push({
-        source: { nodeId: mergedNodeId, anchorId },
-        target: { nodeId: node2Id, anchorId }
+        source: { nodeId: mergedNodeId, anchorId: internalNode2AnchorId },
+        target: { nodeId: node2Id, anchorId: internalAnchorId }
     });
 }
 
@@ -493,4 +617,73 @@ function cloneGraph(graph: BindingGraph): BindingGraph {
         })),
         edges: JSON.parse(JSON.stringify(graph.edges))
     };
+}
+
+/**
+ * Detects cycles in a binding graph using DFS.
+ * Returns array of cycles, each containing nodes and edges.
+ */
+function detectCycles(graph: BindingGraph): Array<{ nodes: string[], edges: BindingEdge[] }> {
+    const { nodes, edges } = graph;
+    const cycles: Array<{ nodes: string[], edges: BindingEdge[] }> = [];
+    
+    // Track visited nodes during DFS
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+    const path: string[] = [];
+    const pathEdges: BindingEdge[] = [];
+    
+    // Helper function for DFS
+    function dfs(nodeId: string, prev: string | null = null) {
+        if (stack.has(nodeId)) {
+            // Cycle detected - extract nodes and edges
+            const cycleStart = path.indexOf(nodeId);
+            const cycleNodes = path.slice(cycleStart);
+            const cycleEdges = pathEdges.slice(cycleStart);
+            
+            // Add the closing edge if it exists
+            if (prev) {
+                const closingEdge = edges.find(e => 
+                    e.source.nodeId === prev && e.target.nodeId === nodeId
+                );
+                if (closingEdge) {
+                    cycleEdges.push(closingEdge);
+                }
+            }
+            
+            cycles.push({ nodes: cycleNodes, edges: cycleEdges });
+            return;
+        }
+        
+        if (visited.has(nodeId)) return;
+        
+        visited.add(nodeId);
+        stack.add(nodeId);
+        path.push(nodeId);
+        
+        // Find all outgoing edges
+        const outgoingEdges = edges.filter(e => e.source.nodeId === nodeId);
+        
+        for (const edge of outgoingEdges) {
+            pathEdges.push(edge);
+            dfs(edge.target.nodeId, nodeId);
+            
+            // Backtrack
+            if (pathEdges.length > 0) {
+                pathEdges.pop();
+            }
+        }
+        
+        path.pop();
+        stack.delete(nodeId);
+    }
+    
+    // Run DFS from each node
+    for (const node of nodes) {
+        if (!visited.has(node.id)) {
+            dfs(node.id);
+        }
+    }
+    
+    return cycles;
 } 

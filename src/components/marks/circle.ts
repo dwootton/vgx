@@ -26,12 +26,12 @@ const configurations = [{
         "x": {
             "container": "Scalar",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true
         },
         "y": {
             "container": "Scalar",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true
         }
     },
     "transforms": [
@@ -71,6 +71,7 @@ const configurations = [{
     ]
 }];
 
+import { generateConfigurationAnchors } from "../interactions/drag2";
 export class Circle extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;
@@ -85,22 +86,47 @@ export class Circle extends BaseComponent {
 
         // Set up the main schema from configurations
         this.schema = {};
-        Object.values(this.configurations).forEach(config => {
-            Object.entries(config.schema).forEach(([key, value]) => {
-                this.schema[key] = value as SchemaType;
-            });
+        // Object.values(this.configurations).forEach(config => {
+        //     Object.entries(config.schema).forEach(([key, value]) => {
+        //         this.schema[key] = value as SchemaType;
+        //     });
+        // });
+
+        configurations.forEach(config => {
+            this.configurations[config.id] = config
+            const schema = config.schema
+            for (const key in schema) {
+                const schemaValue = schema[key];
+                const keyName = config.id + '_' + key
+                console.log('creating anchor forschemaCIRCLE ', keyName)
+                console.log('setting schemaCIRCLE', keyName, schemaValue)
+                this.schema[keyName] = schemaValue;
+
+
+                this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                    const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+                    console.log('generatedAnchor', generatedAnchor)
+                    return generatedAnchor
+                }));
+            }
+            // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
+            //     return generateConfigurationAnchors(this.id, config.id)
+            // }));
         });
 
-        // Create anchors for each schema item
-        Object.keys(this.schema).forEach(key => {
-            this.anchors.set(key, this.createAnchorProxy({ [key]: this.schema[key] }, key, () => {
-                if (this.schema[key].container === 'Range') {
-                    return createRangeAccessor(this.id, key);
-                } else {
-                    return { 'value': generateCompiledValue(this.id, key) };
-                }
-            }));
-        });
+        // // Create anchors for each schema item
+        // Object.keys(this.schema).forEach(key => {
+        //     const schemaValue = schema[key];
+        //     const keyName = config.id + '_' + key
+        //     console.log('creating anchor for ', keyName)
+        //     console.log('setting schema', keyName, schemaValue)
+        //     this.schema[keyName] = schemaValue;
+        //     this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+        //         const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+        //         console.log('generatedAnchor', generatedAnchor)
+        //         return generatedAnchor
+        //     }));
+        // });
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
@@ -113,10 +139,10 @@ export class Circle extends BaseComponent {
             value: circleBaseContext
         };
 
-        // TODO handle missing key/anchors
-        const outputSignals = Object.keys(this.schema).map(key =>
-            generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
-        ).flat();
+        // // TODO handle missing key/anchors
+        // const outputSignals = Object.keys(this.schema).map(key =>
+        //     generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
+        // ).flat();
 
         // Generate all signals from configurations
         const outputSignals = Object.values(this.configurations)
@@ -172,20 +198,20 @@ export class Circle extends BaseComponent {
         //     })).flat();
 
         // Create the mark specification
-    // const mark = {
-    //     type: "circle",
-    //     encode: {
-    //       update: {
-    //         x: { signal: `${nodeId}_position_x` },
-    //         y: { signal: `${nodeId}_position_y` },
-    //         size: { signal: `${nodeId}_appearance_size` },
-    //         fill: { signal: `${nodeId}_appearance_color` },
-    //         stroke: { signal: `${nodeId}_appearance_stroke` },
-    //         strokeWidth: { signal: `${nodeId}_appearance_strokeWidth` },
-    //         opacity: { signal: `${nodeId}_appearance_opacity` }
-    //       }
-    //     }
-    //   };
+        // const mark = {
+        //     type: "circle",
+        //     encode: {
+        //       update: {
+        //         x: { signal: `${nodeId}_position_x` },
+        //         y: { signal: `${nodeId}_position_y` },
+        //         size: { signal: `${nodeId}_appearance_size` },
+        //         fill: { signal: `${nodeId}_appearance_color` },
+        //         stroke: { signal: `${nodeId}_appearance_stroke` },
+        //         strokeWidth: { signal: `${nodeId}_appearance_strokeWidth` },
+        //         opacity: { signal: `${nodeId}_appearance_opacity` }
+        //       }
+        //     }
+        //   };
 
 
         return {

@@ -10,7 +10,7 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
-import { resolveCycles, expandEdges } from "./cycles_CLEAN";
+import { resolveCycleMulti, expandEdges } from "./cycles_CLEAN";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -85,7 +85,8 @@ export class SpecCompiler {
         
         bindingGraph.edges = expandedEdges;
         console.log('expanded bindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
-        const processedGraph = resolveCycles(bindingGraph, this.getBindingManager());
+   
+        const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
 
         console.log('processedGraph', processedGraph)
 
@@ -271,11 +272,14 @@ export class SpecCompiler {
             const targetAnchorId = parentEdge.target.anchorId;
             const targetAnchorSchema = component.schema[targetAnchorId];
 
-            console.log('targetAncdasdashorId', component,targetAnchorId, component.schema,targetAnchorSchema)
+            console.log('targetAncdasdasdashorId', component,targetAnchorId, component.schema,targetAnchorSchema)
             const cleanTargetId = targetAnchorId.replace('_internal', '');
 
+            const currentNodeSchema = component.schema[cleanTargetId]
+            
+            console.log('dasfadsa',component.schema[cleanTargetId], !component.schema[cleanTargetId])
             // Skip if no schema exists for this channel
-            if (!component.schema[cleanTargetId]) continue;
+            if (!currentNodeSchema) continue;
 
             // Initialize constraint array if needed
             if (!constraints[targetAnchorId]) {
@@ -284,12 +288,13 @@ export class SpecCompiler {
 
             console.log('inputs:', constraints, targetAnchorId, cleanTargetId, targetAnchorSchema, anchorProxy)
 
+            
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
                 targetAnchorId,
                 cleanTargetId,
-                targetAnchorSchema,
+                currentNodeSchema,
                 anchorProxy
             );
         }

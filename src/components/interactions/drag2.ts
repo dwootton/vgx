@@ -199,7 +199,7 @@ const rectSide = {
 // okay, todo: go through and actually create the appropriate signals for each of these. Implement some anchor logic [span].x or something.
 
 
-function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
+export function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
     if (schema.container === 'Scalar') {
         return {
             'value': generateCompiledValue(id, channel, configurationId)
@@ -295,7 +295,7 @@ export class CombinedDrag extends BaseComponent {
 
                 const signalPrefix = this.id + '_' + config.id
                 // Generate signals for this configuratio
-                console.log('nodeID: ', 'constraintMap', constraintMap)
+                console.log('nodeID: ',nodeId,config, 'constraintMap', constraintMap)
                 return generateSignalsFromTransforms(
                     config.transforms,
                     nodeId,

@@ -128,9 +128,10 @@ export abstract class BaseComponent {
 
       } else {
         // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
-        console.log('in ADDBINDING!',binding)
+        console.log('in ADDBINDING!',binding, binding.anchorSchema.interactive)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if (binding.anchorSchema.interactive) {
+          console.log('adding inverse bindingNotComp', binding.id.anchorId, this.id,'bindingProperty',bindingProperty)
           this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }

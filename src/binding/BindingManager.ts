@@ -34,7 +34,6 @@ export class BindingManager {
         // Initialize dependencies lazily
         this.graphManager = new GraphManager(() => this);
         this.specCompiler = new SpecCompiler(this.graphManager, () => this);
-        console.log('binding manager initialized', this)
     }
 
     public getProcessedGraph(id: string): ProcessedGraph {

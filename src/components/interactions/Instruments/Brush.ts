@@ -1,21 +1,11 @@
 import { DragSpan } from "../drag2";
+import { BindingManager } from "../../../binding/BindingManager";
 
 export class Brush {
     constructor(config:any) {
 
-        
-
-
-        // const intervalSelect = new IntervalSelect();
         const drag = new DragSpan(config);
         
-
-        // // Set up internal bindings
-    // bindingManager.addBinding(
-        //     rect.id,
-        //     drag2.id,
-        //     'x', 'x1'
-        // );
 
 
 

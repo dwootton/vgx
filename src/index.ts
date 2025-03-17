@@ -11,11 +11,10 @@ export { GraphManager } from './binding/GraphManager';
 // Main ALX object (backward compatibility)
 export { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 export { Circle } from './components/marks';
-export { Drag } from './components/interactions';
 
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 import { Circle } from './components/marks';
-import { Drag } from './components/interactions';  
+import { CombinedDrag, Drag } from './components/interactions';  
 import { Brush as Brush2 } from './components/interactions/Instruments/Brush';
 import { Rect } from './components/marks/rect';
 export const all = {
@@ -26,7 +25,7 @@ export const all = {
   heatmap: (config: any) => new Heatmap(config),
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
-  drag: (config:any)=> new Drag(config),
-  brush: (config:any)=> new Brush2(config),
+  drag: (config:any)=> new CombinedDrag(config),
+  brush: (config:any)=> new CombinedDrag(config),
   rect: (config:any)=> new Rect(config),
 };

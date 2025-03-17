@@ -65,59 +65,60 @@ export function extractAllNodeNames(input: string): string[] {
         }
     }
 
-    return nodeNames;
+    return [...new Set(nodeNames)];
 }
-
-export const generateSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string, schemaType: string): any[] => {
-    
-    // If channel has "_internal" suffix, remove it
-    // let channel = anchorId.replace(/_internal$/, '');
+export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: string, parentExtractor: string, mergedParent: string): any[] => {
     let channel = anchorId;
 
+    // Check if any constraint is undefined or contains undefined
+    if (constraints.some(constraint => constraint === undefined || constraint.includes('undefined'))) {
+        console.warn(`Skipping signal generation for ${anchorId} due to undefined constraints`);
+        return [];
+    }
+    
+    const parentSignal = extractAllNodeNames(parentExtractor)[0];
+    const signalName = mergedParent + '_' + channel;
 
-    // For Scalar type
-    if (schemaType === 'Scalar') {
-        const parentExtractor = signalParent + "." + channel;
-        const signalName = mergedParent + '_' + channel;
+    const generateConstraints = (update: string) => {
+        return {
+            events: [ extractAllNodeNames(update).map(node => ({
+                signal: node
+            }))],
+            update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
+        }
+    };
 
-        const generateConstraints = (update: string) => {
-            return {
-                events: [ extractAllNodeNames(update).map(node => ({
-                    signal: node
-                }))],
-                update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
-            }
-        };
+    const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints), parentExtractor)
+    const depedentNodes = extractAllNodeNames(clampedExtractor).filter(node => node !== signalName)
 
-        const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints), parentExtractor)
-        const depedentNodes = extractAllNodeNames(clampedExtractor).filter(node => node !== signalName)
-
-
-        return [{
-            name: signalName,
-            value: null,
-            on: [{
-                events: [{
-                    signal: signalParent
-                }, ...depedentNodes.map(node => ({
-                    signal: node
-                }))],
-                update: clampedExtractor
-            }]
+    return [{
+        name: signalName,
+        value: null,
+        on: [{
+            events: [{
+                signal: parentSignal
+            }, ...depedentNodes.map(node => ({
+                signal: node
+            }))],
+            update: clampedExtractor
         }]
-
+    }];
 }
 
-    // For Range type
-    else if (schemaType === 'Range') {
-    // if mergedParent has _channel_start or _channel_stop, remove it and then re add later
-    // mergedParent = mergedParent.replace(`start_${channel}`, '').replace(`stop_${channel}`, '');
+export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string): any[] => {
+    let channel = anchorId;
+
+    // Check if any constraint is undefined or contains undefined
+    if (constraints.some(constraint => constraint === undefined || constraint.includes('undefined'))) {
+        console.warn(`Skipping signal generation for ${anchorId} due to undefined constraints`);
+        return [];
+    }
+    
     const startSignalName = mergedParent + '_' + channel + '_start';
     const stopSignalName = mergedParent + '_' + channel + '_stop';
 
     const startParentExtractor = signalParent + "." + channel + ".start";
     const stopParentExtractor = signalParent + "." + channel + ".stop";
-
 
     const generateStartConstraints = (update: string) => {
         return {
@@ -147,7 +148,6 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
     return [
         {
             name: startSignalName,
-            //value: 1,
             on: [{
                 events: [{
                     signal: signalParent
@@ -159,7 +159,6 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
         },
         {
             name: stopSignalName,
-            //value: 400,
             on: [{
                 events: [{
                     signal: signalParent
@@ -171,10 +170,103 @@ export const generateSignalFromAnchor = (constraints: string[], anchorId: string
         }
     ];
 }
+// Core types for the signal generation system
+interface Transform {
+    name?: string;      // Optional name for the generated signal
+    channel: string;    // The channel this transform applies to (x, y, etc)
+    value: string;      // Expression to extract value (e.g. "PARENT_ID.x.start")
+  }
+  
+  interface SignalConfig {
+    id: string;         // Parent/source component ID
+    transform: Transform;  // How to extract the value
+    output: string;     // Target signal name
+    constraints: string[];  // Constraints to apply
+  }
+  
+  /**
+   * Core function to generate a Vega signal from a configuration
+   */
+  export function generateSignal(config: SignalConfig): any {
+    const { id, transform, output, constraints } = config;
+    
+    // Skip if constraints are invalid
+    if (constraints.some(c => c === undefined || c.includes('undefined'))) {
+      console.warn(`Skipping signal generation for ${transform.channel} due to undefined constraints`);
+      return null;
+    }
+    
+    // Replace PARENT_ID in the transform value with the actual ID
+    const parentExtractor = transform.value.replace(/PARENT_ID/g, id);
+    
+    // Process constraints
+    const processedConstraints = constraints.map(constraint => ({
+      events: {"signal":id},//extractAllNodeNames(constraint).map(node => ({ signal: node })), TODO FIX DEPENDENCTS
+      update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
+    }));
 
-// Default case (should not happen if schema is properly defined)
-console.warn(`Unknown schema type: ${schemaType} for channel ${channel}`);
-return [];
+    
+    // Build the final update expression
+    const finalUpdate = collapseSignalUpdates(processedConstraints, parentExtractor);
+    // Find dependent nodes
+    const dependentNodes = extractAllNodeNames(finalUpdate)
+      .filter(node => node !== output);
+    
+      const triggerEvents = [{ signal: id },]
+       // ...dependentNodes.map(node => ({ signal: node }))] TODO FIX DEPENDENCTS
+    const uniqueTriggerEvents = [...new Set(triggerEvents.map(JSON.stringify))].map(JSON.parse);
+    console.log('uniqueTriggerEvents', uniqueTriggerEvents)
+    // Return the signal definition
+    return {
+      name: output,
+      value: null,
+      on: [{
+        events: uniqueTriggerEvents,
+        update: finalUpdate
+      }]
+    };
+  }
+  
+  /**
+   * Generate signals from a collection of transforms
+   * This simplifies the process of creating multiple related signals
+   */
+  export function generateSignalsFromTransforms(
+    transforms: Transform[],
+    parentId: string,
+    outputPrefix: string,
+    constraints: Record<string, string[]>,
+  ): any[] {
+    return transforms
+      .map(transform => {
+        const channel = transform.channel;
+        const outputName = `${outputPrefix}_${transform.name || channel}`;
+        
+        const signal = generateSignal({
+          id: parentId,
+          transform,
+          output: outputName,
+          constraints: constraints[channel] || [],
+        });
+        return signal
+      })
+      .filter(signal => signal !== null); // Remove any nulls from skipped signals
+  }
+
+  
+export const generateSignalFromAnchor = (constraints: string[], anchorId: string, transform: string[], mergedParent: string, schemaType: string): any[] => {
+    // For Scalar type
+    if (schemaType === 'Scalar') {
+        return generateScalarSignalFromAnchor(constraints, anchorId, transform[0], mergedParent);
+    }
+    // For Range type
+    else if (schemaType === 'Range') {
+        return generateRangeSignalFromAnchor(constraints, anchorId, transform, mergedParent);
+    }
+
+    // Default case (should not happen if schema is properly defined)
+    console.warn(`Unknown schema type: ${schemaType} for channel ${anchorId}`);
+    return [];
 }
 
 /**

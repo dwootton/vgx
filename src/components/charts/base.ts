@@ -77,6 +77,7 @@ export class BaseChart extends BaseComponent {
 
   constructor(config: ChartConfig) {
     super({...config});
+    console.log('chart config', config)
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;

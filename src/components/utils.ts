@@ -108,7 +108,6 @@ export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: 
 export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: string, signalParent: string, mergedParent: string): any[] => {
     let channel = anchorId;
 
-    console.log('DRAGschemaINPUTS Range', constraints, anchorId, signalParent, mergedParent)
     // Check if any constraint is undefined or contains undefined
     if (constraints.some(constraint => constraint === undefined || constraint.includes('undefined'))) {
         console.warn(`Skipping signal generation for ${anchorId} due to undefined constraints`);
@@ -142,13 +141,9 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
     const clampedStartExtractor = collapseSignalUpdates(constraints.map(generateStartConstraints), startParentExtractor)
     const clampedStopExtractor = collapseSignalUpdates(constraints.map(generateStopConstraints), stopParentExtractor)
 
-    console.log('clampedStartExtractor', clampedStartExtractor)
-    console.log('clampedStopExtractor', clampedStopExtractor)
     const depedentStartNodes = extractAllNodeNames(clampedStartExtractor)
     const depedentStopNodes = extractAllNodeNames(clampedStopExtractor)
 
-    console.log('depedentStartNodes', depedentStartNodes)
-    console.log('depedentStopNodes', depedentStopNodes)
 
     return [
         {
@@ -194,7 +189,6 @@ interface Transform {
    */
   export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
-    console.log('generateSifdsfdgnal', config)
     
     // Skip if constraints are invalid
     if (constraints.some(c => c === undefined || c.includes('undefined'))) {
@@ -211,11 +205,9 @@ interface Transform {
       update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
     }));
 
-    console.log('processedConstraints', processedConstraints,parentExtractor)
     
     // Build the final update expression
     const finalUpdate = collapseSignalUpdates(processedConstraints, parentExtractor);
-    console.log('finalUpdate', finalUpdate)
     // Find dependent nodes
     const dependentNodes = extractAllNodeNames(finalUpdate)
       .filter(node => node !== output);
@@ -249,14 +241,12 @@ interface Transform {
         const channel = transform.channel;
         const outputName = `${outputPrefix}_${transform.name || channel}`;
         
-        console.log('dasfsadfas', transform,constraints[channel], parentId, outputPrefix)
         const signal = generateSignal({
           id: parentId,
           transform,
           output: outputName,
           constraints: constraints[channel] || [],
         });
-        console.log('signal', signal)
         return signal
       })
       .filter(signal => signal !== null); // Remove any nulls from skipped signals

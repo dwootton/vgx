@@ -275,7 +275,6 @@ export function extractConstraintsForMergedComponent(
     const parentComponentIds = parentAnchors.map(anchor => anchor.anchor.id.componentId);
     const mergedSignals: any[] = [];
 
-    console.log('extractConstraintsForMergedComponentdsa', parentComponentIds,parentAnchors)
   
     // For each input component in the cycle
     parentComponentIds.forEach(parentId => {
@@ -286,7 +285,6 @@ export function extractConstraintsForMergedComponent(
       );
   
       if (!anchorFromParent) {
-        console.log(`No anchor found for parent component ${parentId}`);
         return;
       }
    
@@ -298,11 +296,10 @@ export function extractConstraintsForMergedComponent(
   
       // Process constraints from each other parent
       const otherParentsConstraints = otherParentIds.map(otherParentId => {
-        console.log('otherParentIsadfasdfad', otherParentId,compileConstraints)
         const otherParentConstraints = compileConstraints[otherParentId];
         
         if (!otherParentConstraints) {
-          console.log(`No constraints found for other parent component ${otherParentId}`);
+          console.warn(`No constraints found for other parent component ${otherParentId}`);
           return null;
         }
   
@@ -310,7 +307,6 @@ export function extractConstraintsForMergedComponent(
         const channel = component.getAnchors()[0]?.id.anchorId;
         if (!channel) return null;
 
-        console.log('parentANCJORs',parentAnchors)
   
         // Create constraints that update based on this parent's signal
         const constraints = (otherParentConstraints[`${channel}_internal`] || [])
@@ -342,7 +338,6 @@ export function createMergedComponentForChannel(
     channel: string,
     bindingManager: BindingManager
   ): BaseComponent {
-    console.log('creating merged component for channel', nodeIds, channel)
     // Get all components from IDs and filter out any that don't exist
     const components = nodeIds
       .map(id => bindingManager.getComponent(id))
@@ -414,7 +409,6 @@ export function createMergedComponentForChannel(
       compileComponent(context: any): Partial<UnitSpec<Field>> {
         // Extract merged signal constraints, if any
         const mergedSignalConstraints = context['VGX_MERGED_SIGNAL_NAME'] || [];
-        console.log('mergedSignalConstraints', mergedSignalConstraints,context)
         
         // Create the merged signal with update rules
         const mergedSignal = {

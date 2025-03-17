@@ -67,14 +67,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
     let targetAnchors = getAnchors(target, edge.target.anchorId);
 
-    console.log('dssdfsa', targetAnchors, target, 'sourceAnchors', sourceAnchors, source)
-    // Filter targetAnchors to only include those that match configurations referenced in original edges
-    
-    console.log('wdsdsf', sourceAnchors, 'targetAnchors', targetAnchors)
-
-   
-
-    console.log('sourceAnchorsFIMAL', sourceAnchors, 'targetAnchors', targetAnchors)
     return sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
             .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
@@ -87,7 +79,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
 export function extractChannel(anchorId: string): string | undefined {
     if (anchorId === '_all') return undefined;
-    console.log('extracting anchorId', anchorId)
     // If it's a simple channel name like 'x', 'y', return as is
     if (['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(anchorId)) {
         return anchorId;
@@ -106,79 +97,76 @@ export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
     // Extract the base channel from anchor IDs of various formats
     
     
-    console.log('fdsfkljsdlk', sourceAnchorId, 'targetAnchorId', targetAnchorId)
     const sourceChannel = extractChannel(sourceAnchorId);
     const targetChannel = extractChannel(targetAnchorId);
-    console.log('sourceChannel', sourceChannel, 'targetChannel', targetChannel)
     if(!sourceChannel || !targetChannel) {
         return false;
     }
-    console.log('isCompatifsdfsble', sourceAnchorId, 'targetAnchorId', targetAnchorId, 'channel',sourceChannel, 'targetChannel', targetChannel, getChannelFromEncoding(sourceChannel),getChannelFromEncoding(targetChannel))
     return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
 }
 
-/**
- * Detects cycles in a binding graph and transforms it to resolve them.
- * 
- * @param bindingGraph The original binding graph
- * @param bindingManager The binding manager instance
- * @returns Transformed binding graph with cycles resolved
- */
-export function resolveCycles(
-    bindingGraph: BindingGraph,
-    bindingManager: BindingManager
-): BindingGraph {
-    // Make deep copies to avoid modifying the original
-    let { nodes, edges } = cloneGraph(bindingGraph);
+// /**
+//  * Detects cycles in a binding graph and transforms it to resolve them.
+//  * 
+//  * @param bindingGraph The original binding graph
+//  * @param bindingManager The binding manager instance
+//  * @returns Transformed binding graph with cycles resolved
+//  */
+// export function resolveCycles(
+//     bindingGraph: BindingGraph,
+//     bindingManager: BindingManager
+// ): BindingGraph {
+//     // Make deep copies to avoid modifying the original
+//     let { nodes, edges } = cloneGraph(bindingGraph);
 
-    // Find all cycles in the graph
-    const cycles = detectCyclesByChannel(edges);
+//     // Find all cycles in the graph
+//     const cycles = detectCyclesByChannel(edges);
 
-    if (cycles.length === 0) {
-        return bindingGraph; // No cycles to resolve
-    }
-
-
-    // Process each cycle
-    let transformedGraph: BindingGraph = { nodes, edges };
-
-    for (const cycle of cycles) {
-        transformedGraph = resolveCycle(transformedGraph, cycle, bindingManager);
-    }
-
-    return transformedGraph;
-}
+//     if (cycles.length === 0) {
+//         return bindingGraph; // No cycles to resolve
+//     }
 
 
-/**
- * Detects the channel that a cycle is based on
- */
-function detectCycleChannel(edges: BindingEdge[]): string | undefined {
-    // Extract channels from first edge as a starting point
-    const channelCounts = new Map<string, number>();
+//     // Process each cycle
+//     let transformedGraph: BindingGraph = { nodes, edges };
+
+//     for (const cycle of cycles) {
+//         transformedGraph = resolveCycle(transformedGraph, cycle, bindingManager);
+//     }
+
+//     return transformedGraph;
+// }
+
+
+// /**
+//  * Detects the channel that a cycle is based on
+//  */
+// function detectCycleChannel(edges: BindingEdge[]): string | undefined {
+//     // Extract channels from first edge as a starting point
+//     const channelCounts = new Map<string, number>();
     
-    edges.forEach(edge => {
-        const sourceChannel = extractChannel(edge.source.anchorId);
-        const targetChannel = extractChannel(edge.target.anchorId);
+//     edges.forEach(edge => {
+//         const sourceChannel = extractChannel(edge.source.anchorId);
+//         const targetChannel = extractChannel(edge.target.anchorId);
         
-        if (sourceChannel && targetChannel && sourceChannel === targetChannel) {
-            channelCounts.set(sourceChannel, (channelCounts.get(sourceChannel) || 0) + 1);
-        }
-    });
+//         if (sourceChannel && targetChannel && sourceChannel === targetChannel) {
+//             channelCounts.set(sourceChannel, (channelCounts.get(sourceChannel) || 0) + 1);
+//         }
+//     });
     
-    // Return the most common channel in the cycle
-    let maxCount = 0;
-    let primaryChannel: string | undefined = undefined;
+//     // Return the most common channel in the cycle
+//     let maxCount = 0;
+//     let primaryChannel: string | undefined = undefined;
     
-    channelCounts.forEach((count, channel) => {
-        if (count > maxCount) {
-            maxCount = count;
-            primaryChannel = channel;
-        }
-    });
+//     channelCounts.forEach((count, channel) => {
+//         if (count > maxCount) {
+//             maxCount = count;
+//             primaryChannel = channel;
+//         }
+//     });
     
-    return primaryChannel;
-}
+//     return primaryChannel;
+// }
 
 /**
  * Rewires connections for multiple nodes to go through a merged component
@@ -263,7 +251,6 @@ export function resolveCycleMulti(
     
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
-    console.log('fpoudCycles:',cycles, processedGraph.edges)
     let count = 10;
     // while (cycles.length > 0 && count > 0) {
         // Process each cycle
@@ -274,7 +261,6 @@ export function resolveCycleMulti(
             
             // Get the channel this cycle is based on
             const cycleChannel = extractChannel(edges[0].source.anchorId)
-            console.log('cycleChanndsasel', cycleChannel)
             if (!cycleChannel) {
                 console.warn("Could not determine consistent channel for cycle", cycle);
                 return;
@@ -287,7 +273,6 @@ export function resolveCycleMulti(
                 bindingManager
             );
 
-            console.log('mergedCfdsflkjasljomponent', mergedComponent)
             
             // Add merged component to binding manager
             bindingManager.addComponent(mergedComponent);
@@ -309,7 +294,6 @@ export function resolveCycleMulti(
                 bindingManager
             );
             
-            console.log('BOTH EDGdasdasdES', cycle, rewiredEdges)
             // Remove direct cycle edges
             processedGraph.edges = filterOutCycleEdges(rewiredEdges, cycle);
         });
@@ -337,23 +321,19 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
     // Extract all unique anchor IDs
     edges.forEach(edge => {
         const sourceAnchor = extractChannel(edge.source.anchorId);
-        console.log('sourceAnchor', sourceAnchor)
         if(!sourceAnchor) return;
         anchorIds.add(sourceAnchor);
     });
 
-    console.log('fsdfsadanchorIds', anchorIds)
     // Partition edges by anchor ID
     anchorIds.forEach(anchorId => {
         const filteredEdges = edges.filter(edge =>
             (extractChannel(edge.source.anchorId) === anchorId || extractChannel(edge.target.anchorId) === anchorId) && isCompatible(edge.source.anchorId, edge.target.anchorId)
         );
-        console.log('filteredEdges', filteredEdges)
 
         edgesByAnchor.set(anchorId, filteredEdges);
     });
 
-    console.log('edgesByAnchor', edgesByAnchor)
     // For each partition, run cycle detection
     edgesByAnchor.forEach((partitionEdges, anchorId) => {
         if (partitionEdges.length === 0) return;
@@ -489,69 +469,69 @@ function filterOutCycleEdges(edges: BindingEdge[], cycle: { nodes: string[], edg
     });
 }
 
-/**
- * Rewires node connections to use internal anchors and connect through merged node.
- */
-function rewireNodeConnections(
-    edges: BindingEdge[],
-    node1Id: string,
-    node2Id: string,
-    node1AnchorId: string,
-    node2AnchorId: string,
-    mergedNodeId: string,
-    bindingManager: BindingManager
-): void {
-    // Create internal anchors for both nodes
-    const component1 = bindingManager.getComponent(node1Id);
-    const component2 = bindingManager.getComponent(node2Id);
+// /**
+//  * Rewires node connections to use internal anchors and connect through merged node.
+//  */
+// function rewireNodeConnections(
+//     edges: BindingEdge[],
+//     node1Id: string,
+//     node2Id: string,
+//     node1AnchorId: string,
+//     node2AnchorId: string,
+//     mergedNodeId: string,
+//     bindingManager: BindingManager
+// ): void {
+//     // Create internal anchors for both nodes
+//     const component1 = bindingManager.getComponent(node1Id);
+//     const component2 = bindingManager.getComponent(node2Id);
 
-    if (!component1 || !component2) {
-        throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
-    }
+//     if (!component1 || !component2) {
+//         throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
+//     }
 
-    console.log('rewiringNodeConnections', node1AnchorId, component1)
-    console.log('rewiringNodeConnectionsNode2', node2AnchorId, component2)
+//     console.log('rewiringNodeConnections', node1AnchorId, component1)
+//     console.log('rewiringNodeConnectionsNode2', node2AnchorId, component2)
 
-    //TODO: need to not just cycle cycles[0], but instead get the anchorIOd from thedges and then use thart. 
-    // Create _internal anchors
-    createInternalAnchor(component1, node1AnchorId);
-    createInternalAnchor(component2, node2AnchorId);
+//     //TODO: need to not just cycle cycles[0], but instead get the anchorIOd from thedges and then use thart. 
+//     // Create _internal anchors
+//     createInternalAnchor(component1, node1AnchorId);
+//     createInternalAnchor(component2, node2AnchorId);
 
-    // Redirect incoming edges to internal anchors
-    redirectIncomingEdges(edges, node1Id, node1AnchorId);
-    redirectIncomingEdges(edges, node2Id, node2AnchorId);
+//     // Redirect incoming edges to internal anchors
+//     redirectIncomingEdges(edges, node1Id, node1AnchorId);
+//     redirectIncomingEdges(edges, node2Id, node2AnchorId);
 
-    const channel = extractChannel(node1AnchorId);
-    // get the channel and use that
+//     const channel = extractChannel(node1AnchorId);
+//     // get the channel and use that
 
-    // Add connections to and from merged node
+//     // Add connections to and from merged node
     
-    const internalNode1AnchorId = `${node1Id}_internal_${channel}`;
-    const internalNode2AnchorId = `${node2Id}_internal_${channel}`;
+//     const internalNode1AnchorId = `${node1Id}_internal_${channel}`;
+//     const internalNode2AnchorId = `${node2Id}_internal_${channel}`;
 
 
-    // node1 internal -> merged -> node1
-    edges.push({
-        source: { nodeId: node1Id, anchorId: internalNode1AnchorId },
-        target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
-    });
+//     // node1 internal -> merged -> node1
+//     edges.push({
+//         source: { nodeId: node1Id, anchorId: internalNode1AnchorId },
+//         target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
+//     });
 
-    edges.push({
-        source: { nodeId: mergedNodeId, anchorId: internalNode1AnchorId },
-        target: { nodeId: node1Id, anchorId: internalAnchorId }
-    });
+//     edges.push({
+//         source: { nodeId: mergedNodeId, anchorId: internalNode1AnchorId },
+//         target: { nodeId: node1Id, anchorId: internalAnchorId }
+//     });
 
-    // node2 internal -> merged -> node2
-    edges.push({
-        source: { nodeId: node2Id, anchorId: internalNode2AnchorId },
-        target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
-    });
+//     // node2 internal -> merged -> node2
+//     edges.push({
+//         source: { nodeId: node2Id, anchorId: internalNode2AnchorId },
+//         target: { nodeId: mergedNodeId, anchorId: internalAnchorId }
+//     });
 
-    edges.push({
-        source: { nodeId: mergedNodeId, anchorId: internalNode2AnchorId },
-        target: { nodeId: node2Id, anchorId: internalAnchorId }
-    });
-}
+//     edges.push({
+//         source: { nodeId: mergedNodeId, anchorId: internalNode2AnchorId },
+//         target: { nodeId: node2Id, anchorId: internalAnchorId }
+//     });
+// }
 
 /**
  * Creates an internal anchor by cloning and modifying the original.

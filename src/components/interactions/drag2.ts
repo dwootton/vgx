@@ -233,8 +233,6 @@ export class CombinedDrag extends BaseComponent {
             for (const key in schema) {
                 const schemaValue = schema[key];
                 const keyName = config.id + '_' + key
-                console.log('creating anchor for ', keyName)
-                console.log('setting schema', keyName, schemaValue)
                 this.schema[keyName] = schemaValue;
 
 
@@ -257,7 +255,6 @@ export class CombinedDrag extends BaseComponent {
     }
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
-        console.log('inputContext', inputContext, this.anchors)
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
@@ -275,19 +272,16 @@ export class CombinedDrag extends BaseComponent {
             }]
         };
 
-        console.log('fldragKEYSSS', Array.from(this.anchors.keys()));
 
 
 
 
-        console.log('this.configurationsDRAG', this.configurations,inputContext)
         // Generate all signals
         const outputSignals = Object.values(this.configurations)
             .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
             .flatMap(config => {
                 // Build constraint map from inputContext
                 const constraintMap = {};
-                console.log('in your config', config)
                 Object.keys(config.schema).forEach(channel => {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || [];
@@ -295,7 +289,6 @@ export class CombinedDrag extends BaseComponent {
 
                 const signalPrefix = this.id + '_' + config.id
                 // Generate signals for this configuratio
-                console.log('nodeID: ',nodeId,config, 'constraintMap', constraintMap)
                 return generateSignalsFromTransforms(
                     config.transforms,
                     nodeId,

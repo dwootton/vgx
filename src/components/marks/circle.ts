@@ -98,20 +98,15 @@ export class Circle extends BaseComponent {
             for (const key in schema) {
                 const schemaValue = schema[key];
                 const keyName = config.id + '_' + key
-                console.log('creating anchor forschemaCIRCLE ', keyName)
-                console.log('setting schemaCIRCLE', keyName, schemaValue)
                 this.schema[keyName] = schemaValue;
 
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
-            // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
-            //     return generateConfigurationAnchors(this.id, config.id)
-            // }));
+      
         });
 
         // // Create anchors for each schema item

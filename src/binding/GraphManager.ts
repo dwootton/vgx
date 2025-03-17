@@ -35,6 +35,8 @@ export class GraphManager {
         const edges: BindingEdge[] = [];
         const visited = new Set<string>();
 
+        console.log('generating binding graph2', edges)
+
         const addNode = (component: BaseComponent) => {
             if(nodes.find(node => node.id === component.id)) {
                 return;
@@ -57,12 +59,12 @@ export class GraphManager {
 
             this.bindingManager.getBindingsForComponent(componentId, 'source').forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
-
+                console.log('building binding graph', binding);
                 [sourceId, targetId].forEach(id => {
                     const comp = this.bindingManager.getComponent(id);
                     if (comp) addNode(comp);
                 });
-
+                console.log('adding edge', sourceId, targetId, sourceAnchor, targetAnchor)
                 edges.push({
                     source: { nodeId: sourceId, anchorId: sourceAnchor },
                     target: { nodeId: targetId, anchorId: targetAnchor }
@@ -74,7 +76,7 @@ export class GraphManager {
         };
 
         traverse(startComponentId);
-
+        console.log('final edges', edges)
         return { nodes, edges };
     }
 

@@ -5,8 +5,9 @@ import { createMergedComponent } from "./mergedComponent_CLEAN";
 // import { expandEdges } from "./SpecCompiler";
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 
-export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
-    return edges.flatMap(edge => {
+export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
+    console.log('expanding edges2', JSON.parse(JSON.stringify(edges)))
+    const expanded= edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
         if (!sourceComponent) {
             throw new Error(`Source component ${edge.source.nodeId} not found`);
@@ -15,25 +16,106 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         if (!targetComponent) {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
-        return expandAllAnchors(edge, sourceComponent, targetComponent)
-    }).filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
+        return expandGroupAnchors(edge, sourceComponent, targetComponent)
+    })
+    
+    console.log('expanded edges', JSON.parse(JSON.stringify(edges)), JSON.parse(JSON.stringify(expanded)))
+    
+    return expanded.filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
 }
 
 
 // Interactor schema fn 
-function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-    const getAnchors = (component: BaseComponent, anchorId: string) =>
-        anchorId === '_all'
-            ? [...component.getAnchors().values()].map(a => a.id.anchorId)
-            : [anchorId];
+function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+    // Helper function to get anchors based on configuration ID or _all
+    const getAnchors = (component: BaseComponent, anchorId: string) => {
+        console.log('dsadadsad', component, anchorId)
+        // If it's _all, return all anchors
+        if (anchorId === '_all') {
+            console.log('dsadadsad in all', component.getAnchors())
+            return [...component.getAnchors().values()].map(a => a.id.anchorId);
+        }
+
+        console.log('dsfsfsdfsd config', component, 'anchorId', component.configurations)
+
+        if(component.configurations[anchorId]) {
+            console.log('dsadadsad in config', component.configurations)
+
+            const componentAnchors = [...component.getAnchors().values()]
+            const filteredAnchors = componentAnchors.filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
+            const mappedAnchors = filteredAnchors.map(a => a.id.anchorId)
+            console.log('dasdas',anchorId, componentAnchors, 'filteredAnchors', filteredAnchors, 'mappedAnchors', mappedAnchors)
+            return mappedAnchors
+        }
+        
+        // Check if anchorId matches a configuration ID (like 'span')
+        // If so, find all anchors that contain this ID (like 'span_x', 'span_y')
+        const configAnchors = [...component.getAnchors().values()]
+            .filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
+            .map(a => a.id.anchorId);
+            
+        // If we found configuration-based anchors, return those
+        if (configAnchors.length > 0) {
+            console.log('dsadadsad', configAnchors)
+            return configAnchors;
+        }
+
+        console.log('dsadadsad retunr original', anchorId)
+
+        const baseAnchorId = anchorId
+        console.log('dsadadsad baseAnchorId', baseAnchorId)
+        try {
+            component.getAnchor(baseAnchorId); // This will throw if anchor doesn't exist
+            console.log('dsadadsaddasdsa', baseAnchorId, component, component.getAnchor(baseAnchorId))
+            return [baseAnchorId];
+        } catch (error) {
+            // Anchor doesn't exist, continue with empty array
+            console.log('Anchor not found:', baseAnchorId);
+            return [];
+        }
+        
+    };
 
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
-    const targetAnchors = getAnchors(target, edge.target.anchorId);
+    let targetAnchors = getAnchors(target, edge.target.anchorId);
 
-    function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-        return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+    console.log('dssdfsa', targetAnchors, target, 'sourceAnchors', sourceAnchors, source)
+    // Filter targetAnchors to only include those that match configurations referenced in original edges
+    
+    console.log('wdsdsf', sourceAnchors, 'targetAnchors', targetAnchors)
+
+    function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
+        // Extract the base channel from anchor IDs of various formats
+        function extractChannel(anchorId: string): string | undefined {
+            if (anchorId === '_all') return undefined;
+            console.log('extracting anchorId', anchorId)
+            // If it's a simple channel name like 'x', 'y', return as is
+            if (['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(anchorId)) {
+                return anchorId;
+            }
+            
+            // For complex IDs like 'point_x', 'span_pla_x', extract the last part
+            const parts = anchorId.split('_');
+            const lastPart = parts[parts.length - 1];
+            
+            // Return the last part if it's a valid channel, otherwise undefined
+            return ['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(lastPart) 
+                ? lastPart 
+                : undefined;
+        }
+        
+        console.log('fdsfkljsdlk', sourceAnchorId, 'targetAnchorId', targetAnchorId)
+        const sourceChannel = extractChannel(sourceAnchorId);
+        const targetChannel = extractChannel(targetAnchorId);
+        console.log('sourceChannel', sourceChannel, 'targetChannel', targetChannel)
+        if(!sourceChannel || !targetChannel) {
+            return false;
+        }
+        console.log('isCompatifsdfsble', sourceAnchorId, 'targetAnchorId', targetAnchorId, 'channel',sourceChannel, 'targetChannel', targetChannel, getChannelFromEncoding(sourceChannel),getChannelFromEncoding(targetChannel))
+        return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
     }
 
+    console.log('sourceAnchorsFIMAL', sourceAnchors, 'targetAnchors', targetAnchors)
     return sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
             .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))

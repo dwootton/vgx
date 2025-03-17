@@ -10,7 +10,7 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
-import { resolveCycles,expandEdges } from "./cycles_CLEAN";
+import { resolveCycles, expandEdges } from "./cycles_CLEAN";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -73,15 +73,21 @@ export class SpecCompiler {
         if (!rootComponent) {
             throw new Error(`Component "${fromComponentId}" not found.`);
         }
+        console.log('rootComponent', this.graphManager)
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
-
+        console.log('initial bindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
         // expand any _all anchors to individual anchors
-        bindingGraph.edges = expandEdges(bindingGraph.edges);
+        const expandedEdges = expandEdges(bindingGraph.edges);
 
+        //TODO prune edges that were made from other configs that are not necessary
+        
+        bindingGraph.edges = expandedEdges;
+        console.log('expanded bindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
         const processedGraph = resolveCycles(bindingGraph, this.getBindingManager());
 
+        console.log('processedGraph', processedGraph)
 
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
@@ -103,6 +109,7 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
+        console.log('esdffsddges', edges)
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -136,15 +143,16 @@ export class SpecCompiler {
                 console.warn(`Component ${nodeId} not found`);
                 return [];
             }
-            
+
 
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
 
-            
 
+
+            console.log('constraints', constraints, component)
             // Compile the current component
             const compiledNode = component.compileComponent(constraints);
 
@@ -212,7 +220,7 @@ export class SpecCompiler {
     ): void {
         const schema = anchorProxy.anchorSchema[cleanTargetId];
         const anchorAccessor = anchorProxy.compile();
-
+        console.log('anchorAccessor', anchorAccessor)
         // Handle special case for absolute values
         if ('absoluteValue' in anchorAccessor) {
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
@@ -222,11 +230,11 @@ export class SpecCompiler {
         // Add constraints based on container type
         if (channelSchema.container === "Scalar") {
             constraints[targetAnchorId].push(
-                generateScalarConstraints(schema, anchorAccessor)
+                generateScalarConstraints(channelSchema, anchorAccessor)
             );
         } else if (channelSchema.container === "Range") {
             constraints[targetAnchorId].push(
-                generateRangeConstraints(schema, anchorAccessor)
+                generateRangeConstraints(channelSchema, anchorAccessor)
             );
         }
     }
@@ -247,6 +255,7 @@ export class SpecCompiler {
 
         // Process each parent edge
         for (const parentEdge of parentEdges) {
+            console.log('parentEdge', parentEdge)
             const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
             if (!parentNode) continue;
 
@@ -256,8 +265,13 @@ export class SpecCompiler {
             const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
             if (!anchorProxy) continue;
 
+
+
             // Get the schema and value from the parent anchor
             const targetAnchorId = parentEdge.target.anchorId;
+            const targetAnchorSchema = component.schema[targetAnchorId];
+
+            console.log('targetAncdasdashorId', component,targetAnchorId, component.schema,targetAnchorSchema)
             const cleanTargetId = targetAnchorId.replace('_internal', '');
 
             // Skip if no schema exists for this channel
@@ -268,12 +282,14 @@ export class SpecCompiler {
                 constraints[targetAnchorId] = [];
             }
 
+            console.log('inputs:', constraints, targetAnchorId, cleanTargetId, targetAnchorSchema, anchorProxy)
+
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
                 targetAnchorId,
                 cleanTargetId,
-                component.schema[cleanTargetId],
+                targetAnchorSchema,
                 anchorProxy
             );
         }

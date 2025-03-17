@@ -19,6 +19,7 @@ export interface Component {
 export abstract class BaseComponent {
   protected anchors: Map<string, AnchorProxy> = new Map();
   public schema: Record<string, SchemaType> = {}; // default?
+  public configurations: Record<string, SchemaType> = {};
 
   public id: string;
   public bindingManager: BindingManager;
@@ -55,7 +56,8 @@ export abstract class BaseComponent {
 
 
     bindings.forEach(({ value: binding, key }) => {
-      const bindingProperty = key == 'bind' ? '_all' : key;
+      const bindingProperty = key.startsWith('bind.') ? key.split('.')[1] : (key === 'bind' ? '_all' : key);
+      console.log('bindingProperty', bindingProperty)
 
       // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
       if(bindingProperty === '_all'){
@@ -85,9 +87,29 @@ export abstract class BaseComponent {
         })
       }
 
+      } 
+      
+      function getConfigurationId(bindingProperty: string){
+        const split = bindingProperty.split('.')
+        // If no configuration id is provided, return 'span' as default
+        // In the future, we could grab the first id from default configurations
+        // return split[1] || configurations[0].id
+        return 'span'
       }
 
+      // let configId = '';
+      //  if(bindingProperty.includes('bind')){
+      //   const split = bindingProperty.split('.')
+      //   const channel = split[0]
+      //   configId = split[1]
+      //   console.log('bindingProperty', bindingProperty, channel, configId)
+      //   // this.bindingManager.addBinding(this.id, , channel, configId);
+      // }
+      // console.log('configId', configId, 'binding',binding,'prop',bindingProperty)
+      // bindingProperty = configId;
+
       if (isComponent(binding)) {
+        console.log('in component!',binding)
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
 
         // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled

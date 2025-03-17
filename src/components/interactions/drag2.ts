@@ -1,7 +1,8 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms } from "../utils";
+import { AnchorSchema, SchemaType, SchemaValue } from "types/anchors";
 export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
 export const dragBaseContext = { "x": 0, "y": 0 };
 
@@ -103,21 +104,6 @@ const startExtractor = (channel: string) => ({
 type constrain_expr = string;
 // context: a mapping of property names to constraint expressions
 type CompilationContext = Record<string, constrain_expr[]>;
-// markName : "update": "mark_0_layer_marks "// scalar, just map 
-
-// const generateSignalFromSchema = (schema: SchemaType, channel: string, signalParent:string,mergedParent:string) => {
-
-//     return {
-//         name: mergedParent+'_'+channel,
-//         value: null,
-//         on: [{
-//             events: {
-//                signal: signalParent,
-//             },
-//             update: schema.extractors[channel]?.update.replace('VGX_SIGNAL_NAME', signalParent)
-//         }]
-//     }
-// }
 
 const configurations = [{
     'id': 'point',
@@ -135,13 +121,16 @@ const configurations = [{
         }
     },
     "transforms": [{
-        "x": {
-            "update": "PARENT_ID.x" // replace the parent id + get the channel value
-        },
-        "y": {
-            "update": "PARENT_ID.y" // replace the parent id + get the channel value
+        "name":"x",
+        "channel":"x",
+        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+        },          
+        {
+        "name":"y",
+        "channel":"y",
+        "value": "PARENT_ID.y" // replace the parent id + get the channel value
         }
-    }]
+    ]
 }, {
     'id': 'span',
     "schema": {
@@ -156,16 +145,17 @@ const configurations = [{
             "interactive": true
         }
     },
-    "transforms": [{
-        "x": {
-            "update": "{'min':PARENT_ID.x.start, 'max':PARENT_ID.x.stop}" // replace the parent id + get the channel value
-        },
-        "y": {
-            "update": "{'min':PARENT_ID.y.start, 'max':PARENT_ID.y.stop}" // replace the parent id + get the channel value
-        }
-    }]
-},{
-    'id': 'start',
+
+    // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
+    // transforms extract info from the underlying data, then can be parameterized
+    "transforms": [
+        {"name":"x_start", "channel":"x", "value":"PARENT_ID.start.x"},
+        {"name":"x_stop", "channel":"x", "value":"PARENT_ID.stop.x"},
+        {"name":"y_start", "channel":"y", "value":"PARENT_ID.start.y"},
+        {"name":"y_stop", "channel":"y", "value":"PARENT_ID.stop.y"},
+    ]
+}, {
+    'id': 'begin',
     "schema": {
         "x": {
             "container": "Scalar",
@@ -178,48 +168,146 @@ const configurations = [{
             "interactive": true
         }
     },
-    "transforms": [{
-        "x": {
-            "update": "PARENT_ID.start.x" // replace the parent id + get the channel value
-        },
-        "y": {
-            "update": "PARENT_ID.start.y" // replace the parent id + get the channel value
-        }
-    }]
+    "transforms": [
+        {"name":"x", "channel":"x", "value":"PARENT_ID.start.x"},
+        {"name":"y", "channel":"y", "value":"PARENT_ID.start.y"}
+    ]
 }]
 
-function generateConfigurationAnchors(id:string, config:any) {
-    if(config.schema[id].container === 'Scalar') {
-        return {
-                'value':generateCompiledValue(id,'x')
-            }
-    } else if(config.schema[id].container === 'Range') {
-        return {
-            'value':createRangeAccessor(id,'x')
+const rectSide = {
+    'id': 'left',
+    "schema": {
+        "x": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+        },
+        "y": {
+            "container": "Range",
+            "valueType": "Numeric",
         }
+    },
+    "transforms": [{
+        "x": {
+            "update": "PARENT_ID.x" // replace the parent id + get the channel value
+        },
+        "y": {
+            "update": "{'min':PARENT_ID.y.start, 'max':PARENT_ID.y.stop}" // replace the parent id + get the channel value
+        }
+    }]
+}
+
+// okay, todo: go through and actually create the appropriate signals for each of these. Implement some anchor logic [span].x or something.
+
+
+function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
+    if (schema.container === 'Scalar') {
+        return {
+            'value': generateCompiledValue(id, channel, configurationId)
+        }
+    } else if (schema.container === 'Range') {
+        return createRangeAccessor(id, channel, configurationId);
     }
-    
+    return { 'value': '' }
 }
 
 
 
-let createRangeAccessor = (id: string, channel: string) => {
+let createRangeAccessor = (id: string, channel: string, configurationId: string) => {
     return {
-        'start': `${id}_${channel}_start`,
-        'stop': `${id}_${channel}_stop`,
+        'start': `${id}_${configurationId}_${channel}_start`,
+        'stop': `${id}_${configurationId}_${channel}_stop`,
     }
 }
 
 
-let generateCompiledValue = (id: string, channel: string) => {
-    return `${id}_${channel}` // min value
+let generateCompiledValue = (id: string, channel: string, configurationId: string) => {
+    return `${id}_${configurationId}_${channel}` // min value
 }
 
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
+        configurations.forEach(config => {
+            this.configurations[config.id] = config
+            const schema = config.schema
+            for (const key in schema) {
+                const schemaValue = schema[key];
+                const keyName = config.id + '_' + key
+                console.log('creating anchor for ', keyName)
+                console.log('setting schema', keyName, schemaValue)
+                this.schema[keyName] = schemaValue;
 
 
+                this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                    const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+                    console.log('generatedAnchor', generatedAnchor)
+                    return generatedAnchor
+                }));
+            }
+            // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
+            //     return generateConfigurationAnchors(this.id, config.id)
+            // }));
+        });
+        // this.anchors.set('x', this.createAnchorProxy({ 'x': this.schema['x'] }, 'x', () => {
+        //     return { 'value': generateCompiledValue(this.id, 'x') }
+        // }));
+
+
+
+    }
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        const nodeId = inputContext.nodeId || this.id;
+        console.log('inputContext', inputContext, this.anchors)
+        const signal = {
+            name: this.id, // base signal
+            value: dragBaseContext,
+            on: [{events: {type: 'pointerdown', 'markname': inputContext.markName}, update: `{'start': {'x': x(), 'y': y()}}`},
+                {
+                events: {
+                    type: 'pointermove',
+                    source: "window",
+                    between: [
+                        { type: "pointerdown", "markname": inputContext.markName },
+                        { type: "pointerup", source: "window", }
+                    ]
+                },
+                update: `merge(${nodeId}, {'x': x(), 'y': y(),  'stop': {'x': x(), 'y': y()}})`
+            }]
+        };
+
+        console.log('fldragKEYSSS', Array.from(this.anchors.keys()));
+
+
+
+
+       // Generate all signals from configurations in a clean, concise way
+    const outputSignals = Object.values(this.configurations)
+        .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+        .flatMap(config => {
+        // Build constraint map from inputContext
+        const constraintMap = {};
+        console.log('in your config', config)
+        Object.keys(config.schema).forEach(channel => {
+            const key = `${config.id}_${channel}`;
+            constraintMap[channel] = inputContext[key] || [];
+        });
+        
+        const signalPrefix = this.id + '_' + config.id
+        // Generate signals for this configuratio
+        console.log('nodeID: ', 'constraintMap', constraintMap)
+        return generateSignalsFromTransforms(
+            config.transforms,
+            nodeId,
+            signalPrefix,
+            constraintMap
+        );
+        });
+        // Additional signals can be added here and will be available in input contexts
+        const otherSignals = [];
+        console.log('DRAG outputSignals', outputSignals)
+        return {
+            params: [signal, ...outputSignals]
+        }
     }
 }
 
@@ -322,6 +410,7 @@ export class Drag extends BaseComponent {
 export class DragSpan extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
+        console.log('drag span config', config)
 
         this.schema = {
             'x': {

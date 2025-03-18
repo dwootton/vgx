@@ -98,6 +98,7 @@ export class Line extends BaseComponent {
     constructor(config: any = {}) {
         super({ ...config })
 
+       
         this.configurations = {};
         configurations.forEach(cfg => {
             this.configurations[cfg.id] = cfg;

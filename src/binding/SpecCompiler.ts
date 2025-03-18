@@ -120,12 +120,12 @@ export class SpecCompiler {
     }
 
 
-    private buildImplicitContextEdges(node: BindingNode, edges: BindingEdge[], nodes: BindingNode[]): Record<string, Constraint[]> {
-        const constraints: Record<string, Constraint[]> = {};
+    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
+        let edges = [...previousEdges]
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
-            return constraints;
+            return [];
         }
 
         // 1. Find all parent nodes (nodes that have edges targeting the current node)
@@ -134,11 +134,11 @@ export class SpecCompiler {
         );
         
         
-        if (parentNodes.length === 0) return constraints;
+        if (parentNodes.length === 0) return [];
         
         // Get the current component
         const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return {};
+        if (!component) return [];
         
         // Map to store the highest value anchor for each channel type
         const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
@@ -210,7 +210,7 @@ export class SpecCompiler {
             edges.push(implicitEdge);
         }
         
-        return constraints;
+        return edges;
     }
         
     /**
@@ -223,7 +223,7 @@ export class SpecCompiler {
      * @returns Array of compiled Vega-Lite specifications
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        const { nodes, edges } = bindingGraph;
+        let { nodes, edges } = bindingGraph;
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -261,6 +261,7 @@ export class SpecCompiler {
 
 
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
+            edges = [...edges, ...implicitEdges]
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
             

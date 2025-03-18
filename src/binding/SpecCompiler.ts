@@ -100,8 +100,8 @@ export class SpecCompiler {
         // IDK why this is needed, but something is deeply wrong with Vega signals and apparently param order matters
         // Sort params and move nodes ending with _start to the end
         const sortedParams = undefinedRemoved.params?.sort((a, b) => {
-            const aEndsWithStart = a.name.endsWith('span_start_x');
-            const bEndsWithStart = b.name.endsWith('span_start_x');
+            const aEndsWithStart = a.name.endsWith('span_start_x') || a.name.endsWith('span_start_y');
+            const bEndsWithStart = b.name.endsWith('span_start_x') || b.name.endsWith('span_start_y');
             
             if (aEndsWithStart && !bEndsWithStart) return 1;
             if (!aEndsWithStart && bEndsWithStart) return -1;

@@ -201,7 +201,7 @@ interface Transform {
     
     // Process constraints
     const processedConstraints = constraints.map(constraint => ({
-      events: {"signal":id},//extractAllNodeNames(constraint).map(node => ({ signal: node })), TODO FIX DEPENDENCTS
+      events: extractAllNodeNames(constraint).map(node => ({ signal: node })),// TODO FIX DEPENDENCTS
       update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
     }));
 
@@ -210,11 +210,12 @@ interface Transform {
     const finalUpdate = collapseSignalUpdates(processedConstraints, parentExtractor);
     // Find dependent nodes
     const dependentNodes = extractAllNodeNames(finalUpdate)
-      .filter(node => node !== output);
+      .filter(node => node !== output)
+      .map(node => ({ signal: node }));
     
       const triggerEvents = [{ signal: id },]
-       // ...dependentNodes.map(node => ({ signal: node }))] TODO FIX DEPENDENCTS
-    const uniqueTriggerEvents = [...new Set(triggerEvents.map(JSON.stringify))].map(JSON.parse);
+       // ...dependentNodes] TODO FIX DEPENDENCTS
+    const uniqueTriggerEvents = [...new Set(dependentNodes.map(JSON.stringify))].map(JSON.parse);
     console.log('uniqueTriggerEvents', uniqueTriggerEvents)
     // Return the signal definition
     return {

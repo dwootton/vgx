@@ -1,6 +1,6 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
-import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue } from "./binding";
+import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue, removeUnreferencedParams } from "./binding";
 import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
 import { BaseComponent } from "../components/base";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
@@ -12,6 +12,7 @@ import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./
 // import { resolveCycles } from "./cycles";
 import { resolveCycleMulti, expandEdges, extractChannel, isCompatible } from "./cycles_CLEAN";
 import { pruneEdges } from "./prune";
+import { Spec } from "vega-typings";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -41,7 +42,6 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
-    console.log('generating range constraints for', schema, value)
     if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
@@ -84,13 +84,10 @@ export class SpecCompiler {
 
         const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
 
-        console.log('prunedEdges::', prunedEdges)
         
         bindingGraph.edges = prunedEdges;
-        console.log('addedimplicitEdges', bindingGraph)
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
-        console.log('processedGraph!!!', processedGraph)
 
 
         // Compile the updated graph
@@ -100,47 +97,9 @@ export class SpecCompiler {
 
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
-        
-        // Stringify the spec (omitting data) to search for parameter usage
-        const specString = JSON.stringify(undefinedRemoved, (key, value) => {
-            // Skip data values to reduce size
-            if (key === 'values' && Array.isArray(value)) {
-                return '[...]';
-            }
-            return value;
-        });
-        
-        // Check if each parameter is actually used in expressions
-        const usedParams = undefinedRemoved.params?.filter(param => {
-            const paramName = param.name;
-            // Look for the parameter name within expression strings
-            // Match both 'paramName' and "paramName" patterns
-            const singleQuotePattern = `'${paramName}'`;
-            const doubleQuotePattern = `"${paramName}"`;
-            // Also match direct references to the parameter in expressions
-            const directRefPattern = new RegExp(`\\b${paramName}\\b`);
-            
-            // Count occurrences to ensure parameter is used at least twice
-            const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
-            const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
-            // const directRefMatches = (specString.match(directRefPattern) || []).length;
-            
-            const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
-            console.log('totalOccurrences', paramName, totalOccurrences)
-            console.log('matches',specString.match(new RegExp(singleQuotePattern, 'g')),specString.match(new RegExp(doubleQuotePattern, 'g')),specString.match(directRefPattern))
-            return totalOccurrences >= 2;
-        }) || [];
-        console.log('usedParams', usedParams,undefinedRemoved.params)
-        
-        // Update the spec with only the parameters that are actually used
-        undefinedRemoved.params = usedParams;
-        
-        console.log('undefinedRemoved', undefinedRemoved);
-        
+        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
 
-        // IDK why this is needed, but something is deeply wrong with Vega signals and apparently param order matters
-        // Sort params and move nodes ending with _start to the end
-        const sortedParams = undefinedRemoved.params?.sort((a, b) => {
+        const sortedParams = unreferencedRemoved.params?.sort((a, b) => {
             const aEndsWithStart = a.name.endsWith('span_start_x') || a.name.endsWith('span_start_y');
             const bEndsWithStart = b.name.endsWith('span_start_x') || b.name.endsWith('span_start_y');
             
@@ -157,7 +116,6 @@ export class SpecCompiler {
 
     private buildImplicitContextEdges(node: BindingNode, edges: BindingEdge[], nodes: BindingNode[]): Record<string, Constraint[]> {
         const constraints: Record<string, Constraint[]> = {};
-        console.log('building implicit context edges for', node, edges, nodes);
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
@@ -169,7 +127,6 @@ export class SpecCompiler {
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
         
-        console.log('parent nodes:', parentNodes);
         
         if (parentNodes.length === 0) return constraints;
         
@@ -192,7 +149,6 @@ export class SpecCompiler {
             const defaultConfigKey = Object.keys(parentComponent.configurations || {})
                 .find(cfg => parentComponent.configurations[cfg]?.default);
 
-            console.log('defaultConfigKey', defaultConfigKey, parentComponent)
             
             if (!defaultConfigKey) continue;
             
@@ -225,7 +181,6 @@ export class SpecCompiler {
             // Find compatible target anchor on current node
             const targetAnchors = component.getAnchors()
                 .filter(anchor => {
-                    console.log('idIMPLOICIT', anchor.id.anchorId, )
                     const targetChannel = extractChannel(anchor.id.anchorId);
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
@@ -244,9 +199,7 @@ export class SpecCompiler {
                 },
                 implicit: true
             };
-            
-            console.log('Created implicit edge:', implicitEdge);
-            
+                        
             // Add to implicit edges
             edges.push(implicitEdge);
         }
@@ -265,7 +218,6 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
-        console.log('FINALedges', edges)
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -308,7 +260,6 @@ export class SpecCompiler {
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
-            console.log('constraintsByNode', constraintsByNode)
             // Compile the current component
             const compiledNode = component.compileComponent(constraints);
 
@@ -345,7 +296,6 @@ export class SpecCompiler {
                 return { anchor, targetId: edge.target.anchorId };
             }).filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== undefined);
 
-            // console.log('parentAnchors:::', parentAnchors, JSON.parse(JSON.stringify(compileConstraints)), component)
             // Extract constraints for merged component
             const mergedSignals = extractConstraintsForMergedComponent(parentAnchors, constraintsByNode, component);
             const constraints: Record<AnchorId, Constraint[]> = {
@@ -378,20 +328,17 @@ export class SpecCompiler {
         const anchorAccessor = anchorProxy.compile();
         // Handle special case for absolute values
         if ('absoluteValue' in anchorAccessor) {
-            console.log('adding absolute value constraint for', anchorAccessor.absoluteValue)
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
             return;
         }
 
         // Add constraints based on container type
         if (currentNodeSchema.container === "Scalar") {
-            console.log('adding constraint for2', targetAnchorId, parentNodeSchema, anchorAccessor,generateScalarConstraints(parentNodeSchema, anchorAccessor))
 
             constraints[targetAnchorId].push(
                 generateScalarConstraints(parentNodeSchema, anchorAccessor)
             );
         } else if (currentNodeSchema.container === "Range") {
-            console.log('adding constraint for', parentNodeSchema, anchorAccessor,generateRangeConstraints(parentNodeSchema, anchorAccessor))
             constraints[targetAnchorId].push(
                 generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
@@ -433,7 +380,6 @@ export class SpecCompiler {
 
             const currentNodeSchema = component.schema[cleanTargetId]
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
-            console.log('aprentNodeSchema', parentNodeSchema)
             
             // Skip if no schema exists for this channel
             if (!currentNodeSchema) continue;
@@ -443,7 +389,6 @@ export class SpecCompiler {
                 constraints[targetAnchorId] = [];
             }
             
-            console.log('adding constraint for', component, targetAnchorId, anchorProxy,anchorProxy.compile(), JSON.parse(JSON.stringify(constraints)))
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
@@ -454,7 +399,6 @@ export class SpecCompiler {
             );
         }
 
-        console.log('final constraints', constraints)
         return constraints;
     }
 

@@ -213,10 +213,8 @@ interface Transform {
       .filter(node => node !== output)
       .map(node => ({ signal: node }));
     
-      const triggerEvents = [{ signal: id },]
        // ...dependentNodes] TODO FIX DEPENDENCTS
     const uniqueTriggerEvents = [...new Set(dependentNodes.map(JSON.stringify))].map(JSON.parse);
-    console.log('uniqueTriggerEvents', uniqueTriggerEvents)
     // Return the signal definition
     return {
       name: output,

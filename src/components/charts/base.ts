@@ -77,16 +77,10 @@ export class BaseChart extends BaseComponent {
 
   constructor(config: ChartConfig) {
     super({ ...config });
-    console.log('chart config', config)
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;
     this.configurations = this.generateChartConfigurations();
-    console.log('expanding group anchors for','now',this.configurations)
-
-
-
-
 
     this.spec = {
       name: this.id,
@@ -105,7 +99,6 @@ export class BaseChart extends BaseComponent {
   }
 
   private generateChartConfigurations() : Record<string, SchemaType> {
-    console.log('expanding group anchors for!')
 
 
     // Generate configurations for chart channels

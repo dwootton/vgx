@@ -13,7 +13,6 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
     const validEdges = new Set<BindingEdge>();
     const visitedNodes = new Set<string>();
 
-    console.log('pruning beforeedges', edges)
     
     // Helper function to recursively validate edges
     function validateEdgesForNode(nodeId: string, validChannels: Set<string>) {
@@ -64,8 +63,6 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
     const prunedEdges = edges.filter(edge => validEdges.has(edge));
     const implicitEdges = edges.filter(edge => !validEdges.has(edge));
     
-    console.log('pruning afteredges', edges.length, 'to', prunedEdges.length, prunedEdges);
-    console.log('implicit edges', implicitEdges.length, implicitEdges);
     
     return prunedEdges;
 }

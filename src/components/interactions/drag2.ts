@@ -238,7 +238,6 @@ export class CombinedDrag extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
@@ -253,7 +252,7 @@ export class CombinedDrag extends BaseComponent {
 
 
     }
-    
+
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         const signal = {
@@ -300,19 +299,15 @@ export class CombinedDrag extends BaseComponent {
                 );
             });
         // Additional signals can be added here and will be av  ilable in input contexts
-        console.log('this.anchors', [...this.anchors.keys()].filter(key => key.endsWith('_internal')))
         const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
                 //no need to get constraints as constraints would have had it be already
                 // get the transform 
-                console.log('keys', key, key.split('_'), this.configurations)
                 const config = this.configurations[key.split('_')[0]];
-                console.log('generatedKEYSIGNAL', config, config.transforms)
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
-                console.log('compatibleTransformsDRAG', compatibleTransforms)
 
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
@@ -323,7 +318,6 @@ export class CombinedDrag extends BaseComponent {
             }
              
             ).flat();
-        console.log('DRAG outputSignals', outputSignals, internalSignals)
         return {
             params: [signal, ...outputSignals, ...internalSignals]
         }
@@ -429,7 +423,6 @@ export class Drag extends BaseComponent {
 export class DragSpan extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
-        console.log('drag span config', config)
 
         this.schema = {
             'x': {

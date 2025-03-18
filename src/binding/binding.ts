@@ -3,7 +3,40 @@ import { TopLevelSpec } from "vega-lite/build/src/spec";
 import { BindingManager, Edge } from "./BindingManager";
 export type compilationContext = any;
 
+export function removeUnreferencedParams(spec: TopLevelSpec) {
+    // Stringify the spec (omitting data) to search for parameter usage
+const specString = JSON.stringify(spec, (key, value) => {
+    // Skip data values to reduce size
+    if (key === 'values' && Array.isArray(value)) {
+        return '[...]';
+    }
+    return value;
+});
 
+// Check if each parameter is actually used in expressions
+const usedParams = spec.params?.filter(param => {
+    const paramName = param.name;
+    // Look for the parameter name within expression strings
+    // Match both 'paramName' and "paramName" patterns
+    const singleQuotePattern = `'${paramName}'`;
+    const doubleQuotePattern = `"${paramName}"`;
+    // Also match direct references to the parameter in expressions
+    const directRefPattern = new RegExp(`\\b${paramName}\\b`);
+    
+    // Count occurrences to ensure parameter is used at least twice
+    const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
+    const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
+    // const directRefMatches = (specString.match(directRefPattern) || []).length;
+    
+    const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
+    return totalOccurrences >= 2;
+}) || [];
+
+return {
+    ...spec,
+    params: usedParams
+}
+}   
 export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
     if (!obj || typeof obj !== 'object') {
         return obj;

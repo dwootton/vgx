@@ -172,11 +172,8 @@ export class Circle extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
-                console.log('keys', key, key.split('_'), this.configurations)
                 const config = this.configurations[key.split('_')[0]];
-                console.log('generatedKEYSIGNAL', config, config.transforms)
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-                console.log('compatibleTransforms', compatibleTransforms)
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
                     transform: transform,

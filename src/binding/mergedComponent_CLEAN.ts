@@ -287,12 +287,10 @@ export function extractConstraintsForMergedComponent(
 
     
       const parentSignalName = `${parentId}_${anchorFromParent.anchor.id.anchorId}_internal`
-      console.log('parentSignalName', parentSignalName)
      
       // Get all other components in the cycle
       const otherParentIds = parentComponentIds.filter(id => id !== parentId);
   
-      console.log('internalConstraints otherParentIds', otherParentIds)
       // Process constraints from each other parent
       const otherParentsConstraints = otherParentIds.map(otherParentId => {
         const otherParentConstraints = compileConstraints[otherParentId];
@@ -306,14 +304,11 @@ export function extractConstraintsForMergedComponent(
         const channel = component.getAnchors()[0]?.id.anchorId;
         if (!channel) return null;
 
-        console.log('internalConstraintsdassda',otherParentConstraints)
 
         const internalConstraints = Object.keys(otherParentConstraints).filter(key => key.endsWith('_internal')).filter(key=>isCompatible(key.replace('_internal', ''), channel))
 
-        console.log('internalConstraintsdassda2', internalConstraints)
         // if no interna constraints it means it didn't have any other constraints
         if(internalConstraints.length === 0) {
-            console.log('returning baseconstraint')
             return {
                 events: { "signal": parentSignalName },
                 update: parentSignalName
@@ -330,9 +325,7 @@ export function extractConstraintsForMergedComponent(
                 // I think has to deal with the merge constraints logic...
                 
                 const constraints = otherParentConstraints[internalKeys]
-                console.log('constraint COMPONTNETANCHOR', anchorFromParent.anchor.id.componentId)
                 return constraints.map(constraint => {
-                    console.log('in self reference?', constraint,constraint.includes(anchorFromParent.anchor.id.componentId))
                     if(constraint.includes('undefined') || constraint.includes(anchorFromParent.anchor.id.componentId)) return null;
                     return {
                         events: { "signal": parentSignalName },
@@ -342,16 +335,13 @@ export function extractConstraintsForMergedComponent(
              
             })
 
-        console.log("COMPILEDCONSTRAINTS1", constraints)
         return constraints.flat();
       }).filter(item => item !== null).flat();
 
-      console.log("COMPILEDCONSTRAINTS2", otherParentsConstraints)
   
       mergedSignals.push(...otherParentsConstraints);
     });
 
-    console.log("COMPILEDCONSTRAINTS3", mergedSignals)
   
     return mergedSignals;
   }

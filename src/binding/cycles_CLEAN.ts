@@ -32,7 +32,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
 
-
         if(component.configurations[anchorId]) {
 
             const componentAnchors = [...component.getAnchors().values()]
@@ -198,15 +197,14 @@ function rewireMultiNodeConnections(
 
         const channel = extractChannel(anchorId)
 
+
         if (!anchorId || !channel) {
             console.warn(`No anchor found for channel in component ${nodeId}`);
             return;
         }
 
-        console.log('creating internal anchor for', component.id, anchorId)
         // Create internal anchor
         createInternalAnchor(component, anchorId);
-        console.log('created internal anchor for2', component)
         
         // Redirect incoming edges to internal anchors
         redirectIncomingEdges(edges, nodeId, anchorId);
@@ -227,7 +225,6 @@ function rewireMultiNodeConnections(
             target: { nodeId, anchorId }
         });
 
-        console.log('pushed edges from ',nodeId, internalAnchorId, "to ", mergedNodeId, channel)
     });
     
     // Remove the original cycle edges
@@ -252,7 +249,6 @@ export function resolveCycleMulti(
     bindingManager: BindingManager
 ): BindingGraph {
     let processedGraph = cloneGraph(graph);
-    
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
     let count = 10;
@@ -564,7 +560,6 @@ function createInternalAnchor(component: BaseComponent, anchorId: string): void 
         return originalResult;
     };
 
-    console.log('about to set anchor', internalAnchorId, clonedAnchor)
     component.setAnchor(internalAnchorId, clonedAnchor);
 }
 
@@ -600,7 +595,7 @@ function cloneGraph(graph: BindingGraph): BindingGraph {
             id: node.id,
             type: node.type
         })),
-        edges: JSON.parse(JSON.stringify(graph.edges))
+        edges: JSON.parse(JSON.stringify(graph.edges)),
     };
 }
 

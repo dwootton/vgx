@@ -13,6 +13,7 @@ import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./
 import { resolveCycleMulti, expandEdges, extractChannel, isCompatible } from "./cycles_CLEAN";
 import { pruneEdges } from "./prune";
 import { Spec } from "vega-typings";
+import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -95,9 +96,14 @@ export class SpecCompiler {
 
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
+        console.log('mergedSpec', JSON.parse(JSON.stringify(mergedSpec)))
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('unreferencedRemoved', JSON.parse(JSON.stringify(unreferencedRemoved)), JSON.parse(JSON.stringify(unreferencedRemoved)))
+
+        const newParams = fixVegaSpanBug(unreferencedRemoved.params)
+        unreferencedRemoved.params = newParams
 
         const sortedParams = unreferencedRemoved.params?.sort((a, b) => {
             const aEndsWithStart = a.name.endsWith('span_start_x') || a.name.endsWith('span_start_y');
@@ -720,3 +726,54 @@ interface EdgeGroup {
 
 
 
+/*
+ Temporary fix for the issue where start span parameters don't seem to update?
+ Looks like it isn't detecting changing with node_start, and thus it doesn't update it, even when 
+ a new drag occurs. 
+
+*/
+function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
+    for (let i = 0; i < params.length; i++) {
+        const param = params[i];
+        
+        // Check if this is a span start parameter
+        if (param.name.endsWith('_span_x_start') || param.name.endsWith('_span_y_start')) {
+            // Extract the node ID and the base parameter name
+            const nodeId = param.name.split('_span_')[0];
+            const dimension = param.name.endsWith('_span_x_start') ? 'x' : 'y';
+            
+            // Find the corresponding stop parameter
+            const stopParamName = `${nodeId}_span_${dimension}_stop`;
+            
+            // Ensure the param has an 'on' array
+            if (!param.on) {
+                param.on = [];
+            }
+            
+            // If there's already an event handler, add to it
+            if (param.on.length > 0) {
+                // Add the stop parameter to the events if it's not already there
+                if (!param.on[0].events.signal || !param.on[0].events.signal.includes(stopParamName)) {
+                    if (typeof param.on[0].events === 'string' || !param.on[0].events.signal) {
+                        param.on[0].events = { signal: stopParamName };
+                    } else {
+                        // If it's already an array, add to it
+                        if (Array.isArray(param.on[0].events.signal)) {
+                            param.on[0].events.signal.push(stopParamName);
+                        } else {
+                            // Convert to array and add
+                            param.on[0].events.signal = [param.on[0].events.signal, stopParamName];
+                        }
+                    }
+                }
+            } else {
+                // Create a new event handler
+                param.on.push({
+                    events: { signal: stopParamName },
+                    update: param.update || param.value
+                });
+            }
+        }
+    }
+    return params;
+}

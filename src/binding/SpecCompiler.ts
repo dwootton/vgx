@@ -727,6 +727,7 @@ interface EdgeGroup {
 
 
 /*
+
  Temporary fix for the issue where start span parameters don't seem to update?
  Looks like it isn't detecting changing with node_start, and thus it doesn't update it, even when 
  a new drag occurs. 

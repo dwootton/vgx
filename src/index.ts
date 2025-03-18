@@ -15,7 +15,7 @@ export { Circle } from './components/marks';
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 import { Circle } from './components/marks';
 import { Line } from './components/marks';
-import { CombinedDrag, Drag } from './components/interactions';  
+import { CombinedDrag, Click } from './components/interactions';  
 import { Brush as Brush2 } from './components/interactions/Instruments/Brush';
 import { Rect } from './components/marks/rect';
 export const all = {
@@ -30,4 +30,5 @@ export const all = {
   brush: (config:any)=> new CombinedDrag(config),
   rect: (config:any)=> new Rect(config),
   line: (config:any)=> new Line(config),
+  click: (config:any)=> new Click(config),
 };

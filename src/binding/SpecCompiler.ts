@@ -10,7 +10,8 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
-import { resolveCycleMulti, expandEdges } from "./cycles_CLEAN";
+import { resolveCycleMulti, expandEdges, extractChannel, isCompatible } from "./cycles_CLEAN";
+import { pruneEdges } from "./prune";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -77,23 +78,63 @@ export class SpecCompiler {
 
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
+
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        //TODO prune edges that were made from other configs that are not necessary
+        const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
+
+        console.log('prunedEdges::', prunedEdges)
         
-        bindingGraph.edges = expandedEdges;
+        bindingGraph.edges = prunedEdges;
+        console.log('addedimplicitEdges', bindingGraph)
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
+        console.log('processedGraph!!!', processedGraph)
 
 
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
-        //const compiledSpecs = this.compileBindingGraph(bindingGraph);
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
+        //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
+        
+        // Stringify the spec (omitting data) to search for parameter usage
+        const specString = JSON.stringify(undefinedRemoved, (key, value) => {
+            // Skip data values to reduce size
+            if (key === 'values' && Array.isArray(value)) {
+                return '[...]';
+            }
+            return value;
+        });
+        
+        // Check if each parameter is actually used in expressions
+        const usedParams = undefinedRemoved.params?.filter(param => {
+            const paramName = param.name;
+            // Look for the parameter name within expression strings
+            // Match both 'paramName' and "paramName" patterns
+            const singleQuotePattern = `'${paramName}'`;
+            const doubleQuotePattern = `"${paramName}"`;
+            // Also match direct references to the parameter in expressions
+            const directRefPattern = new RegExp(`\\b${paramName}\\b`);
+            
+            // Count occurrences to ensure parameter is used at least twice
+            const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
+            const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
+            // const directRefMatches = (specString.match(directRefPattern) || []).length;
+            
+            const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
+            console.log('totalOccurrences', paramName, totalOccurrences)
+            console.log('matches',specString.match(new RegExp(singleQuotePattern, 'g')),specString.match(new RegExp(doubleQuotePattern, 'g')),specString.match(directRefPattern))
+            return totalOccurrences >= 2;
+        }) || [];
+        console.log('usedParams', usedParams,undefinedRemoved.params)
+        
+        // Update the spec with only the parameters that are actually used
+        undefinedRemoved.params = usedParams;
+        
         console.log('undefinedRemoved', undefinedRemoved);
         
 
@@ -113,6 +154,106 @@ export class SpecCompiler {
         return undefinedRemoved;
     }
 
+
+    private buildImplicitContextEdges(node: BindingNode, edges: BindingEdge[], nodes: BindingNode[]): Record<string, Constraint[]> {
+        const constraints: Record<string, Constraint[]> = {};
+        console.log('building implicit context edges for', node, edges, nodes);
+
+        // Skip if this is a merged node
+        if (node.type === 'merged') {
+            return constraints;
+        }
+
+        // 1. Find all parent nodes (nodes that have edges targeting the current node)
+        const parentNodes = nodes.filter(n => 
+            edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
+        );
+        
+        console.log('parent nodes:', parentNodes);
+        
+        if (parentNodes.length === 0) return constraints;
+        
+        // Get the current component
+        const component = this.getBindingManager().getComponent(node.id);
+        if (!component) return {};
+        
+        // Map to store the highest value anchor for each channel type
+        const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
+        
+        // 2. For each parent, find default configuration and compatible anchors
+        for (const parentNode of parentNodes) {
+            // Skip merged nodes
+            if (parentNode.type === 'merged') continue;
+            
+            const parentComponent = this.getBindingManager().getComponent(parentNode.id);
+            if (!parentComponent) continue;
+            
+            // Find default configuration for parent
+            const defaultConfigKey = Object.keys(parentComponent.configurations || {})
+                .find(cfg => parentComponent.configurations[cfg]?.default);
+
+            console.log('defaultConfigKey', defaultConfigKey, parentComponent)
+            
+            if (!defaultConfigKey) continue;
+            
+            // Get all anchors for this parent
+            const parentAnchors = parentComponent.getAnchors();
+            
+            // Process each anchor
+            parentAnchors.forEach(anchor => {
+                const anchorId = anchor.id.anchorId;
+                const channel = extractChannel(anchorId);
+                if (!channel) return;
+                
+                // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
+                const match = anchorId.match(/node_(\d+)_/);
+                const value = match ? parseInt(match[1], 10) : 0;
+                
+                // Update highest anchor for this channel if this one is higher
+                if (!highestAnchors[channel] || value > highestAnchors[channel].value) {
+                    highestAnchors[channel] = {
+                        nodeId: parentNode.id,
+                        anchorId,
+                        value
+                    };
+                }
+            })
+        }
+        
+        // 3. Create implicit edges from highest parent anchors to this node
+        for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
+            // Find compatible target anchor on current node
+            const targetAnchors = component.getAnchors()
+                .filter(anchor => {
+                    console.log('idIMPLOICIT', anchor.id.anchorId, )
+                    const targetChannel = extractChannel(anchor.id.anchorId);
+                    return targetChannel && isCompatible(channel, targetChannel);
+                });
+            
+            if (targetAnchors.length === 0) continue;
+            
+            // Create implicit edge
+            const implicitEdge: BindingEdge = {
+                source: {
+                    nodeId: anchorInfo.nodeId,
+                    anchorId: anchorInfo.anchorId
+                },
+                target: {
+                    nodeId: node.id,
+                    anchorId: targetAnchors[0].id.anchorId
+                },
+                implicit: true
+            };
+            
+            console.log('Created implicit edge:', implicitEdge);
+            
+            // Add to implicit edges
+            edges.push(implicitEdge);
+        }
+        
+        return constraints;
+    }
+        
     /**
      * Compiles a binding graph into a collection of Vega-Lite specifications.
      * This is the core function that traverses the processed graph and compiles
@@ -159,8 +300,12 @@ export class SpecCompiler {
                 return [];
             }
 
+
+
+            const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
+            
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
             console.log('constraintsByNode', constraintsByNode)

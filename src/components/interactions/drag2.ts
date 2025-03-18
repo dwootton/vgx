@@ -253,6 +253,7 @@ export class CombinedDrag extends BaseComponent {
 
 
     }
+    
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         const signal = {

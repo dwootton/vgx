@@ -32,7 +32,7 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
 
-
+        console.log('expanding group anchors for', component.id, anchorId, component,component.configurations)
         if(component.configurations[anchorId]) {
 
             const componentAnchors = [...component.getAnchors().values()]
@@ -198,6 +198,7 @@ function rewireMultiNodeConnections(
 
         const channel = extractChannel(anchorId)
 
+
         if (!anchorId || !channel) {
             console.warn(`No anchor found for channel in component ${nodeId}`);
             return;
@@ -252,7 +253,7 @@ export function resolveCycleMulti(
     bindingManager: BindingManager
 ): BindingGraph {
     let processedGraph = cloneGraph(graph);
-    
+    console.log('processedGraphONR!!!', processedGraph)
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
     let count = 10;
@@ -600,7 +601,7 @@ function cloneGraph(graph: BindingGraph): BindingGraph {
             id: node.id,
             type: node.type
         })),
-        edges: JSON.parse(JSON.stringify(graph.edges))
+        edges: JSON.parse(JSON.stringify(graph.edges)),
     };
 }
 

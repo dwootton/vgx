@@ -6,7 +6,7 @@ import { Field, FieldDef, FieldDefBase } from 'vega-lite/build/src/channeldef';
 import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
-import { AnchorProxy, ChannelType , RangeSchema,NumericScalar,SchemaType, SchemaValue} from '../../types/anchors';
+import { AnchorProxy, ChannelType, RangeSchema, NumericScalar, SchemaType, SchemaValue } from '../../types/anchors';
 
 export interface ChartConfig {
   data: any[];
@@ -18,19 +18,19 @@ export interface ChartConfig {
   // all channels will either be a fieldValue, fieldBinds,
   y: FieldProps | FieldProps[] | undefined;
   x: FieldProps | FieldProps[] | undefined;
-  color: FieldValueProps | FieldValueProps[] ; // no undefined as we will proivide a default
-  size: FieldValueProps | FieldValueProps[] ;
-  opacity: FieldValueProps | FieldValueProps[] ; 
+  color: FieldValueProps | FieldValueProps[]; // no undefined as we will proivide a default
+  size: FieldValueProps | FieldValueProps[];
+  opacity: FieldValueProps | FieldValueProps[];
 }
 
 
 type FieldBinds = AnchorProxy
 type FieldName = string
-type FieldProps  = FieldName | FieldBinds
+type FieldProps = FieldName | FieldBinds
 
 import type { ExprRef, SignalRef } from 'vega';
 import { Gradient } from 'vega-typings';
-type FieldValue = string | ExprRef | SignalRef | Gradient | null 
+type FieldValue = string | ExprRef | SignalRef | Gradient | null
 
 type FieldValueProps = FieldProps | FieldValue
 
@@ -73,20 +73,25 @@ export class BaseChart extends BaseComponent {
   public opacity: any;
 
   public channelConfigs: SplitConfig;
-
+  public configurations: Record<string, SchemaType>;
 
   constructor(config: ChartConfig) {
-    super({...config});
+    super({ ...config });
     console.log('chart config', config)
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;
+    this.configurations = this.generateChartConfigurations();
+    console.log('expanding group anchors for','now',this.configurations)
+
+
+
 
 
     this.spec = {
       name: this.id,
       title: config.title,
-      data: { values: config.data , name:'baseChartData'},
+      data: { values: config.data, name: 'baseChartData' },
       mark: config.mark,
       //@ts-ignore
       width: this.width,
@@ -97,10 +102,53 @@ export class BaseChart extends BaseComponent {
     const channelConfigs = this.splitChannelConfig(config);
     this.channelConfigs = channelConfigs;
 
+  }
+
+  private generateChartConfigurations() : Record<string, SchemaType> {
+    console.log('expanding group anchors for!')
 
 
+    // Generate configurations for chart channels
+    const configurations = {
+      'axes': {
+        "default": true,
+        "schema": {
+          "x": {
+            "container": "Scalar",
+            "valueType": "Numeric"
+          },
+          "y": {
+            "container": "Scalar",
+            "valueType": "Numeric"
+          },
+          // "color": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "size": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "opacity": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // }
+        },
+        "transforms": [
+          { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
+          { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
+          // { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
+          // { "name": "size", "channel": "size", "value": "PARENT_ID.size" },
+          // { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
+        ]
+      }
+    }
+    return configurations;
 
   }
+
+
+
   private splitChannelConfig(config: ChartConfig): SplitConfig {
     const result: SplitConfig = {
       encodingBinds: {},
@@ -148,7 +196,7 @@ export class BaseChart extends BaseComponent {
       result.encodingBinds[channel] = value;
     } else {
       // It's a ValueDef
-      result.encodingDefs[channel] = { value: value};
+      result.encodingDefs[channel] = { value: value };
     }
   }
 
@@ -166,25 +214,25 @@ export class BaseChart extends BaseComponent {
       if (isPositionChannel(key)) {
         const positionChannel = getMainRangeChannel(key as PositionChannel);
         scaleName = positionChannel; // used for any reference and inversions 
-      } 
+      }
 
 
       const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
         if (key === scaleName) {
           acc[key] = RangeSchema;
         } else {
-         // acc[key] = NumericScalar;
+          // acc[key] = NumericScalar;
         }
         return acc;
       }, {} as Record<string, SchemaType>);
 
-      
 
-     
-      
+
+
+
       // Scalar
       const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) { 
+        if (key === scaleName) {
           // some encoding channels like y have an inverted range, so we must min/max the range
           acc[key] = {
             'start': `${this.id}_${key}_start`,
@@ -198,10 +246,10 @@ export class BaseChart extends BaseComponent {
         return acc;
       }, {} as Record<string, SchemaValue>);
 
-     
-     
 
-     
+
+
+
       // currently this returns anchors compile with {x,y,etc}.. I think this is actually supposed tobe something like schema constraints, and then we grab 
       // them lat
       anchors.push({
@@ -235,13 +283,13 @@ export class BaseChart extends BaseComponent {
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
-      {"name": this.id+"_x_start", "expr": "range('x')[0]"},
+      { "name": this.id + "_x_start", "expr": "range('x')[0]" },
       //@ts-ignore
-      {"name": this.id+"_x_stop", "expr": "range('x')[1]"},
+      { "name": this.id + "_x_stop", "expr": "range('x')[1]" },
       //@ts-ignore, note : y range is inverted due to svg layout
-      {"name": this.id+"_y_start", "expr": "range('y')[1]"},
+      { "name": this.id + "_y_start", "expr": "range('y')[1]" },
       //@ts-ignore
-      {"name": this.id+"_y_stop", "expr": "range('y')[0]"},
+      { "name": this.id + "_y_stop", "expr": "range('y')[0]" },
     ]
 
 

@@ -8,14 +8,15 @@ import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, g
 import { extractSignalNames } from "../../binding/mergedComponent_CLEAN";
 
 const lineBaseContext = {
-    "x":{
-        start: 0,
-        stop: 1000
-       },
-       "y":{
-        start: 0,
-        stop: 1000
-       },
+    "start":{
+        "x": 0,
+        "y": 0
+    },
+    "stop":{
+        "x": 1000,
+        "y": 1000
+    },
+   
     "color": "'red'",
     "stroke": "'white'"
 }
@@ -36,10 +37,10 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.x.start" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.x.start" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.y.start" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.y.stop"}, //data set y value will be each y value.
+        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
+        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
+        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
+        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
     ]
 },{
     'id': 'x',
@@ -58,10 +59,10 @@ const configurations = [{
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "PARENT_ID.x.start" },
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.x.start" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.x.start" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.y.start" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.y.stop"}, //data set y value will be each y value.
+        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
+        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
+        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
+        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
     ]
 },{
     'id': 'y',
@@ -78,10 +79,10 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.x.start" },
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.x.stop" },
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.y.start" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.y.start" },
+        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
+        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
+        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
+        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
     ]
 }];
 
@@ -254,7 +255,6 @@ function computeDefaultValue(schema, transformName, channel) {
             // For sets, use first value or a reasonable default
             const values = lineBaseContext[channel]?.values;
             return values && values.length > 0 ? values[0] : 0;
-            
         default:
             // Fallback to base context or zero
             return lineBaseContext[channel] || 0;

@@ -759,10 +759,22 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
         if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
             param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
          
-            // Extract the node ID, dimension, and the base parameter name
-            const dimension = param.name.includes('_x_') || param.name.endsWith('_x') ? 'x' : 'y';
-            const startType = param.name.endsWith(`_${dimension}_start`) ? 'start' : 'begin';
+            // Extract the dimension from the parameter name
+            let dimension, startType;
             
+            if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start')) {
+                dimension = param.name.endsWith('_x_start') ? 'x' : 'y';
+                startType = 'start';
+            } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
+                dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
+                startType = 'begin';
+            } else {
+                // Fallback to extracting channel if the pattern doesn't match
+                const channel = extractAnchorType(param.name);
+                dimension = channel === 'x' ? 'x' : 'y';
+                startType = param.name.includes('_start') ? 'start' : 'begin';
+            }
+            console.log('dimension extracted', dimension, 'startType', startType, 'param.name', param.name);
             const baseName = startType === 'start' ? 
                 param.name.split(`_${dimension}_start`)[0] : 
                 param.name.split(`_begin_${dimension}`)[0];

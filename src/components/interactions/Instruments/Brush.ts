@@ -115,6 +115,8 @@ export class Brush extends BaseComponent {
             }
         });
 
+        this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
+
         // Add data as an anchor
         this.anchors.set('data', this.createAnchorProxy({ 
             'data': { 

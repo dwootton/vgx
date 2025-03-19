@@ -1,18 +1,133 @@
-import { BaseComponent } from "../components/base";
+import { BaseComponent } from "./base";
+import { UnitSpec } from "vega-lite/build/src/spec";
+import { Field } from "vega-lite/build/src/channeldef";
 
 type DataOperation = {
   type: 'filter' | 'aggregate' | 'groupby' | 'count' | 'percent';
   params: any;
 };
 
+// Create a component class for data transformation
+class DataTransformer extends BaseComponent {
+  private operations: DataOperation[] = [];
+  private sourceSelectionName: string;
+  
+  constructor(sourceComponent: BaseComponent, operations: DataOperation[]) {
+    super({});
+    this.sourceSelectionName = sourceComponent.id;
+    this.operations = [...operations]; // Clone the operations
+    
+    // Setup basic anchors
+    this.setupAnchors();
+  }
+  
+  private setupAnchors() {
+    // Setup count anchor
+    const hasCount = this.operations.some(op => op.type === 'count');
+    if (hasCount) {
+      this.anchors.set('count', this.createAnchorProxy({ 
+        'count': { 
+          container: 'Scalar',
+          valueType: 'Numeric',
+        }
+      }, 'count', () => {
+        return { 'value': `datum.count` };
+      }));
+    }
+    
+    // Setup percent anchor
+    const hasPercent = this.operations.some(op => op.type === 'percent');
+    if (hasPercent) {
+      this.anchors.set('percent', this.createAnchorProxy({ 
+        'percent': { 
+          container: 'Scalar',
+          valueType: 'Numeric',
+        }
+      }, 'percent', () => {
+        return { 'value': `datum.percent` };
+      }));
+    }
+    
+    // Setup anchors for each field in groupby operations
+    const groupbyOps = this.operations.filter(op => op.type === 'groupby');
+    groupbyOps.forEach(op => {
+      op.params.fields.forEach((field: string) => {
+        this.anchors.set(field, this.createAnchorProxy({ 
+          [field]: { 
+            container: 'Scalar',
+            valueType: 'Categorical',
+          }
+        }, field, () => {
+          return { 'value': `datum.${field}` };
+        }));
+      });
+    });
+  }
+  
+  compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+    // Add data transforms to the chart
+    const transforms = this.compileToTransforms();
+    
+    return {
+      transform: transforms
+    };
+  }
+  
+  // Method to compile into VL transforms
+  private compileToTransforms(): any[] {
+    const transforms = [];
+    
+    // Start with the selection filter
+    transforms.push({
+      filter: { selection: this.sourceSelectionName }
+    });
+    
+    // Process operations
+    let needsAggregate = false;
+    let aggregateOps = [];
+    let groupbyFields = [];
+    
+    for (const op of this.operations) {
+      switch (op.type) {
+        case 'filter':
+          transforms.push({ filter: op.params.expr });
+          break;
+        case 'groupby':
+          groupbyFields = op.params.fields;
+          needsAggregate = true;
+          break;
+        case 'count':
+          aggregateOps.push({ op: 'count', as: 'count' });
+          needsAggregate = true;
+          break;
+        case 'percent':
+          // This needs to be added after aggregation
+          transforms.push({
+            calculate: "datum.count / sum(parent.count)", 
+            as: "percent"
+          });
+          break;
+      }
+    }
+    
+    // Add aggregate transform if needed
+    if (needsAggregate) {
+      transforms.push({
+        aggregate: aggregateOps,
+        ...(groupbyFields.length > 0 && { groupby: groupbyFields })
+      });
+    }
+    
+    return transforms;
+  }
+}
+
 export class DataAccessor {
   private sourceComponent: BaseComponent;
   private operations: DataOperation[] = [];
-  private selectionName: string;
   
-  constructor(sourceComponent: BaseComponent, selectionName?: string) {
+  constructor(sourceComponent: BaseComponent) {
     this.sourceComponent = sourceComponent;
-    this.selectionName = selectionName || sourceComponent.id;
   }
 
   // Basic operations
@@ -43,57 +158,19 @@ export class DataAccessor {
     });
     return this;
   }
-
-  // Method to get a reference to this data
-  getReference(): string {
-    return `${this.selectionName}_data`;
+  
+  // Convert to a component at the end of chaining
+  toComponent(): BaseComponent {
+    return new DataTransformer(this.sourceComponent, this.operations);
   }
-
-  // Method to compile into VL transforms
-  compileToTransforms(): any[] {
-    const transforms = [];
-    
-    // Start with the selection filter
-    transforms.push({
-      filter: { selection: this.selectionName }
-    });
-    
-    // Process operations
-    let needsAggregate = false;
-    let aggregateOps = [];
-    let groupbyFields = [];
-    
-    for (const op of this.operations) {
-      switch (op.type) {
-        case 'filter':
-          transforms.push({ filter: op.params.expr });
-          break;
-        case 'groupby':
-          groupbyFields = op.params.fields;
-          needsAggregate = true;
-          break;
-        case 'count':
-          aggregateOps.push({ op: 'count', as: op.params.as });
-          needsAggregate = true;
-          break;
-        case 'percent':
-          // This needs to be added after aggregation
-          transforms.push({
-            calculate: "datum.count / parent.count", 
-            as: "percent"
-          });
-          break;
-      }
-    }
-    
-    // Add aggregate transform if needed
-    if (needsAggregate) {
-      transforms.push({
-        aggregate: aggregateOps,
-        ...(groupbyFields.length > 0 && { groupby: groupbyFields })
-      });
-    }
-    
-    return transforms;
+  
+  // Implicit conversion when used as a value
+  valueOf(): BaseComponent {
+    return this.toComponent();
+  }
+  
+  // Support for toString() conversion
+  toString(): string {
+    return `DataAccessor(${this.sourceComponent.id}, operations: ${this.operations.length})`;
   }
 }

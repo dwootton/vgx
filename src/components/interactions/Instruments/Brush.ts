@@ -4,7 +4,7 @@ import { BaseComponent } from "../../base";
 import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
-
+import { DataAccessor } from "../../DataAccessor";
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
@@ -94,9 +94,11 @@ const configurations = [{
 
 
 export class Brush extends BaseComponent {
+    _data: DataAccessor;
     constructor(config: any = {}) {
         super(config);
         console.log('constructing brush', this, config)
+        this._data = new DataAccessor(this);
         configurations.forEach(config => {
             this.configurations[config.id] = config
             const schema = config.schema
@@ -111,16 +113,24 @@ export class Brush extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-            // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
-            //     return generateConfigurationAnchors(this.id, config.id)
-            // }));
         });
-        // this.anchors.set('x', this.createAnchorProxy({ 'x': this.schema['x'] }, 'x', () => {
-        //     return { 'value': generateCompiledValue(this.id, 'x') }
-        // }));
+
+        // Add data as an anchor
+        this.anchors.set('data', this.createAnchorProxy({ 
+            'data': { 
+            container: 'Data',
+            valueType: 'Data',
+            }
+        }, 'data', () => {
+            return { 'value': this._data };
+        }));
 
 
-
+    }
+        // Getter for data accessor
+    get data(): DataAccessor {
+        console.log('getting data', this._data)
+        return new DataAccessor(this);
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {

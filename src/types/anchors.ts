@@ -108,16 +108,22 @@ export type SetValue = {
   values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
 }
 
-export type AbsoluteValue = {
-  absoluteValue: string; // maps to the expression for the value
-}
+  export type AbsoluteValue = {
+    absoluteValue: string; // maps to the expression for the value
+  }
+
+  export type DataValue = {
+    data: DataAccessor; // maps to the expression for the value
+  }
+  
+
 
 export type RangeValue = {
   start: string; // maps to the expression for the value
   stop: string; // maps to the expression for the value
 }
 
-export type SchemaValue = SetValue | ScalarValue | RangeValue | AbsoluteValue;
+export type SchemaValue = SetValue | ScalarValue | RangeValue | AbsoluteValue | DataValue;
 
 // {X:X<range>}
 
@@ -160,6 +166,8 @@ export enum AnchorType {
   SELECTION = 'selection',
   FILTER = 'filter',
   
+  // Data related
+  DATA_TRANSFORMS = 'dataTransforms', 
   // Misc
   OTHER = 'other'
 }
@@ -169,6 +177,7 @@ export enum AnchorType {
   
 
 import { NumericEncodingConstraint,CategoricalEncodingConstraint } from './constraints';
+import { DataAccessor } from 'components/DataAccessor';
 
 // when x is passed down to a component, then scale becomes the encoding constraint (adds constraint + initial value (middle))
 //

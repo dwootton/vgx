@@ -24,8 +24,12 @@ const drag = createComponentFactory(CombinedDrag);
 const rect = createComponentFactory(Rect);
 const line = createComponentFactory(Line);
 const click = createComponentFactory(Click);
+<<<<<<< HEAD
 // const grid = createComponentFactory(Grid);
 const text = createComponentFactory(Text);
+=======
+const grid = createComponentFactory(Grid); 
+>>>>>>> 331999a (set up brush data accessor)
 
 
 export const all = {
@@ -37,10 +41,14 @@ export const all = {
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
   drag: drag,
-  brush: brush,
+  Brush: brush,
   rect: rect,
   line: line,
   click: click,
+<<<<<<< HEAD
   Grid: (config:any)=> new Grid(config),
   text: text
+=======
+  Grid: grid,
+>>>>>>> 331999a (set up brush data accessor)
 };

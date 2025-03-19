@@ -21,7 +21,7 @@ export interface HeatmapConfig extends ChartConfig {
           field: config.color,
           type: 'quantitative',
           aggregate: config.aggregate || 'mean',
-          scale: { scheme: 'blues' }
+          scale: { scheme: 'grays' }
         }
       };
 

@@ -4,13 +4,14 @@ import { BaseChart, ChartConfig ,FieldEncodingDef} from './base';
 export interface HistogramConfig extends ChartConfig {
     field: string;
   }
+
 export class Histogram extends BaseChart {
     constructor(config: HistogramConfig) {
 
       config.x
       super({
         ...config,
-        mark: {'type':'bar'}
+        mark: {'type':'bar',"fill":'#262626'}
       });
   
       this.spec.encoding = {

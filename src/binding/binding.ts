@@ -23,6 +23,7 @@ const usedParams = spec.params?.filter(param => {
     // Match both 'paramName' and "paramName" patterns
     const singleQuotePattern = `'${paramName}'`;
     const doubleQuotePattern = `"${paramName}"`;
+    
     // Also match direct references to the parameter in expressions
     const directRefPattern = new RegExp(`\\b${paramName}\\b`);
     
@@ -30,8 +31,10 @@ const usedParams = spec.params?.filter(param => {
     const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
     const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
     // const directRefMatches = (specString.match(directRefPattern) || []).length;
+    // console.log('directRefMatches', paramName, directRefMatches)
     
     const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
+    // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
     return totalOccurrences >= 2;
 }) || [];
 

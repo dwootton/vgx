@@ -13,11 +13,9 @@ export { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from '.
 export { Circle } from './components/marks';
 
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
-import { Circle } from './components/marks';
-import { Line } from './components/marks';
+import { Circle, Line, Text,Rect } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
 import { Grid, BrushConstructor as Brush } from './components/interactions/Instruments/';
-import { Rect } from './components/marks/rect';
 export const all = {
   scatterplot: (config: any) => new Scatterplot(config),
   histogram: (config: any) => new Histogram(config),
@@ -32,4 +30,5 @@ export const all = {
   line: (config:any)=> new Line(config),
   click: (config:any)=> new Click(config),
   Grid: (config:any)=> new Grid(config),
+  text: (config:any)=> new Text(config),
 };

@@ -90,10 +90,14 @@ import { generateConfigurationAnchors } from "../interactions/drag2";
 export class Text extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;
-
+    public baseConfig: any;
     constructor(config: any = {}) {
         super({ ...config })
 
+        this.baseConfig = config;
+        if(!config.text){
+            this.baseConfig.text = {'expr':"'Text!'"}
+        }
         this.configurations = {};
         configurations.forEach(cfg => {
             this.configurations[cfg.id] = cfg;
@@ -222,7 +226,7 @@ export class Text extends BaseComponent {
                 },
                 "text": {
                     // "value": { "expr": `${this.id}_position_text` },
-                    "value": { "expr": "'Text'"}
+                    "value": this.baseConfig.text
                 },
             }
         }

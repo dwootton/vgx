@@ -67,6 +67,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     }
     if (schema.container === 'Scalar') {
         // !!!!!!!!! NOTE THIS IS DIFF THAN SCALAR CODE AS WE OFFSET instead of share !!!!!!!!!
+        // hmm maybe there is a way we can have this become the middle position?
         value = value as ScalarValue
         return `${'VGX_SIGNAL_NAME'}+${value.value}`
     }
@@ -753,14 +754,24 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
     for (let i = 0; i < params.length; i++) {
         const param = params[i];
         
-        // Check if this is a span start parameter
-        if (param.name.endsWith('_span_x_start') || param.name.endsWith('_span_y_start')) {
-            // Extract the node ID and the base parameter name
-            const nodeId = param.name.split('_span_')[0];
-            const dimension = param.name.endsWith('_span_x_start') ? 'x' : 'y';
+        
+        // Check if this is a span start parameter for any dimension (x or y)
+        if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
+            param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
+         
+            // Extract the node ID, dimension, and the base parameter name
+            const dimension = param.name.includes('_x_') || param.name.endsWith('_x') ? 'x' : 'y';
+            const startType = param.name.endsWith(`_${dimension}_start`) ? 'start' : 'begin';
+            
+            const baseName = startType === 'start' ? 
+                param.name.split(`_${dimension}_start`)[0] : 
+                param.name.split(`_begin_${dimension}`)[0];
             
             // Find the corresponding stop parameter
-            const stopParamName = `${nodeId}_span_${dimension}_stop`;
+            const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
+            console.log('stopParamName', stopParamName)
+            // Find the corresponding stop parameter
+            // const stopParamName = `${nodeId}_span_${dimension}_stop`;
             
             // Ensure the param has an 'on' array
             if (!param.on) {
@@ -771,24 +782,30 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
             if (param.on.length > 0) {
                 // Add the stop parameter to the events if it's not already there
                 if (!param.on[0].events.signal || !param.on[0].events.signal.includes(stopParamName)) {
-                    if (typeof param.on[0].events === 'string' || !param.on[0].events.signal) {
-                        param.on[0].events = { signal: stopParamName };
-                    } else {
-                        // If it's already an array, add to it
-                        if (Array.isArray(param.on[0].events.signal)) {
-                            param.on[0].events.signal.push(stopParamName);
-                        } else {
-                            // Convert to array and add
-                            param.on[0].events.signal = [param.on[0].events.signal, stopParamName];
+                    if (!Array.isArray(param.on[0].events)) {
+                        console.log('param.on[0].events', param.on[0].events,typeof param.on[0].events)
+                        const pastObject = param.on[0].events;
+
+                        param.on[0].events = [ { signal: stopParamName }];
+                        if (pastObject) {
+                            param.on[0].events.push(pastObject);
                         }
+                        
+                    } else {
+                        console.log('pushing to array', param.name, "and stop",stopParamName)
+                        param.on[0].events.push({signal:stopParamName});
+
+                       
+                        console.log('param.on[0].events', param.on[0].events)
                     }
                 }
             } else {
-                // Create a new event handler
-                param.on.push({
-                    events: { signal: stopParamName },
-                    update: param.update || param.value
-                });
+                // A scale parameter doesn't have an on array
+                // // Create a new event handler
+                // param.on.push({
+                //     events: { signal: stopParamName },
+                //     update: param.update || param.value
+                // });
             }
         }
     }

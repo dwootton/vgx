@@ -173,8 +173,6 @@ export class Circle extends BaseComponent {
             const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
-                //no need to get constraints as constraints would have had it be already
-                // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
                 const config = this.configurations[key.split('_')[0]];
@@ -188,59 +186,7 @@ export class Circle extends BaseComponent {
             }
              
             ).flat();
-        // console.log('DRAG outputSignals',
-
-        // // Handle internal signals (for merged components)
-        // const internalSignals = Object.keys(inputContext)
-        //     .filter(key => key.endsWith('_internal'))
-        //     .map(key =>
-        //         inputContext[key].map((updateStatement: string) => (
-                    
-                    
-                    
-        //             {
-        //             name: this.id + '_' + key,
-        //             "on": [{
-        //                 "events": { "signal": this.id },
-        //                 "update": updateStatement.replace(/VGX_SIGNAL_NAME/g, `${this.id}_${key}`)
-        //             }]
-        //         }))
-        //     ).flat();
-
-        // // if there is an inputContext key that ends with _internal, then
-        // // extract the channel from it {channel}_internal
-
-        // const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key =>
-        //     inputContext[key].map((updateStatement: string) => {
-        //         const channel = key.replace('_internal', '')
-        //         const signal = generateSignalFromAnchor(['SIGNALVAL'], key, this.id, nodeId, this.schema[channel].container)[0]
-        //         return {
-        //             name: this.id + '_' + key,
-        //             "on": [{
-        //                 "events": {
-        //                     "signal": this.id
-        //                 },
-        //                 "update": updateStatement.replace(/VGX_SIGNAL_NAME/g, `${this.id}_${key}`)
-        //             }]
-        //         }
-        //     })).flat();
-
-        // Create the mark specification
-        // const mark = {
-        //     type: "circle",
-        //     encode: {
-        //       update: {
-        //         x: { signal: `${nodeId}_position_x` },
-        //         y: { signal: `${nodeId}_position_y` },
-        //         size: { signal: `${nodeId}_appearance_size` },
-        //         fill: { signal: `${nodeId}_appearance_color` },
-        //         stroke: { signal: `${nodeId}_appearance_stroke` },
-        //         strokeWidth: { signal: `${nodeId}_appearance_strokeWidth` },
-        //         opacity: { signal: `${nodeId}_appearance_opacity` }
-        //       }
-        //     }
-        //   };
-
+       
 
         return {
             params: [

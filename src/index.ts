@@ -24,12 +24,8 @@ const drag = createComponentFactory(CombinedDrag);
 const rect = createComponentFactory(Rect);
 const line = createComponentFactory(Line);
 const click = createComponentFactory(Click);
-<<<<<<< HEAD
 // const grid = createComponentFactory(Grid);
 const text = createComponentFactory(Text);
-=======
-const grid = createComponentFactory(Grid); 
->>>>>>> 331999a (set up brush data accessor)
 
 
 export const all = {
@@ -45,10 +41,6 @@ export const all = {
   rect: rect,
   line: line,
   click: click,
-<<<<<<< HEAD
   Grid: (config:any)=> new Grid(config),
   text: text
-=======
-  Grid: grid,
->>>>>>> 331999a (set up brush data accessor)
 };

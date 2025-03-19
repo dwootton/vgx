@@ -54,14 +54,14 @@ export abstract class BaseComponent {
       return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
     }
     console.log('bindings', bindings)
-
     function isAllBind(key:string){
-      return key === 'bind' || /^bind\[\d+\]$/.test(key)
+      return key === 'bind' || (/^bind\[\d+\]$/.test(key) && !key.includes('.'))
     }
 
 
     bindings.forEach(({ value: binding, key }) => {
-      const bindingProperty = key.startsWith('bind.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
+      const bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
+      console.log('bindingProperty',bindingProperty)
 
       // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
       if(bindingProperty === '_all'){

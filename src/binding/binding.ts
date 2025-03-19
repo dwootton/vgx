@@ -16,6 +16,9 @@ const specString = JSON.stringify(spec, (key, value) => {
 // Check if each parameter is actually used in expressions
 const usedParams = spec.params?.filter(param => {
     const paramName = param.name;
+    if(paramName.includes('VGXMOD_')){
+        return true;
+    }
     // Look for the parameter name within expression strings
     // Match both 'paramName' and "paramName" patterns
     const singleQuotePattern = `'${paramName}'`;

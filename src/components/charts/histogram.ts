@@ -10,7 +10,7 @@ export class Histogram extends BaseChart {
       config.x
       super({
         ...config,
-        mark: 'bar'
+        mark: {'type':'bar'}
       });
   
       this.spec.encoding = {

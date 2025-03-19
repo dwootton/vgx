@@ -16,8 +16,7 @@ import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from '.
 import { Circle } from './components/marks';
 import { Line } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
-import { Brush as Brush2 } from './components/interactions/Instruments/Brush';
-import { Grid } from './components/interactions/Instruments/';
+import { Grid, BrushConstructor as Brush } from './components/interactions/Instruments/';
 import { Rect } from './components/marks/rect';
 export const all = {
   scatterplot: (config: any) => new Scatterplot(config),
@@ -28,7 +27,7 @@ export const all = {
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
   drag: (config:any)=> new CombinedDrag(config),
-  brush: (config:any)=> new CombinedDrag(config),
+  brush: (config:any)=> new Brush(config),
   rect: (config:any)=> new Rect(config),
   line: (config:any)=> new Line(config),
   click: (config:any)=> new Click(config),

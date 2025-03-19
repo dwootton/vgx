@@ -14,6 +14,8 @@ import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from 
 import { pruneEdges } from "./prune";
 import { Spec } from "vega-typings";
 import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
+import * as vl from "vega-lite";
+console.log('HERESS vl',vl)
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -126,8 +128,36 @@ export class SpecCompiler {
         });
 
         undefinedRemoved.params=sortedParams
+
+
+        const vegaCompilation = vl.compile(undefinedRemoved);
+        console.log('vegaCompilation', vegaCompilation.spec.signals)
+        const existingSignals = vegaCompilation.spec.signals || [];
+        existingSignals.forEach(signal => {
+            console.log('signal1!!!',signal)
+            if(signal.name.includes('VGXMOD_')){
+
+                // Create a copy of the signal name instead of modifying in place
+                const signalName = signal.name.substring(7); // Remove 'VGXMOD_' prefix
+                const signalUpdate = signal.on?.[0];
+                
+                // Find the corresponding signal in the vegaCompilation.spec.signals
+                const matchingSignal = existingSignals.find(s => s.name === signalName);
+                console.log('matchingSignal', matchingSignal)
+                
+                // If we found a matching signal and it has an 'on' property with at least one entry
+                if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
+                    // Add the matching signal's first 'on' entry to the current signal's 'on' array
+                    matchingSignal.on.push(signalUpdate)
+                }
+                console.log('signal1231312', signal)
+            }
+        })
+
+        vegaCompilation.spec.signals = existingSignals;
+
         
-        return undefinedRemoved;
+        return vegaCompilation;
     }
 
 
@@ -774,6 +804,7 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
                 dimension = channel === 'x' ? 'x' : 'y';
                 startType = param.name.includes('_start') ? 'start' : 'begin';
             }
+
             console.log('dimension extracted', dimension, 'startType', startType, 'param.name', param.name);
             const baseName = startType === 'start' ? 
                 param.name.split(`_${dimension}_start`)[0] : 

@@ -15,7 +15,8 @@ import { pruneEdges } from "./prune";
 import { Spec } from "vega-typings";
 import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
 import * as vl from "vega-lite";
-
+import * as themes from 'vega-themes';
+import { mergeConfig } from 'vega';
 
 interface AnchorEdge {
     originalEdge: BindingEdge;

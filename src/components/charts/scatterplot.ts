@@ -25,7 +25,7 @@ export class Scatterplot extends BaseChart  {
   constructor(config: ScatterplotConfig) {
     super({
       ...config,
-      mark: 'point'
+      mark: {'type':'point', "stroke": "#262626","size":40}
     });
 
     //  filter the config to be separated by field, value, and bindings 

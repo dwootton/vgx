@@ -17,7 +17,7 @@ const lineBaseContext = {
         "y": 1000
     },
    
-    "color": "'red'",
+    "color": "'firebrick'",
     "stroke": "'white'"
 }
 // Define the configurations with schemas and transforms

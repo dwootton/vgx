@@ -20,7 +20,7 @@ const rectBaseContext = {
         "y": 1000
     },
    
-    "color": "'red'",
+    "color": "'firebrick'",
     "stroke": "'white'"
 }
 

@@ -211,7 +211,7 @@ export class Circle extends BaseComponent {
                     "value": { "expr": `${this.id}_position_y` },
                 },
                 "size": {"value": {"expr": 200}},
-                "color": {"value": {"expr": "'red'"}},
+                "color": {"value": {"expr": "'firebrick'"}},
                 "stroke": {"value": {"expr": "'white'"}}
                 // "stroke": {
                 //     "value": { "expr": inputContext.stroke || circleBaseContext.stroke }

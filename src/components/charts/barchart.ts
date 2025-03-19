@@ -11,7 +11,7 @@ export interface BarchartConfig extends ChartConfig {
     constructor(config: BarchartConfig) {
       super({
         ...config,
-        mark: 'bar'
+        mark: {'type':'bar',"fill":'#262626'}
       });
 
   

@@ -8,8 +8,41 @@ import { Field } from "vega-lite/build/src/channeldef";
 export class BrushConstructor {
     constructor(config: any) {
 
+        
+        // Extract all components from config and their bindings
+        const extractComponentBindings = (config: any): any[] => {
+            // If no config or no bind property, return empty array
+            if (!config || !config.bind || typeof config.bind === 'function') {
+                return [];
+            }
+            
+            // If bind is an array, process each item
+            if (Array.isArray(config.bind)) {
+                return config.bind.flatMap(item => {
+                    // If the item is a component with its own bindings, extract those too
+                    if (item && typeof item === 'object' && item.bind) {
+                        return [item, ...extractComponentBindings(item)];
+                    }
+                    return item;
+                });
+            }
+            
+            // If bind is a single object with its own bindings
+            if (typeof config.bind === 'object' && config.bind.bind) {
+                return [config.bind, ...extractComponentBindings(config.bind)];
+            }
+            
+            console.log('config.bind', config.bind)
+            // If bind is a single object without further bindings
+            return [config.bind];
+        };
+        
+        // Get all components that need to be bound
+        const allBindings = extractComponentBindings(config);
+        console.log('allBindings', allBindings)
 
-        const drag = new CombinedDrag({ bind: [{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },new Brush({})] });
+
+        const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },new Brush({})] });
         console.log('made drag!')
 
 

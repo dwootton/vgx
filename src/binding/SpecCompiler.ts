@@ -10,7 +10,7 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
-import { resolveCycleMulti, expandEdges, extractChannel, isCompatible } from "./cycles_CLEAN";
+import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles_CLEAN";
 import { pruneEdges } from "./prune";
 import { Spec } from "vega-typings";
 import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
@@ -160,11 +160,11 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            
+            console.log('parentAnchors', parentAnchors, parentComponent.configurations)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
-                const channel = extractChannel(anchorId);
+                const channel = extractAnchorType(anchorId);
                 if (!channel) return;
                 
                 // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
@@ -181,13 +181,13 @@ export class SpecCompiler {
                 }
             })
         }
-        
+        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
             const targetAnchors = component.getAnchors()
                 .filter(anchor => {
-                    const targetChannel = extractChannel(anchor.id.anchorId);
+                    const targetChannel = extractAnchorType(anchor.id.anchorId);
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
             
@@ -205,7 +205,8 @@ export class SpecCompiler {
                 },
                 implicit: true
             };
-                        
+                   
+            console.log('implicitEdge', implicitEdge)
             // Add to implicit edges
             edges.push(implicitEdge);
         }
@@ -264,6 +265,7 @@ export class SpecCompiler {
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
+            console.log('ALLconstraints',nodeId, constraints,edges.filter(e=>e.target.nodeId === nodeId))
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;

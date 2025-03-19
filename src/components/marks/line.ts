@@ -34,6 +34,11 @@ const configurations = [{
             "container": "Range",
             "valueType": "Numeric",
             // "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "interactive": true
         }
     },
     "transforms": [
@@ -54,6 +59,11 @@ const configurations = [{
         "y": {
             "container": "Range",
             "valueType": "Numeric",
+            // "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
             // "interactive": true
         }
     },
@@ -122,7 +132,6 @@ export class Line extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-      
         });
 
 

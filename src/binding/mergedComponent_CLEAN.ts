@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { AnchorProxy, SchemaType } from "../types/anchors";
 import { Constraint, ConstraintType, constraintToUpdateRule } from './constraints';
-import { extractChannel, isCompatible } from "./cycles_CLEAN";
+import { extractAnchorType, isCompatible } from "./cycles_CLEAN";
 
 // Identifier for merged component signals in constraints
 export const VGX_MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME';
@@ -375,7 +375,7 @@ export function createMergedComponentForChannel(
       
       // Look for schema keys that contain this channel
       return Object.keys(c.schema).some(key => {
-        const extractedChannel = extractChannel(key);
+        const extractedChannel = extractAnchorType(key);
         return extractedChannel === channel;
       });
     });

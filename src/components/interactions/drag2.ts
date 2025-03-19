@@ -114,11 +114,16 @@ const configurations = [{
             "valueType": "Numeric",
             "interactive": true
         },
-        "y": {
-            "container": "Scalar",
-            "valueType": "Numeric",
-            "interactive": true
-        }
+            "y": {
+                "container": "Scalar",
+                "valueType": "Numeric",
+                "interactive": true
+            },
+            "markName": {
+                "container": "Scalar",
+                "valueType": "Categorical",
+                // "interactive": true
+            }
     },
     "transforms": [{
         "name": "x",

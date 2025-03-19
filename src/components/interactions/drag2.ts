@@ -260,16 +260,17 @@ export class CombinedDrag extends BaseComponent {
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
+        console.log('inputContextDRAG', inputContext,nodeId)
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{ events: { type: 'pointerdown', 'markname': inputContext.markName }, update: `{'start': {'x': x(), 'y': y()}}` },
+            on: [{ events: { type: 'pointerdown', 'markname': inputContext['point_markName'][0]+"_marks" }, update: `{'start': {'x': x(), 'y': y()}}` },
             {
                 events: {
                     type: 'pointermove',
                     source: "window",
                     between: [
-                        { type: "pointerdown", "markname": inputContext.markName },
+                        { type: "pointerdown", "markname": inputContext['point_markName'][0]+"_marks" },
                         { type: "pointerup", source: "window", }
                     ]
                 },

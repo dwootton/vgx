@@ -26,6 +26,11 @@ type AnchorId = string;
 type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
+    if(schema.valueType === 'Categorical'){
+        console.log('generateScalarConstraintsCategorical', value,schema)
+        return `${value.value}`;
+    }
+
     if (schema.container === 'Range') {
         value = value as RangeValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
@@ -43,6 +48,11 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
+    if(schema.valueType === 'Categorical'){
+        // TODO: fix this
+        return `${value.values}[indexof(${'VGX_SIGNAL_NAME'},'${value.values}')]`;
+    }
+    
     if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
@@ -343,7 +353,6 @@ export class SpecCompiler {
 
         // Add constraints based on container type
         if (currentNodeSchema.container === "Scalar") {
-
             constraints[targetAnchorId].push(
                 generateScalarConstraints(parentNodeSchema, anchorAccessor)
             );
@@ -353,6 +362,7 @@ export class SpecCompiler {
             );
         }
     }
+
     /**
      * Build constraint objects from parent nodes
      */

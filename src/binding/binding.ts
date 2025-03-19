@@ -30,11 +30,11 @@ const usedParams = spec.params?.filter(param => {
     // Count occurrences to ensure parameter is used at least twice
     const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
     const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
-    const directRefMatches = (specString.match(directRefPattern) || []).length;
-    console.log('directRefMatches', paramName, directRefMatches)
+    // const directRefMatches = (specString.match(directRefPattern) || []).length;
+    // console.log('directRefMatches', paramName, directRefMatches)
     
-    const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
-    console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
+    const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
+    // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
     return totalOccurrences >= 2;
 }) || [];
 

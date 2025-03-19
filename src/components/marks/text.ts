@@ -222,7 +222,7 @@ export class Text extends BaseComponent {
                     "value": { "expr": `${this.id}_position_x` },
                 },
                 "y": {
-                    "value": { "expr": `${this.id}_position_y - 20` },
+                    "value": { "expr": `${this.id}_position_y` },
                 },
                 "text": {
                     // "value": { "expr": `${this.id}_position_text` },

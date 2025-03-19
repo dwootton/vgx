@@ -122,7 +122,7 @@ const configurations = [{
             "markName": {
                 "container": "Scalar",
                 "valueType": "Categorical",
-                // "interactive": true
+                "interactive": true
             }
     },
     "transforms": [{
@@ -148,7 +148,8 @@ const configurations = [{
             "container": "Range",
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
-        }
+        },
+        
     },
 
     // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
@@ -261,16 +262,17 @@ export class CombinedDrag extends BaseComponent {
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
         console.log('inputContextDRAG', inputContext,nodeId)
+        const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{ events: { type: 'pointerdown', 'markname': inputContext['point_markName'][0]+"_marks" }, update: `{'start': {'x': x(), 'y': y()}}` },
+            on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
             {
                 events: {
                     type: 'pointermove',
                     source: "window",
                     between: [
-                        { type: "pointerdown", "markname": inputContext['point_markName'][0]+"_marks" },
+                        { type: "pointerdown", "markname": markName },
                         { type: "pointerup", source: "window", }
                     ]
                 },

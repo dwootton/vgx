@@ -50,7 +50,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
     if(schema.valueType === 'Categorical'){
         // TODO: fix this
-        return `${value.values}[indexof(${'VGX_SIGNAL_NAME'},'${value.values}')]`;
+        return `${value.value}`;
     }
     
     if (schema.container === 'Range') {
@@ -132,6 +132,7 @@ export class SpecCompiler {
 
     private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
         let edges = [...previousEdges]
+        console.log('buildImplicitContextEdges', node, previousEdges, nodes)
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
@@ -142,7 +143,7 @@ export class SpecCompiler {
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
-        
+        console.log('parentNodesbefore ret ', parentNodes,nodes,node.id,edges)
         
         if (parentNodes.length === 0) return [];
         
@@ -155,6 +156,7 @@ export class SpecCompiler {
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
+            console.log('parentNode', parentNode)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -201,6 +203,7 @@ export class SpecCompiler {
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
             
+            console.log('targetAnchors', channel, "_",targetAnchors, component.getAnchors())
             if (targetAnchors.length === 0) continue;
             
             // Create implicit edge

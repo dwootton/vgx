@@ -37,7 +37,12 @@ const configurations = [{
             "container": "Range",
             "valueType": "Numeric",
             // "interactive": true
-        }
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "interactive": true
+        },
     },
     "transforms": [
         { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar

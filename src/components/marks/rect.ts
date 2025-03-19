@@ -52,14 +52,13 @@ const configurations = [{
     ]
 }];
 
-type RectConfig = {
-    [K in keyof typeof rectBaseContext]?: typeof rectBaseContext[K]
-}
-
 export class Rect extends BaseComponent {
+    public styles: any;
 
-    constructor(config:RectConfig={}){
+    constructor(config={}){
         super({...config})
+
+        this.styles = config;
 
       
         this.configurations = {};
@@ -172,6 +171,11 @@ export class Rect extends BaseComponent {
             data: inputContext.data || rectBaseContext.data,
             mark: {
                 type: "rect",
+                "stroke":this.styles.stroke,
+                "strokeWidth":this.styles.strokeWidth,
+                "fillOpacity":this.styles.fillOpacity,
+                "fill":this.styles.fill,
+                "strokeOpacity":this.styles.strokeOpacity,
                 // x: { 
                 //     expr:  `${this.id}_x_start`
                 // },

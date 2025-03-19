@@ -34,7 +34,6 @@ export class BrushConstructor {
                 return [config.bind, ...extractComponentBindings(config.bind)];
             }
             
-            console.log('config.bind', config.bind)
             // If bind is a single object without further bindings
             return [config.bind];
         };
@@ -49,7 +48,6 @@ export class BrushConstructor {
         this.id = brush.id;
 
         const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
-        console.log('made drag!')
 
 
         // const brush = new Brush({ bind: drag });

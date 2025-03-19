@@ -261,7 +261,6 @@ export class CombinedDrag extends BaseComponent {
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
-        console.log('inputContextDRAG', inputContext,nodeId)
         const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
         const signal = {
             name: this.id, // base signal

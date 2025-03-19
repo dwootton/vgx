@@ -16,7 +16,6 @@ import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from '.
 import { Circle, Line, Text,Rect } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
 import { Grid, BrushConstructor, Brush } from './components/interactions/Instruments/';
-import { Rect } from './components/marks/rect';
 import { createComponentFactory } from './factories/ComponentFactory';
 
 

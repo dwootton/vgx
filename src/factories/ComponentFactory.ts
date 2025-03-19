@@ -23,7 +23,6 @@ export function createComponentFactory<T>(
   return new Proxy(factory, {
     // Handle property access (like brush.data)
     get(target, prop, receiver) {
-        console.log('getting prop', prop)
       // If accessing a property on the factory function itself
       if (prop in target) {
         return Reflect.get(target, prop, receiver);

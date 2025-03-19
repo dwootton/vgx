@@ -31,7 +31,6 @@ type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
     if(schema.valueType === 'Categorical'){
-        console.log('generateScalarConstraintsCategorical', value,schema)
         return `${value.value}`;
     }
 
@@ -111,11 +110,9 @@ export class SpecCompiler {
 
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
-        console.log('mergedSpec', JSON.parse(JSON.stringify(mergedSpec)))
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
-        console.log('unreferencedRemoved', JSON.parse(JSON.stringify(unreferencedRemoved)), JSON.parse(JSON.stringify(unreferencedRemoved)))
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)
         unreferencedRemoved.params = newParams
@@ -133,10 +130,8 @@ export class SpecCompiler {
 
 
         const vegaCompilation = vl.compile(undefinedRemoved);
-        console.log('vegaCompilation', vegaCompilation.spec.signals)
         const existingSignals = vegaCompilation.spec.signals || [];
         existingSignals.forEach(signal => {
-            console.log('signal1!!!',signal)
             if(signal.name.includes('VGXMOD_')){
 
                 // Create a copy of the signal name instead of modifying in place
@@ -145,14 +140,12 @@ export class SpecCompiler {
                 
                 // Find the corresponding signal in the vegaCompilation.spec.signals
                 const matchingSignal = existingSignals.find(s => s.name === signalName);
-                console.log('matchingSignal', matchingSignal)
                 
                 // If we found a matching signal and it has an 'on' property with at least one entry
                 if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
                     // Add the matching signal's first 'on' entry to the current signal's 'on' array
                     matchingSignal.on.push(signalUpdate)
                 }
-                console.log('signal1231312', signal)
             }
         })
 
@@ -165,7 +158,6 @@ export class SpecCompiler {
 
     private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
         let edges = [...previousEdges]
-        console.log('buildImplicitContextEdges', node, previousEdges, nodes)
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
@@ -176,7 +168,6 @@ export class SpecCompiler {
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
-        console.log('parentNodesbefore ret ', parentNodes,nodes,node.id,edges)
         
         if (parentNodes.length === 0) return [];
         
@@ -189,7 +180,6 @@ export class SpecCompiler {
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
-            console.log('parentNode', parentNode)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -205,7 +195,6 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            console.log('parentAnchors', parentAnchors, parentComponent.configurations)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
@@ -226,7 +215,6 @@ export class SpecCompiler {
                 }
             })
         }
-        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
@@ -236,7 +224,6 @@ export class SpecCompiler {
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
             
-            console.log('targetAnchors', channel, "_",targetAnchors, component.getAnchors())
             if (targetAnchors.length === 0) continue;
             
             // Create implicit edge
@@ -252,7 +239,6 @@ export class SpecCompiler {
                 implicit: true
             };
                    
-            console.log('implicitEdge', implicitEdge)
             // Add to implicit edges
             edges.push(implicitEdge);
         }
@@ -311,7 +297,6 @@ export class SpecCompiler {
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-            console.log('ALLconstraints',nodeId, constraints,edges.filter(e=>e.target.nodeId === nodeId))
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -807,14 +792,12 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
                 startType = param.name.includes('_start') ? 'start' : 'begin';
             }
 
-            console.log('dimension extracted', dimension, 'startType', startType, 'param.name', param.name);
             const baseName = startType === 'start' ? 
                 param.name.split(`_${dimension}_start`)[0] : 
                 param.name.split(`_begin_${dimension}`)[0];
             
             // Find the corresponding stop parameter
             const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
-            console.log('stopParamName', stopParamName)
             // Find the corresponding stop parameter
             // const stopParamName = `${nodeId}_span_${dimension}_stop`;
             
@@ -828,7 +811,6 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
                 // Add the stop parameter to the events if it's not already there
                 if (!param.on[0].events.signal || !param.on[0].events.signal.includes(stopParamName)) {
                     if (!Array.isArray(param.on[0].events)) {
-                        console.log('param.on[0].events', param.on[0].events,typeof param.on[0].events)
                         const pastObject = param.on[0].events;
 
                         param.on[0].events = [ { signal: stopParamName }];
@@ -837,11 +819,9 @@ function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
                         }
                         
                     } else {
-                        console.log('pushing to array', param.name, "and stop",stopParamName)
                         param.on[0].events.push({signal:stopParamName});
 
                        
-                        console.log('param.on[0].events', param.on[0].events)
                     }
                 }
             } else {

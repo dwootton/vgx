@@ -176,6 +176,7 @@ export class Rect extends BaseComponent {
                 "fillOpacity":this.styles.fillOpacity,
                 "fill":this.styles.fill,
                 "strokeOpacity":this.styles.strokeOpacity,
+                "strokeDash":this.styles.strokeDash,
                 // x: { 
                 //     expr:  `${this.id}_x_start`
                 // },

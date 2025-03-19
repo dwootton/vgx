@@ -9,7 +9,7 @@ export class BrushConstructor {
     constructor(config: any) {
 
 
-        const drag = new CombinedDrag({ bind: [{ span: new Rect({'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },new Brush({})] });
+        const drag = new CombinedDrag({ bind: [{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },new Brush({})] });
         console.log('made drag!')
 
 

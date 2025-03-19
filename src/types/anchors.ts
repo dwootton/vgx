@@ -16,7 +16,6 @@ export type OtherAnchorIdentifers = string;
 export type AnchorIdentifer = GeometricAnchorIdentifer | SelectionAnchorIdentifer | ScaleAnchorIdentifer | OtherAnchorIdentifers;
 
 // this is the general type of the anchor data. For example, "x1" anchor would be a encoding anchor.
-export type AnchorType = 'group' | 'encoding';
 export type ChannelType = 'x' | 'y' | 'color' | 'size' | 'shape';
 // Anchor Id correspond to all of the different 
 export interface AnchorId {
@@ -132,6 +131,38 @@ export interface AnchorProxy {
   compile: (nodeId?: string) =>SchemaValue; // produces a expr string
 }
 
+
+// src/types/anchors.ts
+export enum AnchorType {
+  // Encoding channels
+  X = 'x',
+  Y = 'y',
+  COLOR = 'color',
+  SIZE = 'size',
+  SHAPE = 'shape',
+  OPACITY = 'opacity',
+  
+  // Spatial variants
+  X1 = 'x1',
+  X2 = 'x2',
+  Y1 = 'y1',
+  Y2 = 'y2',
+  
+  // Mark properties
+  MARK_NAME = 'markName',
+  MARK_TYPE = 'markType',
+  
+  // Data related
+  DATA = 'data',
+  FIELD = 'field',
+  
+  // Interaction related
+  SELECTION = 'selection',
+  FILTER = 'filter',
+  
+  // Misc
+  OTHER = 'other'
+}
 // brush.sides.top 
 // brush.sides-> get the anchor proxy for sides
 // sides.top -> get the anchor proxy for top

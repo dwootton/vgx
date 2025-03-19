@@ -1,17 +1,32 @@
-import { DragSpan } from "../drag2";
+import { CombinedDrag, } from "../drag2";
 import { BindingManager } from "../../../binding/BindingManager";
+import { Line } from "../../marks/line";
 
 export class Grid {
     constructor(config:any) {
 
-        const lines = new VGXSet(new Line(config));
-        const drag = new DragSpan(config);
+        const lines = new DraggableLine({'x':40});
         
+        const lines2 = new DraggableLine(config);
 
-        return drag;
+
+        return [lines,lines2];
     }
 }
 
+
+export class DraggableLine extends Line {
+    constructor(config:any) {
+        super(config);
+        
+
+        const lines = new Line({...config,bind: {x: new CombinedDrag(config)}});
+        
+
+        return lines;
+        
+    }
+}
 
 const configurations = [{
     'id': 'position',

@@ -10,7 +10,7 @@ import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
-import { resolveCycleMulti, expandEdges, extractChannel, isCompatible } from "./cycles_CLEAN";
+import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles_CLEAN";
 import { pruneEdges } from "./prune";
 import { Spec } from "vega-typings";
 import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
@@ -26,6 +26,11 @@ type AnchorId = string;
 type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
+    if(schema.valueType === 'Categorical'){
+        console.log('generateScalarConstraintsCategorical', value,schema)
+        return `${value.value}`;
+    }
+
     if (schema.container === 'Range') {
         value = value as RangeValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.start},${value.stop})`
@@ -43,6 +48,11 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
+    if(schema.valueType === 'Categorical'){
+        // TODO: fix this
+        return `${value.value}`;
+    }
+    
     if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
@@ -120,31 +130,33 @@ export class SpecCompiler {
     }
 
 
-    private buildImplicitContextEdges(node: BindingNode, edges: BindingEdge[], nodes: BindingNode[]): Record<string, Constraint[]> {
-        const constraints: Record<string, Constraint[]> = {};
+    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
+        let edges = [...previousEdges]
+        console.log('buildImplicitContextEdges', node, previousEdges, nodes)
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
-            return constraints;
+            return [];
         }
 
         // 1. Find all parent nodes (nodes that have edges targeting the current node)
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
+        console.log('parentNodesbefore ret ', parentNodes,nodes,node.id,edges)
         
-        
-        if (parentNodes.length === 0) return constraints;
+        if (parentNodes.length === 0) return [];
         
         // Get the current component
         const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return {};
+        if (!component) return [];
         
         // Map to store the highest value anchor for each channel type
         const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
+            console.log('parentNode', parentNode)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -160,11 +172,11 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            
+            console.log('parentAnchors', parentAnchors, parentComponent.configurations)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
-                const channel = extractChannel(anchorId);
+                const channel = extractAnchorType(anchorId);
                 if (!channel) return;
                 
                 // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
@@ -181,16 +193,17 @@ export class SpecCompiler {
                 }
             })
         }
-        
+        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
             const targetAnchors = component.getAnchors()
                 .filter(anchor => {
-                    const targetChannel = extractChannel(anchor.id.anchorId);
+                    const targetChannel = extractAnchorType(anchor.id.anchorId);
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
             
+            console.log('targetAnchors', channel, "_",targetAnchors, component.getAnchors())
             if (targetAnchors.length === 0) continue;
             
             // Create implicit edge
@@ -205,12 +218,13 @@ export class SpecCompiler {
                 },
                 implicit: true
             };
-                        
+                   
+            console.log('implicitEdge', implicitEdge)
             // Add to implicit edges
             edges.push(implicitEdge);
         }
         
-        return constraints;
+        return edges;
     }
         
     /**
@@ -223,7 +237,7 @@ export class SpecCompiler {
      * @returns Array of compiled Vega-Lite specifications
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
-        const { nodes, edges } = bindingGraph;
+        let { nodes, edges } = bindingGraph;
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -261,8 +275,10 @@ export class SpecCompiler {
 
 
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
+            edges = [...edges, ...implicitEdges]
             // Build constraints for this node
             const constraints = this.buildNodeConstraints(node, edges, nodes);
+            console.log('ALLconstraints',nodeId, constraints,edges.filter(e=>e.target.nodeId === nodeId))
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -340,7 +356,6 @@ export class SpecCompiler {
 
         // Add constraints based on container type
         if (currentNodeSchema.container === "Scalar") {
-
             constraints[targetAnchorId].push(
                 generateScalarConstraints(parentNodeSchema, anchorAccessor)
             );
@@ -350,6 +365,7 @@ export class SpecCompiler {
             );
         }
     }
+
     /**
      * Build constraint objects from parent nodes
      */

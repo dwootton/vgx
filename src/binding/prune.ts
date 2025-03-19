@@ -1,5 +1,5 @@
 import { BindingEdge } from "./GraphManager";
-import { extractChannel, isCompatible } from "./cycles_CLEAN";
+import { extractAnchorType, isCompatible } from "./cycles_CLEAN";
 /**
  * Prunes edges that are not reachable from the root component.
  * Returns both valid edges and implicit edges (pruned edges that might be needed later).
@@ -23,8 +23,8 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         const outgoingEdges = edges.filter(edge => edge.source.nodeId === nodeId);
         
         for (const edge of outgoingEdges) {
-            const sourceChannel = extractChannel(edge.source.anchorId);
-            const targetChannel = extractChannel(edge.target.anchorId);
+            const sourceChannel = extractAnchorType(edge.source.anchorId);
+            const targetChannel = extractAnchorType(edge.target.anchorId);
             
             // If the source channel is valid, this edge is valid
             if (sourceChannel && validChannels.has(sourceChannel)) {
@@ -47,13 +47,13 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
     
     // Find all edges where root is the source to determine valid channels
     edges.filter(edge => edge.source.nodeId === rootId).forEach(edge => {
-        const channel = extractChannel(edge.source.anchorId);
+        const channel = extractAnchorType(edge.source.anchorId);
         if (channel) rootChannels.add(channel);
     });
     
     // Also include edges where root is the target
     edges.filter(edge => edge.target.nodeId === rootId).forEach(edge => {
-        const channel = extractChannel(edge.target.anchorId);
+        const channel = extractAnchorType(edge.target.anchorId);
         if (channel) rootChannels.add(channel);
     });
     

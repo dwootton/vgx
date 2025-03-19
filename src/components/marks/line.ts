@@ -34,6 +34,11 @@ const configurations = [{
             "container": "Range",
             "valueType": "Numeric",
             // "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "interactive": true
         }
     },
     "transforms": [
@@ -54,6 +59,11 @@ const configurations = [{
         "y": {
             "container": "Range",
             "valueType": "Numeric",
+            // "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
             // "interactive": true
         }
     },
@@ -98,6 +108,7 @@ export class Line extends BaseComponent {
     constructor(config: any = {}) {
         super({ ...config })
 
+       
         this.configurations = {};
         configurations.forEach(cfg => {
             this.configurations[cfg.id] = cfg;
@@ -121,7 +132,6 @@ export class Line extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-      
         });
 
 
@@ -201,9 +211,10 @@ export class Line extends BaseComponent {
                 ...internalSignals
             ],
             "data":{"values":[{}]}, //TODO FIX
+            name: `${this.id}_position_markName`,
             mark: {
                 type: "rule",
-                name: `${this.id}_marks`
+                
             },
             "encoding": {
                 "x": {
@@ -218,9 +229,9 @@ export class Line extends BaseComponent {
                 "y2": {
                     "value": { "expr": `${this.id}_position_y_stop` },
                 },
-                "size": {"value": {"expr": 1}},
-                "color": {"value": {"expr": "'red'"}},
-                "stroke": {"value": {"expr": "'red'"}}
+                "size": {"value": {"expr": 5}},// rule width
+                "color": {"value": {"expr": "'firebrick'"}},
+                "stroke": {"value": {"expr": "'firebrick'"}},
                 // "stroke": {
                 //     "value": { "expr": inputContext.stroke || circleBaseContext.stroke }
                 // }

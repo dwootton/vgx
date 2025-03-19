@@ -32,6 +32,11 @@ const configurations = [{
             "container": "Scalar",
             "valueType": "Numeric",
             // "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "interactive": true
         }
     },
     "transforms": [
@@ -247,9 +252,10 @@ export class Circle extends BaseComponent {
                 ...internalSignals
             ],
             "data":{"values":[{}]}, //TODO FIX
+            name: `${this.id}_position_markName`,
             mark: {
                 type: "circle",
-                name: `${this.id}_marks`
+               
             },
             "encoding": {
                 "x": {

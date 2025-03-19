@@ -4,6 +4,7 @@ import { BaseComponent } from "../components/base";
 import { createMergedComponentForChannel } from "./mergedComponent_CLEAN";
 // import { expandEdges } from "./SpecCompiler";
 import { getChannelFromEncoding,} from "../utils/anchorGeneration/rectAnchors";
+import { AnchorType } from "../types/anchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
     const expanded= edges.flatMap(edge => {
@@ -76,28 +77,33 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     );
 }
 
-export function extractChannel(anchorId: string): string | undefined {
+export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorId === '_all') return undefined;
-    // If it's a simple channel name like 'x', 'y', return as is
-    if (['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(anchorId)) {
-        return anchorId;
+    
+    // If it's a simple channel name that matches an AnchorType
+    const anchorTypeValues = Object.values(AnchorType) as string[];
+    if (anchorTypeValues.includes(anchorId)) {
+        return anchorId as AnchorType;
     }
     
     // For complex IDs like 'point_x', 'span_pla_x', extract the last part
     const parts = anchorId.split('_');
     const lastPart = parts[parts.length - 1];
     
-    // Return the last part if it's a valid channel, otherwise undefined
-    return ['x', 'y', 'color', 'size', 'shape', 'x1', 'x2', 'y1', 'y2'].includes(lastPart) 
-        ? lastPart 
-        : undefined;
+    // Check if the last part is a valid AnchorType
+    if (anchorTypeValues.includes(lastPart)) {
+        return lastPart as AnchorType;
+    }
+    
+    // If we couldn't extract a valid AnchorType, return undefined
+    return undefined;
 }
 export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
     // Extract the base channel from anchor IDs of various formats
     
     
-    const sourceChannel = extractChannel(sourceAnchorId);
-    const targetChannel = extractChannel(targetAnchorId);
+    const sourceChannel = extractAnchorType(sourceAnchorId);
+    const targetChannel = extractAnchorType(targetAnchorId);
     if(!sourceChannel || !targetChannel) {
         return false;
     }
@@ -195,7 +201,7 @@ function rewireMultiNodeConnections(
             anchorIds.includes(anchor.id.anchorId)
         )?.id.anchorId as string;
 
-        const channel = extractChannel(anchorId)
+        const channel = extractAnchorType(anchorId)
 
 
         if (!anchorId || !channel) {
@@ -260,7 +266,7 @@ export function resolveCycleMulti(
             const { nodes, edges } = cycle;
             
             // Get the channel this cycle is based on
-            const cycleChannel = extractChannel(edges[0].source.anchorId)
+            const cycleChannel = extractAnchorType(edges[0].source.anchorId)
             if (!cycleChannel) {
                 console.warn("Could not determine consistent channel for cycle", cycle);
                 return;
@@ -320,7 +326,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
 
     // Extract all unique anchor IDs
     edges.forEach(edge => {
-        const sourceAnchor = extractChannel(edge.source.anchorId);
+        const sourceAnchor = extractAnchorType(edge.source.anchorId);
         if(!sourceAnchor) return;
         anchorIds.add(sourceAnchor);
     });
@@ -328,7 +334,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
     // Partition edges by anchor ID
     anchorIds.forEach(anchorId => {
         const filteredEdges = edges.filter(edge =>
-            (extractChannel(edge.source.anchorId) === anchorId || extractChannel(edge.target.anchorId) === anchorId) && isCompatible(edge.source.anchorId, edge.target.anchorId)
+            (extractAnchorType(edge.source.anchorId) === anchorId || extractAnchorType(edge.target.anchorId) === anchorId) && isCompatible(edge.source.anchorId, edge.target.anchorId)
         );
 
         edgesByAnchor.set(anchorId, filteredEdges);

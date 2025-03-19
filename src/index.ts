@@ -17,6 +17,7 @@ import { Circle } from './components/marks';
 import { Line } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
 import { Brush as Brush2 } from './components/interactions/Instruments/Brush';
+import { Grid } from './components/interactions/Instruments/';
 import { Rect } from './components/marks/rect';
 export const all = {
   scatterplot: (config: any) => new Scatterplot(config),
@@ -31,4 +32,5 @@ export const all = {
   rect: (config:any)=> new Rect(config),
   line: (config:any)=> new Line(config),
   click: (config:any)=> new Click(config),
+  Grid: (config:any)=> new Grid(config),
 };

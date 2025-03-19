@@ -6,7 +6,9 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 
 export class BrushConstructor {
+    id: string;
     constructor(config: any) {
+      
 
         
         // Extract all components from config and their bindings
@@ -41,16 +43,17 @@ export class BrushConstructor {
         const allBindings = extractComponentBindings(config);
         console.log('allBindings', allBindings)
 
+        
 
-        const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },new Brush({})] });
+        const brush = new Brush(config);
+        this.id = brush.id;
+
+        const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
         console.log('made drag!')
 
 
         // const brush = new Brush({ bind: drag });
         // console.log('passing through brush', brush, drag)
-
-
-
 
         return drag; // pass through to the drag component, but still have parent edges via brush bind.
     }

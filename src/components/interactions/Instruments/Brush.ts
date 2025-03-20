@@ -8,8 +8,6 @@ import { DataAccessor } from "../../DataAccessor";
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
-      
-
         
         // Extract all components from config and their bindings
         const extractComponentBindings = (config: any): any[] => {
@@ -58,6 +56,9 @@ export class BrushConstructor {
                 // If accessing 'data' property, redirect to brush.data
                 if (prop === 'data') {
                     return brush._data;
+                }
+                if (prop === 'brush') {
+                    return brush;
                 }
                 
                 // For all other properties, use the original drag object
@@ -110,10 +111,12 @@ const configurations = [{
 
 export class Brush extends BaseComponent {
     _data: DataAccessor;
+    accessors: DataAccessor[];
     constructor(config: any = {}) {
         super(config);
         console.log('constructing brush', this, config)
         this._data = new DataAccessor(this);
+        this.accessors = [];
         configurations.forEach(config => {
             this.configurations[config.id] = config
             const schema = config.schema
@@ -144,10 +147,13 @@ export class Brush extends BaseComponent {
 
 
     }
+
+    
         // Getter for data accessor
     get data(): DataAccessor {
         console.log('getting data', this._data)
         const accessor= new DataAccessor(this);
+        this.accessors.push(accessor);
         console.log('accessor', accessor)
         return accessor.filter(`vlSelectionTest(${this.id}_store, datum)`)
     }
@@ -168,6 +174,8 @@ export class Brush extends BaseComponent {
                 }
             }
         }
+
+        console.log('compiling accessors', this.accessors)
 
         const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
         const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]

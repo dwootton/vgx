@@ -19,12 +19,18 @@ export function createComponentFactory<T>(
   // Create the factory function
   const factory = function(...args: any[]): T {
     // Create a new instance
-    const instance = new ComponentClass(...args);
+    let instance = new ComponentClass(...args);
+    const componentType = cleanComponentType(ComponentClass.name.toLowerCase());
 
 
     console.log("RESOLVINGYOURNEW",ComponentClass.name, instance, LazyBindingRegistry)
+
+    if(componentType.includes('brush')){
+        console.log("RESOLVINGBRUSH",instance)
+        // instance = instance.brush;
+    }
     //hmm might not resolve for grid?
-    LazyBindingRegistry.resolve(cleanComponentType(ComponentClass.name), instance as BaseComponent);
+    LazyBindingRegistry.resolve(componentType, instance as BaseComponent);
 
     return instance;
   };

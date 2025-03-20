@@ -68,7 +68,7 @@ export class LazyBindingRegistry {
 
                 // Apply operations to get the final value
                 let value = realComponent;
-                console.log("RESOLVING", lazyComponent.operations, 'on:', realComponent)
+                console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', realComponent)
                 for (const op of lazyComponent.operations) {
                     if (value && value[op.type]) {
                         if (op.args) {

@@ -52,6 +52,21 @@ export class BrushConstructor {
 
         // const brush = new Brush({ bind: drag });
         // console.log('passing through brush', brush, drag)
+        // Create a proxy to intercept property access on drag
+        const dragProxy = new Proxy(drag, {
+            get(target, prop, receiver) {
+                // If accessing 'data' property, redirect to brush.data
+                if (prop === 'data') {
+                    return brush._data;
+                }
+                
+                // For all other properties, use the original drag object
+                return Reflect.get(target, prop, receiver);
+            }
+        });
+        
+        // Return the proxy instead of the original drag object
+        return dragProxy;
 
         return drag; // pass through to the drag component, but still have parent edges via brush bind.
     }
@@ -132,7 +147,9 @@ export class Brush extends BaseComponent {
         // Getter for data accessor
     get data(): DataAccessor {
         console.log('getting data', this._data)
-        return new DataAccessor(this);
+        const accessor= new DataAccessor(this);
+        console.log('accessor', accessor)
+        return accessor.filter(`vlSelectionTest(${this.id}_store, datum)`)
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {

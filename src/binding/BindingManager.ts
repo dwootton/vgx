@@ -34,6 +34,7 @@ export class BindingManager {
         // Initialize dependencies lazily
         this.graphManager = new GraphManager(() => this);
         this.specCompiler = new SpecCompiler(this.graphManager, () => this);
+        console.log("BINDINGGRAPHE",this)
     }
 
     public getProcessedGraph(id: string): ProcessedGraph {
@@ -92,6 +93,10 @@ export class BindingManager {
         }
         this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
     };
+
+    public removeBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        this.bindings = this.bindings.filter(binding => binding.sourceId !== sourceId || binding.targetId !== targetId || binding.sourceAnchor !== sourceAnchor || binding.targetAnchor !== targetAnchor);
+    }
 
 
     /* 

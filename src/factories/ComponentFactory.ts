@@ -1,8 +1,12 @@
 import { BaseComponent } from 'components/base';
 import { BindingManager } from '../binding/BindingManager';
+import { LazyBindingRegistry, createLazyAccessor, createLazyReference } from '../binding/LazyBinding';
 
 // Get reference to the singleton binding manager
 const bindingManager = BindingManager.getInstance();
+function cleanComponentType(componentType: string): string {
+    return componentType.replace(/[Cc]onstructor/g, '').trim().toLowerCase();
+  }
 
 /**
  * Creates a component factory that works in two ways:
@@ -16,6 +20,12 @@ export function createComponentFactory<T>(
   const factory = function(...args: any[]): T {
     // Create a new instance
     const instance = new ComponentClass(...args);
+
+
+    console.log("RESOLVINGYOURNEW",ComponentClass.name, instance, LazyBindingRegistry)
+    //hmm might not resolve for grid?
+    LazyBindingRegistry.resolve(cleanComponentType(ComponentClass.name), instance as BaseComponent);
+
     return instance;
   };
 
@@ -29,21 +39,26 @@ export function createComponentFactory<T>(
       }
       
       // Get the component type from the constructor name
-      const componentType = ComponentClass.name.toLowerCase();
+      const componentType = cleanComponentType(ComponentClass.name.toLowerCase());
 
-      function cleanComponentType(componentType: string): string {
-        return componentType.replace(/constructor/g, '').trim();
-      }
-      
+    
+      console.log('getting ', componentType, prop)
+    
       // Otherwise, find the most recent instance of this component type
-      const recentInstance = findMostRecentComponentByType(cleanComponentType(componentType));
+      const recentInstance = findMostRecentComponentByType(componentType);
       
       if (recentInstance && prop in recentInstance) {
         return recentInstance[prop as keyof T];
+      } else {
+        // If no instance exists yet, create a lazy reference
+
+        return createLazyAccessor(componentType,[]);
       }
-      
-      // Fallback for undefined properties
+
+      console.warn(`Cannot find property ${prop} on component ${componentType}`);
+
       return undefined;
+
     }
   });
 }

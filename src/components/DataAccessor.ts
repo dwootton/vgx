@@ -18,50 +18,53 @@ class DataTransformer extends BaseComponent {
     this.operations = [...operations]; // Clone the operations
     
     // Setup basic anchors
-    this.setupAnchors();
+    // this.setupAnchors();
   }
   
   private setupAnchors() {
-    // Setup count anchor
-    const hasCount = this.operations.some(op => op.type === 'count');
-    if (hasCount) {
-      this.anchors.set('count', this.createAnchorProxy({ 
-        'count': { 
-          container: 'Scalar',
-          valueType: 'Numeric',
+    // Always set up count anchor regardless of operations
+    this.anchors.set('count', this.createAnchorProxy({ 
+      'count': { 
+        container: 'Scalar',
+        valueType: 'Numeric',
+      }
+    }, 'count', () => {
+      return { 'value': `datum.count` };
+    }));
+
+    this.anchors.set('data', this.createAnchorProxy({ 
+        'data': { 
+          container: 'Data',
+          valueType: 'Data',
         }
       }, 'count', () => {
         return { 'value': `datum.count` };
       }));
-    }
     
-    // Setup percent anchor
-    const hasPercent = this.operations.some(op => op.type === 'percent');
-    if (hasPercent) {
-      this.anchors.set('percent', this.createAnchorProxy({ 
-        'percent': { 
-          container: 'Scalar',
-          valueType: 'Numeric',
-        }
-      }, 'percent', () => {
-        return { 'value': `datum.percent` };
-      }));
-    }
+    // Always set up percent anchor
+    this.anchors.set('percent', this.createAnchorProxy({ 
+      'percent': { 
+        container: 'Scalar',
+        valueType: 'Numeric',
+      }
+    }, 'percent', () => {
+      return { 'value': `datum.count` }; // Using count for now
+    }));
     
-    // Setup anchors for each field in groupby operations
-    const groupbyOps = this.operations.filter(op => op.type === 'groupby');
-    groupbyOps.forEach(op => {
-      op.params.fields.forEach((field: string) => {
-        this.anchors.set(field, this.createAnchorProxy({ 
-          [field]: { 
-            container: 'Scalar',
-            valueType: 'Categorical',
-          }
-        }, field, () => {
-          return { 'value': `datum.${field}` };
-        }));
-      });
-    });
+    // // Setup anchors for each field in groupby operations
+    // const groupbyOps = this.operations.filter(op => op.type === 'groupby');
+    // groupbyOps.forEach(op => {
+    //   op.params.fields.forEach((field: string) => {
+    //     this.anchors.set(field, this.createAnchorProxy({ 
+    //       [field]: { 
+    //         container: 'Scalar',
+    //         valueType: 'Categorical',
+    //       }
+    //     }, field, () => {
+    //       return { 'value': `datum.count` }; // Using count for now
+    //     }));
+    //   });
+    // });
   }
   
   compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
@@ -102,8 +105,10 @@ class DataTransformer extends BaseComponent {
           break;
         case 'percent':
           // This needs to be added after aggregation
+          const parentCount = "data('baseChartData').length" // TODO not hardcoded
+          aggregateOps.push({ op: 'count', as: 'count' });
           transforms.push({
-            calculate: "datum.count / sum(parent.count)", 
+            calculate: `datum.count / ${parentCount}`, 
             as: "percent"
           });
           break;
@@ -161,11 +166,18 @@ export class DataAccessor {
   
   // Convert to a component at the end of chaining
   toComponent(): BaseComponent {
+    console.log('toComponent', this.sourceComponent, this.operations)
     return new DataTransformer(this.sourceComponent, this.operations);
+  }
+
+  get value(): BaseComponent {
+    console.log('value', this.toComponent())
+    return this.toComponent();
   }
   
   // Implicit conversion when used as a value
   valueOf(): BaseComponent {
+    console.log('valueOf', this.toComponent())
     return this.toComponent();
   }
   

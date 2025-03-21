@@ -99,7 +99,7 @@ export class SpecCompiler {
 
         const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
 
-        
+        console.log('prunedEdges', prunedEdges,expandedEdges)
         bindingGraph.edges = prunedEdges;
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
@@ -243,6 +243,7 @@ export class SpecCompiler {
             edges.push(implicitEdge);
         }
         
+       
         return edges;
     }
         
@@ -257,6 +258,7 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         let { nodes, edges } = bindingGraph;
+        console.log('bindinggraph',nodes, JSON.parse(JSON.stringify(edges)))
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -315,6 +317,7 @@ export class SpecCompiler {
             return [compiledNode, ...childSpecs];
         };
 
+        console.log('edges', edges)
         // First pass: Traverse the graph starting from the root
         const regularSpecs = traverseGraph(rootId);
 

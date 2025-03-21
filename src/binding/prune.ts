@@ -50,12 +50,16 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         const channel = extractAnchorType(edge.source.anchorId);
         if (channel) rootChannels.add(channel);
     });
+
+    console.log('before target', edges.filter(edge => edge.target.nodeId === rootId))
     
     // Also include edges where root is the target
     edges.filter(edge => edge.target.nodeId === rootId).forEach(edge => {
         const channel = extractAnchorType(edge.target.anchorId);
         if (channel) rootChannels.add(channel);
     });
+
+    console.log('after target', edges, rootChannels, rootId)
     
     // Start validation from the root
     validateEdgesForNode(rootId, rootChannels);

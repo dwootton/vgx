@@ -62,12 +62,10 @@ export abstract class BaseComponent {
 
     bindings.forEach(({ value: binding, key }) => {
 
-      console.log("INGETTINGBINDINGS",binding, key)
       const bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
 
 
       if(binding.isLazy){
-        console.log("LAZYBINDING",binding,binding.id)
         this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
         return;
       }
@@ -213,7 +211,6 @@ export abstract class BaseComponent {
 const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy | LazyComponent, key: string }[] => {
   if (!value) return [];
 
-  console.log("FINDINGBINDINGS",value, path)
   // Handle arrays, but skip if path is 'data'
   if (Array.isArray(value)) {
     return value.flatMap((item, index) => findBindings(item, `${path}[${index}]`));
@@ -223,13 +220,11 @@ const findBindings = (value: any, path: string = ''): { value: BaseComponent | A
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const lazyBindings = [];
     for (const prop in value) {
-      console.log('checking', prop, 'valueprop:',value[prop],value[prop].isLazy)
       if (value[prop] && value[prop].isLazy) {
         lazyBindings.push({ value: value[prop], key: prop });
       }
     }
     if (lazyBindings.length > 0) {
-      console.log("non-zeroLAZYBINDINGS",lazyBindings)
       return lazyBindings;
     }
   }

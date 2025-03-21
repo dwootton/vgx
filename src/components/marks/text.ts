@@ -211,28 +211,35 @@ export class Text extends BaseComponent {
             ],
             "data":{"values":[{}]}, //TODO FIX
             name: `${this.id}_position_markName`,
-            "layer": [
-                 {
-                    mark: {
-                        type: "text",
-                        "size": 20,
-                        "align": "left",
-                        "color": "white",
-                        "stroke": "white",
-                        "strokeWidth": 3,
-                        "opacity": 1//.5
-                    },
-                },
-                {
-                    mark: {
+            // "layer": [
+            //      {
+            //         mark: {
+            //             type: "text",
+            //             "size": 20,
+            //             "align": "left",
+            //             "color": "white",
+            //             "stroke": "white",
+            //             "strokeWidth": 3,
+            //             "opacity": 1//.5
+            //         },
+            //     },
+            //     {
+            //         mark: {
+            //             type: "text",
+            //             "size": 20,
+            //             "align": "left",
+            //             "color": "firebrick",
+            //         },
+            //     },
+               
+            // ]
+            // 
+            mark: {
                         type: "text",
                         "size": 20,
                         "align": "left",
                         "color": "firebrick",
                     },
-                },
-               
-            ],
            
             "encoding": {
                 "x": {

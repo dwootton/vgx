@@ -32,6 +32,7 @@ export function createComponentFactory<T>(
     //hmm might not resolve for grid?
     LazyBindingRegistry.resolve(componentType, instance as BaseComponent);
 
+    console.log('resolved', instance, instance.bindingManager.getBindings())
     return instance;
   };
 

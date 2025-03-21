@@ -257,6 +257,7 @@ export function resolveCycleMulti(
     let processedGraph = cloneGraph(graph);
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
+    console.log('all cycles', cycles)
     let count = 10;
     // while (cycles.length > 0 && count > 0) {
         // Process each cycle
@@ -272,6 +273,7 @@ export function resolveCycleMulti(
                 return;
             }
             
+            console.log('creating merged component for cycle', cycleChannel, nodes)
             // Create merged component for this cycle
             const mergedComponent = createMergedComponentForChannel(
                 nodes,
@@ -345,6 +347,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
         if (partitionEdges.length === 0) return;
 
         const partitionCycles = findCyclesInPartition(partitionEdges);
+        console.log('partitionCycles', partitionCycles)
         cycles.push(...partitionCycles);
     });
 
@@ -370,6 +373,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
  * Finds cycles within a partition of edges with the same anchor ID.
  */
 function findCyclesInPartition(edges: BindingEdge[]): { nodes: string[], edges: BindingEdge[] }[] {
+    // TODO double cycles don't work....
     const cycles: Array<{ nodes: string[], edges: BindingEdge[] }> = [];
     const visited = new Set<string>();
     const stack = new Set<string>();

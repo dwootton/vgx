@@ -49,6 +49,7 @@ const configurations = [{
             "valueType": "Categorical",
             // "interactive": true
         },
+       
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
@@ -126,12 +127,16 @@ export class Text extends BaseComponent {
                 const keyName = config.id + '_' + key
                 this.schema[keyName] = schemaValue;
 
+                console.log('generating TEXTanchor for ', keyName, schemaValue)
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                    
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
+            console.log('this.anchors', this.anchors)
       
         });
 
@@ -208,6 +213,7 @@ export class Text extends BaseComponent {
              
             ).flat();
        
+        let dataAccessor = inputContext?.position_data?.[0]? {'name':inputContext?.position_data?.[0]} : {"values":[{}]};
 
         return {
             params: [
@@ -218,7 +224,7 @@ export class Text extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            "data":inputContext.position_data[0] + "_data" || {"values":[{}]}, //TODO FIX
+            "data": dataAccessor,
             name: `${this.id}_position_markName`,
             // "layer": [
             //      {
@@ -259,7 +265,7 @@ export class Text extends BaseComponent {
                 },
                 "text": {
                     // "value": { "expr": `${this.id}_position_text` },
-                    "value": this.baseConfig.text
+                    "value": "tester"
                 },
             }
         }

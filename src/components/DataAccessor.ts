@@ -1,6 +1,7 @@
 import { BaseComponent } from "./base";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
+import { generateConfigurationAnchors } from "./interactions/drag2";
 
 type DataOperation = {
   type: 'filter' | 'aggregate' | 'groupby' | 'count' | 'percent';
@@ -8,35 +9,87 @@ type DataOperation = {
 };
 
 
-const configurations = {
-  data: {
-    container: 'Data',
-    valueType: 'Data',
-  }
-}
+const configurations = [{
+    'id': 'transform',
+    "default": true,
+    "schema": {
+       
+        "data": { 
+            container: 'Data',
+            valueType: "Numeric"
+          },
+          "text": { 
+            container: 'Scalar',
+            valueType: "Categorical"
+          }
+       
+    },
+    "transforms": [
+        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
+        { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
+        // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
+    ]
+}];
 // Create a component class for data transformation
 class DataTransformer extends BaseComponent {
-  private operations: DataOperation[] = [];
+  private accessor: DataAccessor;
   private sourceSelectionName: string;
   
-  constructor(sourceComponent: BaseComponent, operations: DataOperation[]) {
+  constructor(sourceComponent: BaseComponent, accessor: DataAccessor) {
     super({});
     this.sourceSelectionName = sourceComponent.id;
-    this.operations = [...operations]; // Clone the operations
+    this.accessor = accessor
     
+    // this.configurations = configurations;
 
-   
-    this.anchors.set('data', this.createAnchorProxy({ 
-        'data': { 
-          container: 'Data',
-          valueType: "Numeric"
+    configurations.forEach(config => {
+        this.configurations[config.id] = config
+        const schema = config.schema
+        for (const key in schema) {
+            const schemaValue = schema[key];
+            const keyName = config.id + '_' + key
+            this.schema[keyName] = schemaValue;
+
+
+            this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+
+                return generatedAnchor
+            }));
         }
-      }, 'data', () => {
-        return { 'field': 'count', 'name': `${this.sourceSelectionName}` };
+        // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
+        //     return generateConfigurationAnchors(this.id, config.id)
+        // }));
+    });
 
-      }));
 
-      console.log('dataAnchor', this.anchors.get('data'))
+
+    
+   
+    // this.anchors.set('data', this.createAnchorProxy({ 
+    //     'data': { 
+    //       container: 'Data',
+    //       valueType: "Numeric"
+    //     }
+    //   }, 'data', () => {
+    //     return 
+
+    //   }));
+
+    //   this.anchors.set('text', this.createAnchorProxy({ 
+    //     'text': { 
+    //       container: 'Scalar',
+    //       valueType: "Categorical"
+    //     }
+    //   }, 'text', () => {
+
+    //     return "datum.count";
+
+    //   }));
+
+      
+
+      console.log('dataAnchor', this.anchors.get('transform_data'))
     
     // Setup basic anchors
     // this.setupAnchors();
@@ -80,12 +133,16 @@ class DataTransformer extends BaseComponent {
   }
   
   compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
-    console.log('compileComponent', inputContext)
+    console.log('compiging data accessor', inputContext)
     // Add data transforms to the chart
     const transforms = this.compileToTransforms();
     
     return {
-      transform: transforms
+      "dataAccessor":{
+        datasetName:this.id +"_transform_data",
+        transform: transforms,
+        source: "baseChartData"
+      }
     };
   }
   
@@ -96,7 +153,7 @@ class DataTransformer extends BaseComponent {
     // Start with the selection filter
     transforms.push({
       type: "filter",
-      expr: `vlSelectionTest(${JSON.stringify(this.sourceSelectionName)}, datum)`
+      expr: `vlSelectionTest("${(this.sourceSelectionName)}_store", datum)`
     });
     
     // Process operations
@@ -105,14 +162,16 @@ class DataTransformer extends BaseComponent {
     let aggregateOps = [];
     let aggregateAs = [];
     let groupbyFields = [];
+
+    const operations = this.accessor.operations;
     
-    for (const op of this.operations) {
+    for (const op of operations) {
       switch (op.type) {
         case 'filter':
-          transforms.push({ 
-            type: "filter", 
-            expr: op.params.expr 
-          });
+        //   transforms.push({ 
+        //     type: "filter", 
+        //     expr: op.params.expr 
+        //   });
           break;
         case 'groupby':
           groupbyFields = op.params.fields;
@@ -182,6 +241,7 @@ export class DataAccessor {
 
   // Aggregation method
   count(): DataAccessor {
+    console.log('PUSHING COUNT', this.sourceComponent.id)
     this.operations.push({ 
       type: 'count', 
       params: { as: 'count' } 
@@ -200,7 +260,7 @@ export class DataAccessor {
   
   // Convert to a component at the end of chaining
   toComponent(): BaseComponent {
-    return new DataTransformer(this.sourceComponent, this.operations);
+    return new DataTransformer(this.sourceComponent, this);
   }
 
   get value(): BaseComponent {

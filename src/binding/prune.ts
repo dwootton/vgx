@@ -1,4 +1,4 @@
-import { BindingEdge } from "./GraphManager";
+import { BindingEdge, BindingNode } from "./GraphManager";
 import { extractAnchorType, isCompatible } from "./cycles_CLEAN";
 /**
  * Prunes edges that are not reachable from the root component.
@@ -8,50 +8,11 @@ import { extractAnchorType, isCompatible } from "./cycles_CLEAN";
  * @param edges All binding edges in the graph
  * @returns Object containing valid edges and implicit edges
  */
-export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] {
-    // Start at the root id and determine which anchors are valid
-    const validEdges = new Set<BindingEdge>();
-    const visitedNodes = new Set<string>();
-
-    
-    // Helper function to recursively validate edges
-    function validateEdgesForNode(nodeId: string, validChannels: Set<string>) {
-        if (visitedNodes.has(nodeId)) return;
-        visitedNodes.add(nodeId);
-        
-        // Find all edges where this node is the source
-        const outgoingEdges = edges.filter(edge => edge.source.nodeId === nodeId);
-        
-        for (const edge of outgoingEdges) {
-            const sourceChannel = extractAnchorType(edge.source.anchorId);
-            const targetChannel = extractAnchorType(edge.target.anchorId);
-
-
-            if(sourceChannel === 'Data'){
-                console.log('sourceChannelDATA', sourceChannel, 'edge', edge)
-                console.log('sourceChannelDATA', targetChannel)
-            }
-            
-            // If the source channel is valid, this edge is valid
-            if (sourceChannel && validChannels.has(sourceChannel)) {
-                if(sourceChannel === 'Data'){
-                    console.log('sourceChannelDATAIN', sourceChannel, 'edge', edge)
-                }
-                validEdges.add(edge);
-                
-                // The target node can now use this channel
-                const targetValidChannels = new Set(validChannels);
-                if (targetChannel) {
-                    targetValidChannels.add(targetChannel);
-                }
-                
-                // Recursively validate edges for the target node
-                validateEdgesForNode(edge.target.nodeId, targetValidChannels);
-            }
-        }
-    }
-    
+export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: string): BindingEdge[] {
+    // Create a set of valid node IDs from the provided nodes
+    const validNodeIds = new Set<string>(nodes.map(node => node.id));
     // Start with the root node's channels
+
     const rootChannels = new Set<string>();
     
     // Find all edges where root is the source to determine valid channels
@@ -59,7 +20,6 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         const channel = extractAnchorType(edge.source.anchorId);
         if (channel) rootChannels.add(channel);
     });
-
     
     // Also include edges where root is the target
     edges.filter(edge => edge.target.nodeId === rootId).forEach(edge => {
@@ -67,15 +27,28 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         if (channel) rootChannels.add(channel);
     });
 
-    rootChannels.add('Data')
-
+    rootChannels.add('data')
+    rootChannels.add('text')
+    // Filter edges based on anchor type compatibility and valid nodes
+    const validEdges: BindingEdge[] = [];
     
-    // Start validation from the root
-    validateEdgesForNode(rootId, rootChannels);
+    for (const edge of edges) {
+        const sourceNodeId = edge.source.nodeId;
+        const targetNodeId = edge.target.nodeId;
+        
+        // Skip edges where either node doesn't exist in our valid nodes list
+        if (!validNodeIds.has(sourceNodeId) || !validNodeIds.has(targetNodeId)) {
+            continue;
+        }
+        
+        const sourceAnchorType = extractAnchorType(edge.source.anchorId);
+        const targetAnchorType = extractAnchorType(edge.target.anchorId);
+        
+        // Keep edges where both anchor types are defined and compatible
+        if (sourceAnchorType && targetAnchorType && isCompatible(edge.source.anchorId, edge.target.anchorId) && rootChannels.has(sourceAnchorType)) {
+            validEdges.push(edge);
+        }
+    }
     
-    const prunedEdges = edges.filter(edge => validEdges.has(edge));
-    const implicitEdges = edges.filter(edge => !validEdges.has(edge));
-    
-    
-    return prunedEdges;
+    return validEdges;
 }

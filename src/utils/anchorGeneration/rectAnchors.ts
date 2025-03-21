@@ -12,7 +12,9 @@ export function getChannelFromEncoding(encoding: string): ChannelType {
         "y2": "y",
         "color": "color",
         "size": "size",
-        "shape": "shape"    
+        "shape": "shape",
+        "text": "text",
+        "data": "data"
     }
     
     return channelMap[encoding]

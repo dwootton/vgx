@@ -65,39 +65,52 @@ export class LazyBindingRegistry {
                 );
 
                 
-
-                // Apply operations to get the final value
-                let value = realComponent;
-                // console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', realComponent)
-                for (const op of lazyComponent.operations) {
-                    if (value && value[op.type]) {
-                        if (op.args) {
-                            value = value[op.type](...op.args);
-                        } else {
-                            value = value[op.type];
-                        }
-                    }
-                }
-
                 let realBrush = this.bindingManager.getComponent(realComponent.id);
-                realBrush = realBrush.data;
-
+                
+                let accessor = realBrush;
                 if(realBrush){
+                    console.log('realBrush', realBrush)
+                    realBrush = realBrush.data;
                     realBrush = realBrush.toComponent();
                     this.bindingManager.addComponent(realBrush);
                 }
+
+                if(accessor){
+                    accessor = accessor.data;
+                    console.log('new accessor', accessor)
+                }
+
+
+                // Apply operations to get the final value
+                let value = accessor;
+                console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', accessor)
+                for (const op of lazyComponent.operations) {
+                    console.log('PUSHING OP', op.type, op.args, value)
+                    if (value && value[op.type]) {
+                        // if (op.args) {
+                            console.log('PUSHING OPWITH ARGS', value[op.type], op.args)
+                            value = value[op.type](...op.args);
+                        // } else {
+                            // value = value[op.type];
+                        // }
+                    }
+                }
+
+                
+                // console.log('realBrush', realBrush)
                     
 
 
                 // Create the inverse binding as these are cases where text should be created via the brush. 
                 this.bindingManager.addBinding(
                    
-                    realComponent.id,
+                    realBrush.id,
                     binding.sourceId,
                     
                     binding.targetAnchor,
                     binding.sourceAnchor
                 );
+                console.log('bindingsNOW', this.bindingManager.getBindings()   );
             });
         });
 

@@ -213,6 +213,7 @@ export function generateConfigurationAnchors(id: string, configurationId: string
     } else if (schema.container === 'Range') {
         return createRangeAccessor(id, channel, configurationId);
     } else if (schema.container === 'Data') {
+        console.log('generating dataAnchor', id, configurationId, channel)
         return {
             'value': `${id}_${configurationId}_${channel}`
         }

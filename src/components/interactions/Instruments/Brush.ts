@@ -96,6 +96,7 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
+      
        
 
     },
@@ -139,15 +140,15 @@ export class Brush extends BaseComponent {
 
         this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
 
-        // Add data as an anchor
-        this.anchors.set('data', this.createAnchorProxy({ 
-            'data': { 
-            container: 'Data',
-            valueType: 'Data',
-            }
-        }, 'data', () => {
-            return { 'value': this._data };
-        }));
+        // // Add data as an anchor
+        // this.anchors.set('data', this.createAnchorProxy({ 
+        //     'data': { 
+        //     container: 'Data',
+        //     valueType: 'Data',
+        //     }
+        // }, 'data', () => {
+        //     return { 'value': this._data };
+        // }));
 
 
     }

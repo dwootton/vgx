@@ -9,12 +9,17 @@ import { AnchorType } from "../types/anchors";
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
     const expanded= edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
+        console.log('sourceComponent', sourceComponent)
         if (!sourceComponent) {
             throw new Error(`Source component ${edge.source.nodeId} not found`);
         }
         const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
+        console.log('targetComponent', targetComponent)
         if (!targetComponent) {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
+        }
+        if(edge.source.nodeId == "node_4"){
+            console.log('expanded edges',edge, expandGroupAnchors(edge, sourceComponent, targetComponent))
         }
         return expandGroupAnchors(edge, sourceComponent, targetComponent)
     })
@@ -30,6 +35,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     const getAnchors = (component: BaseComponent, anchorId: string) => {
         // If it's _all, return all anchors
         if (anchorId === '_all') {
+            if(edge.source.nodeId == "node_4"){
+                console.log('ksdljflks',edge, [...component.getAnchors().values()].map(a => a.id.anchorId))
+            }
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
 
@@ -47,6 +55,8 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             .filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
             .map(a => a.id.anchorId);
             
+
+        console.log('configAnchors', configAnchors)
         // If we found configuration-based anchors, return those
         if (configAnchors.length > 0) {
             return configAnchors;
@@ -55,9 +65,11 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
         const baseAnchorId = anchorId
         try {
+            console.log('baseAnchorId', baseAnchorId, component.getAnchor(baseAnchorId),component)
             component.getAnchor(baseAnchorId); // This will throw if anchor doesn't exist
             return [baseAnchorId];
         } catch (error) {
+            //throw new Error(`Anchor ${baseAnchorId} not found for component ${component.id}`);
             // Anchor doesn't exist, continue with empty array
             return [];
         }
@@ -66,6 +78,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
     let targetAnchors = getAnchors(target, edge.target.anchorId);
+    if(edge.source.nodeId == "node_4"){
+        console.log('targetAnchors', targetAnchors,"sourceAnchors", sourceAnchors)
+    }
 
     return sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
@@ -81,7 +96,11 @@ export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorId === '_all') return undefined;
     if (anchorId.includes('data')) {
         console.log('DATAfdsfsdds', anchorId)
-        return 'Data';
+        return 'data';
+    }
+    if (anchorId.includes('text')) {
+        console.log('TEXTfdsfsdds', anchorId)
+        return 'text';
     }
     
     // If it's a simple channel name that matches an AnchorType
@@ -107,7 +126,14 @@ export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
     
     
     const sourceChannel = extractAnchorType(sourceAnchorId);
+    console.log('sourceChannel', sourceChannel, 'anchoirId', sourceAnchorId)
     const targetChannel = extractAnchorType(targetAnchorId);
+    console.log('sourceChannel', sourceChannel, 'anchoirId', sourceAnchorId)
+
+
+    if(sourceChannel === 'text'){
+        console.log('sourceChannelTEXT', sourceChannel, 'targetChannel', targetChannel)
+    }
     if(!sourceChannel || !targetChannel) {
         return false;
     }

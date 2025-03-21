@@ -30,11 +30,9 @@ export class GraphManager {
     }
 
     public generateBindingGraph(startComponentId: string): BindingGraph {
-        const nodes: BindingNode[] = [];
-        new Map<string, BindingNode>();
-        const edges: BindingEdge[] = [];
+        let nodes: BindingNode[] = [];
+        let edges: BindingEdge[] = [];
         const visited = new Set<string>();
-
 
         const addNode = (component: BaseComponent) => {
             if(nodes.find(node => node.id === component.id)) {
@@ -56,23 +54,57 @@ export class GraphManager {
 
             addNode(component);
 
-            this.bindingManager.getBindingsForComponent(componentId, 'source').forEach(binding => {
+            // Get all bindings where this component is either source or target
+            const allBindings = this.bindingManager.getBindingsForComponent(componentId, 'both');
+            
+            console.log('allBindings', allBindings)
+            // Process source bindings
+            allBindings.forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
+                console.log('allBindings', binding, sourceId, targetId);
                 [sourceId, targetId].forEach(id => {
                     const comp = this.bindingManager.getComponent(id);
                     if (comp) addNode(comp);
                 });
+
                 edges.push({
                     source: { nodeId: sourceId, anchorId: sourceAnchor },
                     target: { nodeId: targetId, anchorId: targetAnchor }
                 });
-
+                
                 traverse(sourceId);
                 traverse(targetId);
             });
+
+            
+            
         };
 
         traverse(startComponentId);
+        // De-duplicate nodes by creating a map with node IDs as keys
+        const uniqueNodesMap = new Map();
+        nodes.forEach(node => {
+            uniqueNodesMap.set(node.id, node);
+        });
+        
+        // Convert map back to array
+        const uniqueNodes = Array.from(uniqueNodesMap.values());
+        
+        // De-duplicate edges by creating a unique key for each edge
+        const uniqueEdgesMap = new Map();
+        edges.forEach(edge => {
+            const edgeKey = `${edge.source.nodeId}:${edge.source.anchorId}->${edge.target.nodeId}:${edge.target.anchorId}`;
+            uniqueEdgesMap.set(edgeKey, edge);
+        });
+        
+        // Convert map back to array
+        const uniqueEdges = Array.from(uniqueEdgesMap.values());
+        
+        // Replace the original arrays with de-duplicated ones
+        nodes = uniqueNodes;
+        edges = uniqueEdges;
+        console.log('uniqueNodes', uniqueNodes)
+        console.log('uniqueEdges', uniqueEdges)
         return { nodes, edges };
     }
 

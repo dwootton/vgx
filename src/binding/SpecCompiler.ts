@@ -79,14 +79,14 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 }
 
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
-    console.log('generateDataConstraints', schema, value.value.toComponent().sourceSelectionName)
-    return `${value.value.toComponent().sourceSelectionName}`; 
+    console.log('generateDataConstraints', schema, value)
+    return `${value.value}`; 
 }
 
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
-        private graphManager: GraphManager,
+    private graphManager: GraphManager,
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
@@ -99,12 +99,28 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
+        console.log('bindingGraphEDGES', bindingGraph.edges)
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
+        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, rootComponent.id);
 
         console.log('prunedEdges', prunedEdges,'expandedEdges', expandedEdges)
+        // Log if node_4 is a source nodeId in any pruned or expanded edges
+        console.log('node_4 as source in expandedEdges:', expandedEdges.some(edge => edge.source.nodeId === 'node_4'));
+        console.log('node_4 as source in prunedEdges:', prunedEdges.some(edge => edge.source.nodeId === 'node_4'));
+        
+        // Additional details about node_4 edges if they exist
+        const node4ExpandedEdges = expandedEdges.filter(edge => edge.source.nodeId === 'node_4');
+        const node4PrunedEdges = prunedEdges.filter(edge => edge.source.nodeId === 'node_4');
+        
+        if (node4ExpandedEdges.length > 0) {
+            console.log('node_4 expanded edges details:', node4ExpandedEdges);
+        }
+        
+        if (node4PrunedEdges.length > 0) {
+            console.log('node_4 pruned edges details:', node4PrunedEdges);
+        }
         bindingGraph.edges = prunedEdges;
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
@@ -114,7 +130,9 @@ export class SpecCompiler {
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
-        const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
+        const compiltation = mergeSpecs(compiledSpecs, rootComponent.id);
+        const mergedSpec = compiltation.mergedSpec;
+        const accessors = compiltation.accessors;   
 
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
@@ -136,31 +154,97 @@ export class SpecCompiler {
 
         console.log('vl spec', undefinedRemoved)
 
-        const vegaCompilation = vl.compile(undefinedRemoved);
-        const existingSignals = vegaCompilation.spec.signals || [];
-        existingSignals.forEach(signal => {
-            if(signal.name.includes('VGXMOD_')){
+        try {
 
-                // Create a copy of the signal name instead of modifying in place
-                const signalName = signal.name.substring(7); // Remove 'VGXMOD_' prefix
-                const signalUpdate = signal.on?.[0];
-                
-                // Find the corresponding signal in the vegaCompilation.spec.signals
-                const matchingSignal = existingSignals.find(s => s.name === signalName);
-                
-                // If we found a matching signal and it has an 'on' property with at least one entry
-                if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
-                    // Add the matching signal's first 'on' entry to the current signal's 'on' array
-                    matchingSignal.on.push(signalUpdate)
+            undefinedRemoved.datasets = {}
+            // Create empty array placeholders for each dataset
+            accessors.forEach(accessor => {
+                if (accessor && accessor.datasetName) {
+                    // Initialize an empty array as placeholder for the dataset
+                    undefinedRemoved.datasets[accessor.datasetName] = []
+                    console.log(`Added placeholder dataset: ${accessor.datasetName}`);
                 }
+            });
+
+            const vegaCompilation = vl.compile(undefinedRemoved);
+            console.log('vegaCompilation', vegaCompilation)   
+            // Filter out empty datasets from accessors
+            // Only filter datasets that come from accessors, keep all other datasets intact
+            const filteredData = vegaCompilation.spec.data?.filter(dataset => {
+                // Check if this dataset is from an accessor
+                const isFromAccessor = accessors.some(accessor => 
+                    accessor && accessor.datasetName === dataset.name
+                );
+                
+                // If it's from an accessor, only keep it if it has transforms with operations
+                if (isFromAccessor) {
+                    return dataset && 
+                           dataset.transform && 
+                           dataset.transform.length > 0;
+                }
+                
+                // Keep all non-accessor datasets
+                return true;
+            });
+            
+            vegaCompilation.spec.data = filteredData;
+
+            // Process data accessors and add them as datasets to the Vega spec
+            if (accessors && accessors.length > 0) {
+                // Initialize datasets array if it doesn't exist
+                vegaCompilation.spec.data = vegaCompilation.spec.data || [];
+                
+                // Add each data accessor as a dataset
+                accessors.forEach(accessor => {
+                    if (accessor && accessor.datasetName) {
+                        // Create a new dataset entry
+                        const datasetEntry = {
+                            name: accessor.datasetName,
+                            source: accessor.source || 'root', // Default to root if no source specified
+                            transform: accessor.transform || []
+                        };
+                        
+                        // Add the dataset to the Vega spec
+                        vegaCompilation.spec.data.push(datasetEntry);
+                        
+                        console.log(`Added dataset: ${accessor.datasetName} with ${datasetEntry.transform.length} transforms`);
+                    }
+                });
+            // Add placeholder datasets for any data accessors
+            vegaCompilation.spec.datasets = vegaCompilation.spec.datasets || {};
+            
             }
-        })
+            const existingSignals = vegaCompilation.spec.signals || [];
+            existingSignals.forEach(signal => {
+                if(signal.name.includes('VGXMOD_')){
+    
+                    // Create a copy of the signal name instead of modifying in place
+                    const signalName = signal.name.substring(7); // Remove 'VGXMOD_' prefix
+                    const signalUpdate = signal.on?.[0];
+                    
+                    // Find the corresponding signal in the vegaCompilation.spec.signals
+                    const matchingSignal = existingSignals.find(s => s.name === signalName);
+                    
+                    // If we found a matching signal and it has an 'on' property with at least one entry
+                    if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
+                        // Add the matching signal's first 'on' entry to the current signal's 'on' array
+                        matchingSignal.on.push(signalUpdate)
+                    }
+                }
+            })
+    
+    
+            vegaCompilation.spec.signals = existingSignals;
 
+            console.log("FINAL VEGA SPEC", vegaCompilation.spec)
 
-        vegaCompilation.spec.signals = existingSignals;
-
-        
-        return vegaCompilation;
+            
+            return vegaCompilation;
+        } catch (error) {
+            console.log('error', error)
+            return undefined
+        }   
+       
     }
 
 
@@ -176,6 +260,8 @@ export class SpecCompiler {
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
+
+        console.log('parentNodes for', parentNodes, 'for', node.id)
         
         if (parentNodes.length === 0) return [];
         
@@ -188,6 +274,7 @@ export class SpecCompiler {
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
+            console.log('parentNode', parentNode, parentNodes)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -203,10 +290,12 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
+            console.log('parentAnchors', parentAnchors)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
                 const channel = extractAnchorType(anchorId);
+                console.log('anchorId', anchorId, channel)
                 if (!channel) return;
                 
                 // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
@@ -223,6 +312,7 @@ export class SpecCompiler {
                 }
             })
         }
+        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
@@ -266,6 +356,7 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         let { nodes, edges } = bindingGraph;
+        console.log('FIRST edges', edges,'nodes', nodes)
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -301,16 +392,23 @@ export class SpecCompiler {
             }
 
 
-
+            console.log('ALLedges', edges)
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
             console.log('building constraints for', nodeId, 'edges', edges, 'nodes', nodes)
+
+            // Log edges that have node_4 as source or target
+            edges.forEach(edge => {
+                if (edge.source.nodeId === 'node_4' || edge.target.nodeId === 'node_4') {
+                    console.log('Edge with node_4:', edge);
+                }
+            });
             // Log edges that have 'data' in their names (case insensitive)
            
             const constraints = this.buildNodeConstraints(node, edges, nodes);
 
-            console.log('constraints32', constraints, 'for', nodeId)
+            console.log('constraints32', constraints, 'for', nodeId,node)
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -320,13 +418,27 @@ export class SpecCompiler {
             // Find and traverse child nodes
             const childNodeIds = this.findChildNodes(node, edges, nodes);
             const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
+            // Find and traverse parent nodes
+            const parentNodeIds = this.findParentNodes(node, edges, nodes);
+            console.log('parentNodes', parentNodeIds, node,nodes)
+            const parentSpecs = parentNodeIds.flatMap(parentId => {
+                // Skip if already visited to prevent infinite loops
+                if (visitedNodes.has(parentId)) {
+                    return [];
+                }
+                console.log('finding parent', parentId)
+                return traverseGraph(parentId);
+            });
+            
+            // Combine child and parent specs
+            const allRelatedSpecs = [...childSpecs, ...parentSpecs];
 
             // Skip merged nodes during first traversal - we'll process them separately
             if (mergedNodeIds.has(nodeId)) {
-                return [...childSpecs];
+                return allRelatedSpecs;
             }
 
-            return [compiledNode, ...childSpecs];
+            return [compiledNode, ...allRelatedSpecs];
         };
 
         // First pass: Traverse the graph starting from the root
@@ -397,9 +509,11 @@ export class SpecCompiler {
             );
         } else if (currentNodeSchema.container === "Data") {
             console.log('data constraints', parentNodeSchema, anchorAccessor)
-            constraints[targetAnchorId].push(
-                generateDataConstraints(parentNodeSchema, anchorAccessor)
-            );
+            
+                constraints[targetAnchorId].push(
+                    generateDataConstraints(parentNodeSchema, anchorAccessor)
+                );
+            
         }
     }
 
@@ -418,63 +532,43 @@ export class SpecCompiler {
         const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
         const constraints: Record<AnchorId, Constraint[]> = {};
 
-        console.log('parentEdges', parentEdges, 'for', node.id)
-        // Initialize data edges array to track data bindings
-        const dataEdges = parentEdges.filter(edge => {
-            const targetComponent = this.getBindingManager().getComponent(edge.target.nodeId);
-            if (!targetComponent) return false;
+        // console.log('parentEdges', parentEdges, 'for', node.id)
+        // // Initialize data edges array to track data bindings
+        // const dataEdges = parentEdges.filter(edge => {
+        //     const targetComponent = this.getBindingManager().getComponent(edge.target.nodeId);
+        //     if (!targetComponent) return false;
             
-            const targetAnchorId = edge.target.anchorId;
-            const cleanTargetId = targetAnchorId.replace('_internal', '');
-            const schema = targetComponent.schema[cleanTargetId];
+        //     const targetAnchorId = edge.target.anchorId;
+        //     const cleanTargetId = targetAnchorId.replace('_internal', '');
+        //     const schema = targetComponent.schema[cleanTargetId];
             
-            return schema && schema.container === 'Data';
-        });
+        //     return schema && schema.container === 'Data';
+        // });
+
+        // console.log('dataEdges', dataEdges)
         
-        // Log data edges for debugging
-        if (dataEdges.length > 0) {
-            console.log('Data edges for component', node.id, ':', dataEdges.map(edge => ({
-                source: `${edge.source.nodeId}.${edge.source.anchorId}`,
-                target: `${edge.target.nodeId}.${edge.target.anchorId}`
-            })));
-        }
+        // // Log data edges for debugging
+        // if (dataEdges.length > 0) {
+        //     console.log('Data edges for component', node.id, ':', dataEdges.map(edge => ({
+        //         source: `${edge.source.nodeId}.${edge.source.anchorId}`,
+        //         target: `${edge.target.nodeId}.${edge.target.anchorId}`
+        //     })));
+        // }
 
         // Process each parent edge
         for (const parentEdge of parentEdges) {
-            console.log('Processing parent edge:', parentEdge.source.nodeId + '.' + parentEdge.source.anchorId, '->', parentEdge.target.nodeId + '.' + parentEdge.target.anchorId);
             
-            // Special debug for data edges
-            if (parentEdge.source.anchorId === 'data') {
-                console.log('Found data edge from:', parentEdge.source.nodeId, 'to:', parentEdge.target.nodeId);
-            }
+           
 
             const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if (!parentNode) {
-                console.log('Parent node not found:', parentEdge.source.nodeId);
-                continue;
-            }
+            if(!parentNode) continue;
             
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if (!parentComponent) {
-                console.log('Parent component not found:', parentNode.id);
-                continue;
-            }
+            if(!parentComponent) continue;
 
             const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if (!anchorProxy) {
-                console.log('Anchor proxy not found:', parentEdge.source.anchorId, 'in component', parentNode.id);
-                continue;
-            }
+            if(!anchorProxy) continue;
             
-            // For data edges, log additional information about the anchor
-            if (parentEdge.source.anchorId === 'data') {
-                console.log('Data anchor details:', {
-                    componentId: parentNode.id,
-                    anchorId: parentEdge.source.anchorId,
-                    schema: anchorProxy.anchorSchema[parentEdge.source.anchorId],
-                    isLazy: parentComponent.data?.isLazy
-                });
-            }
             
 
 
@@ -496,7 +590,9 @@ export class SpecCompiler {
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            
+            if (parentNode.id === 'node_4') {
+                console.log('adding constraint for', targetAnchorId,constraints, currentNodeSchema, parentNodeSchema, anchorProxy);
+            }
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
@@ -530,6 +626,23 @@ export class SpecCompiler {
                 .filter(id => allNodes.find(n => n.id === id))
         ));
     }
+
+    private findParentNodes(
+        node: BindingNode,
+        edges: BindingEdge[],
+        allNodes: BindingNode[]
+    ): string[] {
+        // Find edges where this node is the target
+        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
+
+        // Extract unique parent node IDs
+        return Array.from(new Set(
+            parentEdges
+                .map(edge => edge.source.nodeId)
+                .filter(id => allNodes.find(n => n.id === id))
+        ));
+    }
+
 
 
 
@@ -684,7 +797,7 @@ export function expandGroupAnchors(
 
 
 
-function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): TopLevelSpec {
+function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): { mergedSpec: TopLevelSpec, accessors: any[] } {
     // Helper to check if spec has layer/mark
     const hasLayerOrMark = (spec: any) => {
         return spec.layer || spec.mark;
@@ -781,7 +894,30 @@ function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string):
         mergedSpec.params = mergeParams(params);
     }
 
-    return mergedSpec;
+    // Extract any dataAccessor properties and remove them from the spec
+    const extractDataAccessors = (obj: any, path: string = '', accessors: any[] = []) => {
+        if (!obj || typeof obj !== 'object') return accessors;
+
+        // Check if the current object has a dataAccessor property
+        if ('dataAccessor' in obj) {
+            console.log(`Found dataAccessor at ${path}:`, obj.dataAccessor);
+            accessors.push(obj.dataAccessor);
+            delete obj.dataAccessor;
+        }
+
+        // Recursively check all properties
+        Object.entries(obj).forEach(([key, value]) => {
+            const newPath = path ? `${path}.${key}` : key;
+            extractDataAccessors(value, newPath, accessors);
+        });
+
+        return accessors;
+    };
+
+    // Apply the extraction to the merged spec
+    const accessors = extractDataAccessors(mergedSpec);
+
+    return { mergedSpec, accessors };
 }
 
 function mergeParams(params: any[]): any[] {

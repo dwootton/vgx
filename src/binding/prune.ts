@@ -25,9 +25,18 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         for (const edge of outgoingEdges) {
             const sourceChannel = extractAnchorType(edge.source.anchorId);
             const targetChannel = extractAnchorType(edge.target.anchorId);
+
+
+            if(sourceChannel === 'Data'){
+                console.log('sourceChannelDATA', sourceChannel, 'edge', edge)
+                console.log('sourceChannelDATA', targetChannel)
+            }
             
             // If the source channel is valid, this edge is valid
             if (sourceChannel && validChannels.has(sourceChannel)) {
+                if(sourceChannel === 'Data'){
+                    console.log('sourceChannelDATAIN', sourceChannel, 'edge', edge)
+                }
                 validEdges.add(edge);
                 
                 // The target node can now use this channel
@@ -51,7 +60,6 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         if (channel) rootChannels.add(channel);
     });
 
-    console.log('before target', edges.filter(edge => edge.target.nodeId === rootId))
     
     // Also include edges where root is the target
     edges.filter(edge => edge.target.nodeId === rootId).forEach(edge => {
@@ -59,7 +67,8 @@ export function pruneEdges(rootId: string, edges: BindingEdge[]): BindingEdge[] 
         if (channel) rootChannels.add(channel);
     });
 
-    console.log('after target', edges, rootChannels, rootId)
+    rootChannels.add('Data')
+
     
     // Start validation from the root
     validateEdgesForNode(rootId, rootChannels);

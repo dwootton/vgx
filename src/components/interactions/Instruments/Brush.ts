@@ -39,7 +39,6 @@ export class BrushConstructor {
         
         // Get all components that need to be bound
         const allBindings = extractComponentBindings(config);
-        console.log('allBindings', allBindings)
 
         
 
@@ -71,9 +70,7 @@ export class BrushConstructor {
 
         const bindingManager = BindingManager.getInstance();
 
-        console.log('pre dragProxy',bindingManager.getComponents())
         bindingManager.removeComponent(drag.id);
-        console.log('adding dragProxy',bindingManager.getComponents())
         bindingManager.addComponent(dragProxy);
         
         // Return the proxy instead of the original drag object
@@ -99,10 +96,7 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
-        "data": {
-            "container": "Data",
-            "valueType": "Data",
-        }
+       
 
     },
     "transforms": [{
@@ -161,17 +155,13 @@ export class Brush extends BaseComponent {
     
         // Getter for data accessor
     get data(): DataAccessor {
-        console.log('getting data', this._data)
         const accessor= new DataAccessor(this);
         this.accessors.push(accessor);
-        console.log('accessor', accessor)
         return accessor.filter(`vlSelectionTest(${this.id}_store, datum)`)
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        console.log('compiling brush', this, inputContext)
         const nodeId = inputContext.nodeId || this.id;
-        console.log('inputContextDRAG', inputContext, nodeId)
         const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0] + "_marks" : '';
         const selection = {
             "name": this.id,
@@ -185,7 +175,6 @@ export class Brush extends BaseComponent {
             }
         }
 
-        console.log('compiling accessors', this.accessors)
 
         const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
         const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
@@ -193,7 +182,6 @@ export class Brush extends BaseComponent {
         const yNodeStart = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('start')))[0]
         const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
 
-        console.log('xNodes', xNodeStart, xNodeStop, 'yNodes', yNodeStart, yNodeStop)
 
 
         const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":xNodeStart},{"signal":xNodeStop}],"update":`[${xNodeStart},${xNodeStop}]`}]},

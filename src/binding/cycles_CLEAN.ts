@@ -79,6 +79,10 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
 export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorId === '_all') return undefined;
+    if (anchorId.includes('data')) {
+        console.log('DATAfdsfsdds', anchorId)
+        return 'Data';
+    }
     
     // If it's a simple channel name that matches an AnchorType
     const anchorTypeValues = Object.values(AnchorType) as string[];
@@ -257,7 +261,6 @@ export function resolveCycleMulti(
     let processedGraph = cloneGraph(graph);
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
-    console.log('all cycles', cycles)
     let count = 10;
     // while (cycles.length > 0 && count > 0) {
         // Process each cycle
@@ -273,7 +276,6 @@ export function resolveCycleMulti(
                 return;
             }
             
-            console.log('creating merged component for cycle', cycleChannel, nodes)
             // Create merged component for this cycle
             const mergedComponent = createMergedComponentForChannel(
                 nodes,
@@ -347,7 +349,6 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
         if (partitionEdges.length === 0) return;
 
         const partitionCycles = findCyclesInPartition(partitionEdges);
-        console.log('partitionCycles', partitionCycles)
         cycles.push(...partitionCycles);
     });
 

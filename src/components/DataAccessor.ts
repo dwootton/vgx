@@ -7,6 +7,13 @@ type DataOperation = {
   params: any;
 };
 
+
+const configurations = {
+  data: {
+    container: 'Data',
+    valueType: 'Data',
+  }
+}
 // Create a component class for data transformation
 class DataTransformer extends BaseComponent {
   private operations: DataOperation[] = [];
@@ -17,19 +24,20 @@ class DataTransformer extends BaseComponent {
     this.sourceSelectionName = sourceComponent.id;
     this.operations = [...operations]; // Clone the operations
     
-    console.log('sourceComponentData', sourceComponent)
 
+   
     this.anchors.set('data', this.createAnchorProxy({ 
         'data': { 
           container: 'Data',
-          valueType: 'Data',
+          valueType: "Numeric"
         }
       }, 'data', () => {
-        return { 'value': `${this.sourceSelectionName}`, 'field': 'count' };
+        return { 'field': 'count', 'name': `${this.sourceSelectionName}` };
 
       }));
+
+      console.log('dataAnchor', this.anchors.get('data'))
     
-      console.log('data anchor', this.anchors.get('data'))
     // Setup basic anchors
     // this.setupAnchors();
   }
@@ -72,6 +80,7 @@ class DataTransformer extends BaseComponent {
   }
   
   compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+    console.log('compileComponent', inputContext)
     // Add data transforms to the chart
     const transforms = this.compileToTransforms();
     
@@ -86,43 +95,62 @@ class DataTransformer extends BaseComponent {
     
     // Start with the selection filter
     transforms.push({
-      filter: { selection: this.sourceSelectionName }
+      type: "filter",
+      expr: `vlSelectionTest(${JSON.stringify(this.sourceSelectionName)}, datum)`
     });
     
     // Process operations
     let needsAggregate = false;
+    let aggregateFields = [];
     let aggregateOps = [];
+    let aggregateAs = [];
     let groupbyFields = [];
     
     for (const op of this.operations) {
       switch (op.type) {
         case 'filter':
-          transforms.push({ filter: op.params.expr });
+          transforms.push({ 
+            type: "filter", 
+            expr: op.params.expr 
+          });
           break;
         case 'groupby':
           groupbyFields = op.params.fields;
           needsAggregate = true;
           break;
         case 'count':
-          aggregateOps.push({ op: 'count', as: 'count' });
+          aggregateFields.push(null);
+          aggregateOps.push('count');
+          aggregateAs.push('count');
           needsAggregate = true;
           break;
         case 'percent':
           // This needs to be added after aggregation
-          const parentCount = "data('baseChartData').length" // TODO not hardcoded
-          aggregateOps.push({ op: 'count', as: 'count' });
+          const parentCount = "data('baseChartData').length"; // TODO not hardcoded
+          // Make sure count is included in aggregation
+          if (!aggregateOps.includes('count')) {
+            aggregateFields.push(null);
+            aggregateOps.push('count');
+            aggregateAs.push('count');
+            needsAggregate = true;
+          }
           transforms.push({
-            calculate: `datum.count / ${parentCount}`, 
+            type: "formula",
+            expr: `datum.count / ${parentCount}`,
             as: "percent"
           });
           break;
       }
     }
+    console.log('transformsCompiled', transforms)
     
     // Add aggregate transform if needed
     if (needsAggregate) {
       transforms.push({
-        aggregate: aggregateOps,
+        type: "aggregate",
+        fields: aggregateFields,
+        ops: aggregateOps,
+        as: aggregateAs,
         ...(groupbyFields.length > 0 && { groupby: groupbyFields })
       });
     }
@@ -131,14 +159,16 @@ class DataTransformer extends BaseComponent {
   }
 }
 
+
 export class DataAccessor {
   private sourceComponent: BaseComponent;
   private operations: DataOperation[] = [];
   
   constructor(sourceComponent: BaseComponent) {
     this.sourceComponent = sourceComponent;
-  }
+    
 
+  }
   // Basic operations
   filter(expr: string): DataAccessor {
     this.operations.push({ type: 'filter', params: { expr } });
@@ -170,18 +200,15 @@ export class DataAccessor {
   
   // Convert to a component at the end of chaining
   toComponent(): BaseComponent {
-    console.log('toComponent', this.sourceComponent, this.operations)
     return new DataTransformer(this.sourceComponent, this.operations);
   }
 
   get value(): BaseComponent {
-    console.log('value', this.toComponent())
     return this.toComponent();
   }
   
   // Implicit conversion when used as a value
   valueOf(): BaseComponent {
-    console.log('valueOf', this.toComponent())
     return this.toComponent();
   }
   

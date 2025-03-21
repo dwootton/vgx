@@ -212,6 +212,10 @@ export function generateConfigurationAnchors(id: string, configurationId: string
         }
     } else if (schema.container === 'Range') {
         return createRangeAccessor(id, channel, configurationId);
+    } else if (schema.container === 'Data') {
+        return {
+            'value': `${id}_${configurationId}_${channel}`
+        }
     }
     return { 'value': '' }
 }
@@ -244,6 +248,7 @@ export class CombinedDrag extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+
                     return generatedAnchor
                 }));
             }

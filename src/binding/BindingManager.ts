@@ -34,7 +34,6 @@ export class BindingManager {
         // Initialize dependencies lazily
         this.graphManager = new GraphManager(() => this);
         this.specCompiler = new SpecCompiler(this.graphManager, () => this);
-        console.log("BINDINGGRAPHE",this)
     }
 
     public getProcessedGraph(id: string): ProcessedGraph {
@@ -62,12 +61,11 @@ export class BindingManager {
         return component;
     }
 
-    public addComponent(component: BaseComponent): void {
+public addComponent(component: BaseComponent): void {
         this.components.set(component.id, component);
     }
 
     public removeComponent(componentId: string): void {
-        console.log('removing component', componentId)
         this.components.delete(componentId);
     }
 

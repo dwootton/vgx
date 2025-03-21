@@ -48,7 +48,7 @@ const configurations = [{
             "container": "Scalar",
             "valueType": "Categorical",
             // "interactive": true
-        }
+        },
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
@@ -161,6 +161,8 @@ export class Text extends BaseComponent {
             value: textBaseContext
         };
 
+        
+
         // // TODO handle missing key/anchors
         // const outputSignals = Object.keys(this.schema).map(key =>
         //     generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
@@ -216,7 +218,7 @@ export class Text extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            "data":{"values":[{}]}, //TODO FIX
+            "data":inputContext.position_data[0] + "_data" || {"values":[{}]}, //TODO FIX
             name: `${this.id}_position_markName`,
             // "layer": [
             //      {

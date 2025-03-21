@@ -46,7 +46,6 @@ export class LazyBindingRegistry {
     static resolve(componentType: string, realComponent: BaseComponent): void {
         const pending = this.pendingBindings.get(componentType) || [];
 
-        console.log("RESOLVINGNEW", pending, 'on:', realComponent, this.pendingBindings, componentType)
         if (pending.length == 0) {
             return;
         }
@@ -55,7 +54,6 @@ export class LazyBindingRegistry {
             // Find all bindings to the fake proxy
             const bindings = this.bindingManager.getBindingsForComponent(lazyComponent.id, 'target');
 
-            console.log("BINDINGS", bindings, lazyComponent.id, this.bindingManager.getBindings())
             // Rewrite each binding to point to the real component
             bindings.forEach(binding => {
                 // Remove the old binding
@@ -80,9 +78,14 @@ export class LazyBindingRegistry {
                         }
                     }
                 }
-                console.log('comp', lazyComponent, lazyComponent);
-                const realBrush = this.bindingManager.getComponent(realComponent.id);
-                console.log('realBrush', realBrush,binding.targetAnchor, realComponent.data, realComponent.brush  )
+
+                let realBrush = this.bindingManager.getComponent(realComponent.id);
+                realBrush = realBrush.data;
+
+                if(realBrush){
+                    realBrush = realBrush.toComponent();
+                    this.bindingManager.addComponent(realBrush);
+                }
                     
 
 

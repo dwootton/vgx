@@ -66,6 +66,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     }
     if (schema.container === 'Set') {
         value = value as SetValue
+        
         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
     }
     if (schema.container === 'Scalar') {
@@ -77,6 +78,10 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     return "";
 }
 
+function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
+    console.log('generateDataConstraints', schema, value.value.toComponent().sourceSelectionName)
+    return `${value.value.toComponent().sourceSelectionName}`; 
+}
 
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
@@ -94,18 +99,18 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
-        console.log('2bjksjcjkasb', JSON.parse(JSON.stringify(bindingGraph.edges)))
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
         const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
 
-        console.log('prunedEdges', prunedEdges,expandedEdges)
+        console.log('prunedEdges', prunedEdges,'expandedEdges', expandedEdges)
         bindingGraph.edges = prunedEdges;
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
 
 
+        console.log('processedGraph', processedGraph)
         // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
@@ -129,6 +134,7 @@ export class SpecCompiler {
 
         undefinedRemoved.params=sortedParams
 
+        console.log('vl spec', undefinedRemoved)
 
         const vegaCompilation = vl.compile(undefinedRemoved);
         const existingSignals = vegaCompilation.spec.signals || [];
@@ -150,7 +156,6 @@ export class SpecCompiler {
             }
         })
 
-        console.log('bindign graph', processedGraph)
 
         vegaCompilation.spec.signals = existingSignals;
 
@@ -261,7 +266,6 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         let { nodes, edges } = bindingGraph;
-        console.log('bindinggraph',nodes, JSON.parse(JSON.stringify(edges)))
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -301,7 +305,12 @@ export class SpecCompiler {
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
+            console.log('building constraints for', nodeId, 'edges', edges, 'nodes', nodes)
+            // Log edges that have 'data' in their names (case insensitive)
+           
             const constraints = this.buildNodeConstraints(node, edges, nodes);
+
+            console.log('constraints32', constraints, 'for', nodeId)
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -320,7 +329,6 @@ export class SpecCompiler {
             return [compiledNode, ...childSpecs];
         };
 
-        console.log('edges', edges)
         // First pass: Traverse the graph starting from the root
         const regularSpecs = traverseGraph(rootId);
 
@@ -387,6 +395,11 @@ export class SpecCompiler {
             constraints[targetAnchorId].push(
                 generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
+        } else if (currentNodeSchema.container === "Data") {
+            console.log('data constraints', parentNodeSchema, anchorAccessor)
+            constraints[targetAnchorId].push(
+                generateDataConstraints(parentNodeSchema, anchorAccessor)
+            );
         }
     }
 
@@ -405,16 +418,64 @@ export class SpecCompiler {
         const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
         const constraints: Record<AnchorId, Constraint[]> = {};
 
+        console.log('parentEdges', parentEdges, 'for', node.id)
+        // Initialize data edges array to track data bindings
+        const dataEdges = parentEdges.filter(edge => {
+            const targetComponent = this.getBindingManager().getComponent(edge.target.nodeId);
+            if (!targetComponent) return false;
+            
+            const targetAnchorId = edge.target.anchorId;
+            const cleanTargetId = targetAnchorId.replace('_internal', '');
+            const schema = targetComponent.schema[cleanTargetId];
+            
+            return schema && schema.container === 'Data';
+        });
+        
+        // Log data edges for debugging
+        if (dataEdges.length > 0) {
+            console.log('Data edges for component', node.id, ':', dataEdges.map(edge => ({
+                source: `${edge.source.nodeId}.${edge.source.anchorId}`,
+                target: `${edge.target.nodeId}.${edge.target.anchorId}`
+            })));
+        }
+
         // Process each parent edge
         for (const parentEdge of parentEdges) {
-            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if (!parentNode) continue;
+            console.log('Processing parent edge:', parentEdge.source.nodeId + '.' + parentEdge.source.anchorId, '->', parentEdge.target.nodeId + '.' + parentEdge.target.anchorId);
+            
+            // Special debug for data edges
+            if (parentEdge.source.anchorId === 'data') {
+                console.log('Found data edge from:', parentEdge.source.nodeId, 'to:', parentEdge.target.nodeId);
+            }
 
+            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
+            if (!parentNode) {
+                console.log('Parent node not found:', parentEdge.source.nodeId);
+                continue;
+            }
+            
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if (!parentComponent) continue;
+            if (!parentComponent) {
+                console.log('Parent component not found:', parentNode.id);
+                continue;
+            }
 
             const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if (!anchorProxy) continue;
+            if (!anchorProxy) {
+                console.log('Anchor proxy not found:', parentEdge.source.anchorId, 'in component', parentNode.id);
+                continue;
+            }
+            
+            // For data edges, log additional information about the anchor
+            if (parentEdge.source.anchorId === 'data') {
+                console.log('Data anchor details:', {
+                    componentId: parentNode.id,
+                    anchorId: parentEdge.source.anchorId,
+                    schema: anchorProxy.anchorSchema[parentEdge.source.anchorId],
+                    isLazy: parentComponent.data?.isLazy
+                });
+            }
+            
 
 
 
@@ -425,6 +486,7 @@ export class SpecCompiler {
             const cleanTargetId = targetAnchorId.replace('_internal', '');
 
             const currentNodeSchema = component.schema[cleanTargetId]
+            console.log('currentNodeSchema', currentNodeSchema, parentEdge.source.nodeId, parentEdge.source.anchorId)
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
             
             // Skip if no schema exists for this channel
@@ -444,6 +506,8 @@ export class SpecCompiler {
                 anchorProxy
             );
         }
+
+
 
         return constraints;
     }

@@ -265,7 +265,7 @@ export class Text extends BaseComponent {
                 },
                 "text": {
                     // "value": { "expr": `${this.id}_position_text` },
-                    "value": "tester"
+                    "value": {"expr":`datum.count`}
                 },
             }
         }

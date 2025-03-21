@@ -5,6 +5,7 @@ import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } fr
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
+import { BindingManager } from "../../../binding/BindingManager";
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
@@ -43,6 +44,8 @@ export class BrushConstructor {
         
 
         const brush = new Brush(config);
+        
+
         this.id = brush.id;
 
         const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
@@ -65,6 +68,13 @@ export class BrushConstructor {
                 return Reflect.get(target, prop, receiver);
             }
         });
+
+        const bindingManager = BindingManager.getInstance();
+
+        console.log('pre dragProxy',bindingManager.getComponents())
+        bindingManager.removeComponent(drag.id);
+        console.log('adding dragProxy',bindingManager.getComponents())
+        bindingManager.addComponent(dragProxy);
         
         // Return the proxy instead of the original drag object
         return dragProxy;

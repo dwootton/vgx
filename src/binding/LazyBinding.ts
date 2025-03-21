@@ -66,9 +66,11 @@ export class LazyBindingRegistry {
                     binding.targetAnchor
                 );
 
+                
+
                 // Apply operations to get the final value
                 let value = realComponent;
-                console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', realComponent)
+                // console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', realComponent)
                 for (const op of lazyComponent.operations) {
                     if (value && value[op.type]) {
                         if (op.args) {
@@ -78,13 +80,20 @@ export class LazyBindingRegistry {
                         }
                     }
                 }
+                console.log('comp', lazyComponent, lazyComponent);
+                const realBrush = this.bindingManager.getComponent(realComponent.id);
+                console.log('realBrush', realBrush,binding.targetAnchor, realComponent.data, realComponent.brush  )
+                    
 
-                // Create new binding to the real component
+
+                // Create the inverse binding as these are cases where text should be created via the brush. 
                 this.bindingManager.addBinding(
-                    binding.sourceId,
+                   
                     realComponent.id,
-                    binding.sourceAnchor,
-                    binding.targetAnchor
+                    binding.sourceId,
+                    
+                    binding.targetAnchor,
+                    binding.sourceAnchor
                 );
             });
         });

@@ -17,6 +17,19 @@ class DataTransformer extends BaseComponent {
     this.sourceSelectionName = sourceComponent.id;
     this.operations = [...operations]; // Clone the operations
     
+    console.log('sourceComponentData', sourceComponent)
+
+    this.anchors.set('data', this.createAnchorProxy({ 
+        'data': { 
+          container: 'Data',
+          valueType: 'Data',
+        }
+      }, 'data', () => {
+        return { 'value': `${this.sourceSelectionName}`, 'field': 'count' };
+
+      }));
+    
+      console.log('data anchor', this.anchors.get('data'))
     // Setup basic anchors
     // this.setupAnchors();
   }
@@ -32,15 +45,6 @@ class DataTransformer extends BaseComponent {
       return { 'value': `datum.count` };
     }));
 
-    this.anchors.set('data', this.createAnchorProxy({ 
-        'data': { 
-          container: 'Data',
-          valueType: 'Data',
-        }
-      }, 'count', () => {
-        return { 'value': `datum.count` };
-      }));
-    
     // Always set up percent anchor
     this.anchors.set('percent', this.createAnchorProxy({ 
       'percent': { 

@@ -34,11 +34,16 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true
         },
-        // "text": {
-        //     "container": "Scalar",
-        //     "valueType": "Categorical",
-        //     // "interactive": true
-        // },
+        "text": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "interactive": true
+        },
+        "data": {
+            "container": "Data",
+            "valueType": "Data",
+            // "interactive": true
+        },
         "markName": {
             "container": "Scalar",
             "valueType": "Categorical",
@@ -51,6 +56,8 @@ const configurations = [{
         // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
     ]
 }];
+
+
 /*
 {
     'id': 'appearance',

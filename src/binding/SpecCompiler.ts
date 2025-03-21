@@ -94,6 +94,7 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
+        console.log('2bjksjcjkasb', JSON.parse(JSON.stringify(bindingGraph.edges)))
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
@@ -148,6 +149,8 @@ export class SpecCompiler {
                 }
             }
         })
+
+        console.log('bindign graph', processedGraph)
 
         vegaCompilation.spec.signals = existingSignals;
 

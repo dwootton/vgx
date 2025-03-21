@@ -114,6 +114,7 @@ export type SetValue = {
 
   export type DataValue = {
     data: DataAccessor; // maps to the expression for the value
+    field: string; // maps to the expression for the value
   }
   
 

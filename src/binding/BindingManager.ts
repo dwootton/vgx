@@ -66,6 +66,12 @@ export class BindingManager {
         this.components.set(component.id, component);
     }
 
+    public removeComponent(componentId: string): void {
+        console.log('removing component', componentId)
+        this.components.delete(componentId);
+    }
+
+
 
     // Bindings 
     public getBindings(): Binding[] {

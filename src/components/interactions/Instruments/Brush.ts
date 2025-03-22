@@ -100,16 +100,21 @@ const configurations = [{
        
 
     },
-    "transforms": [{
-        "name": "x",
-        "channel": "x",
-        "value": "PARENT_ID.x" // replace the parent id + get the channel value
-    },
-    {
-        "name": "y",
-        "channel": "y",
-        "value": "PARENT_ID.y" // replace the parent id + get the channel value
-    }
+    "transforms": [
+    //     {
+    //     "name": "x",
+    //     "channel": "x",
+    //     "value": "PARENT_ID.x" // replace the parent id + get the channel value
+    // },
+    // {
+    //     "name": "y",
+    //     "channel": "y",
+    //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
+    // } 
+    { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
+    { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
+    { "name": "y_start", "channel": "y", "value": "50" },
+    // { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
     ]
 },
 {// STIL BROKEN
@@ -125,19 +130,16 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
-      
-       
-
     },
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+        "value": "(PARENT_ID_interval_x_start+PARENT_ID_interval_x_stop)/2" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID.y" // replace the parent id + get the channel value
+        "value": "PARENT_ID_interval_y_start" // replace the parent id + get the channel value
     }
     ]
 }]
@@ -161,6 +163,7 @@ export class Brush extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
@@ -203,6 +206,34 @@ export class Brush extends BaseComponent {
                 }
             }
         }
+
+        // // Generate all signals
+        // const outputSignals = Object.values(this.configurations)
+        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+        //     .flatMap(config => {
+        //         console.log('BRUSHCONFIG', config)
+        //         // Build constraint map from inputContext
+        //         const constraintMap = {};
+        //         Object.keys(config.schema).forEach(channel => {
+        //             const key = `${config.id}_${channel}`;
+        //             constraintMap[channel] = inputContext[key] || [];
+        //         });
+
+        //         const signalPrefix = this.id + '_' + config.id
+        //         // Generate signals for this configuratio
+
+                
+        //         const signals = generateSignalsFromTransforms(
+        //             config.transforms,
+        //             nodeId,
+        //             signalPrefix,
+        //             constraintMap
+        //         );
+        //         console.log('BRUSHCONFIG', signals)
+        //         return signals;
+        //     });
+
+        // console.log('OUTPUT SIGNALS', outputSignals)
 
 
         const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]

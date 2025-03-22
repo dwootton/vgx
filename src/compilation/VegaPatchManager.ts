@@ -14,8 +14,11 @@ export class VegaPatchManager {
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
         console.log('UNDEFINED REMOVED', JSON.parse(JSON.stringify(undefinedRemoved)))
-        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
-        console.log('UNDEFINED REMOVED3', JSON.parse(JSON.stringify(unreferencedRemoved)))
+        const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
+        const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
+
+
+        console.log('UNDEFINED REMOVED3',  JSON.parse(JSON.stringify(undefinedRemoved)),JSON.parse(JSON.stringify(unreferencedRemoved)),JSON.parse(JSON.stringify(unreferencedRemovedFirst)))
 
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)

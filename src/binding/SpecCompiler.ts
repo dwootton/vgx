@@ -273,6 +273,7 @@ export class SpecCompiler {
 
             // Print edges that come from node_4
             
+            console.log('all edges', edges,nodeId ,nodes)
             const constraints = this.buildNodeConstraints(node, edges, nodes);
             
             // Store constraints for later use by merged nodes

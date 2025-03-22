@@ -150,7 +150,7 @@ export class Line extends BaseComponent {
 
         // Generate all signals from configurations
         let generatedSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+            // .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
             .flatMap(config => {
                 // Build constraint map from inputContext
                 const constraintMap = {};

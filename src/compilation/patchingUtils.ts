@@ -122,23 +122,23 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
         const directRefPattern = new RegExp(`\\b${paramName}\\b`);
 
         // Count occurrences to ensure parameter is used at least twice
-        const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
-        const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
-        const directRefMatches = (specString.match(directRefPattern) || []).length;
+        // Create a copy of the string to avoid modifying the original
+        let tempString = specString;
+        
+        // Find and count single quote matches, then remove them from temp string
+        const singleQuoteRegex = new RegExp(singleQuotePattern, 'g');
+        const singleQuoteMatches = (tempString.match(singleQuoteRegex) || []).length;
+        tempString = tempString.replace(singleQuoteRegex, '');
+        
+        // Find and count double quote matches, then remove them from temp string
+        const doubleQuoteRegex = new RegExp(doubleQuotePattern, 'g');
+        const doubleQuoteMatches = (tempString.match(doubleQuoteRegex) || []).length;
+        tempString = tempString.replace(doubleQuoteRegex, '');
+        
+        // Finally count direct references in the remaining string
+        const directRefMatches = (tempString.match(directRefPattern) || []).length;
         // console.log('directRefMatches', paramName, directRefMatches)
-        // Special case for debugging node_0_position_text parameter
-        if (paramName === "node_4_transform_data") {
-            const directRefPattern = new RegExp(`\\b${paramName}\\b`);
-            const directRefMatches = (specString.match(directRefPattern) || []).length;
-            
-            console.log('Parameter debugging:', {
-                paramName,
-                singleQuoteMatches,
-                doubleQuoteMatches,
-                directRefMatches,
-                specString: specString.substring(0, 200) + '...' // Show beginning of spec for context
-            });
-        }
+       
 
         const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
         // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)

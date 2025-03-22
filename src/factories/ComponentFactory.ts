@@ -23,11 +23,6 @@ export function createComponentFactory<T>(
     const componentType = cleanComponentType(ComponentClass.name.toLowerCase());
 
 
-
-    if(componentType.includes('brush')){
-        console.log("",instance)
-        // instance = instance.brush;
-    }
     //hmm might not resolve for grid?
     LazyBindingRegistry.resolve(componentType, instance as BaseComponent);
 
@@ -47,7 +42,6 @@ export function createComponentFactory<T>(
       const componentType = cleanComponentType(ComponentClass.name.toLowerCase());
 
     
-      console.log('getting ', componentType, prop)
     
       // Otherwise, find the most recent instance of this component type
       const recentInstance = findMostRecentComponentByType(componentType);

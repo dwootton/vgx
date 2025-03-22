@@ -148,7 +148,6 @@ export class Brush extends BaseComponent {
     accessors: DataAccessor[];
     constructor(config: any = {}) {
         super(config);
-        console.log('constructing brush', this, config)
         this._data = new DataAccessor(this);
         this.accessors = [];
         configurations.forEach(config => {

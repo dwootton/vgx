@@ -22,7 +22,6 @@ export class VegaPatchManager {
         if(this.modifiedElements.data.length > 0){
             unreferencedRemoved.datasets = unreferencedRemoved.datasets || {}
             this.modifiedElements.data.forEach(dataset => {
-                console.log(`Added placeholder dataset: ${dataset.name}`);
                 unreferencedRemoved.datasets[dataset.name] = []
             })
         }
@@ -35,8 +34,6 @@ export class VegaPatchManager {
     public compile(){
         const vegaCompilation = vl.compile(this.spec);
 
-        console.log('vegaCompilation', vegaCompilation)
-        console.log('modifiedElements', this.modifiedElements)
 
 
          // Update data elements that match modified elements
@@ -47,7 +44,6 @@ export class VegaPatchManager {
                 );
                 
                 if (matchingModifiedData) {
-                    console.log(`Updating data element: ${dataElement.name} with modified data`,matchingModifiedData);
                     return matchingModifiedData ;
                 }
                 
@@ -64,7 +60,6 @@ export class VegaPatchManager {
             });
         }
 
-        console.log('vegaCompilation.spec.data', vegaCompilation.spec.data)
 
         // Update signals that match modified params
         if (vegaCompilation.spec.signals && this.modifiedElements.params.length > 0) {
@@ -74,7 +69,6 @@ export class VegaPatchManager {
                 );
                 
                 if (matchingParam && matchingParam.on && signal.on) {
-                    console.log(`Merging signal handlers for: ${signal.name}`);
                     // Create a new signal with merged 'on' arrays
                     return {
                         ...signal,

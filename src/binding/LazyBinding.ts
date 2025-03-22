@@ -68,7 +68,6 @@ export class LazyBindingRegistry {
 
                 
                 if(accessor){
-                    console.log('accessor@@#', accessor)
                     accessor = accessor.data;
                     accessor.applyOperations(accessor, lazyComponent.operations);
                 }

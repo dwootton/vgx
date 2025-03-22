@@ -113,11 +113,7 @@ export class Text extends BaseComponent {
 
         // Set up the main schema from configurations
         this.schema = {};
-        // Object.values(this.configurations).forEach(config => {
-        //     Object.entries(config.schema).forEach(([key, value]) => {
-        //         this.schema[key] = value as SchemaType;
-        //     });
-        // });
+ 
 
         configurations.forEach(config => {
             this.configurations[config.id] = config
@@ -127,7 +123,6 @@ export class Text extends BaseComponent {
                 const keyName = config.id + '_' + key
                 this.schema[keyName] = schemaValue;
 
-                console.log('generating TEXTanchor for ', keyName, schemaValue)
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     
@@ -136,23 +131,9 @@ export class Text extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-            console.log('this.anchors', this.anchors)
       
         });
 
-        // // Create anchors for each schema item
-        // Object.keys(this.schema).forEach(key => {
-        //     const schemaValue = schema[key];
-        //     const keyName = config.id + '_' + key
-        //     console.log('creating anchor for ', keyName)
-        //     console.log('setting schema', keyName, schemaValue)
-        //     this.schema[keyName] = schemaValue;
-        //     this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
-        //         const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-        //         console.log('generatedAnchor', generatedAnchor)
-        //         return generatedAnchor
-        //     }));
-        // });
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
@@ -165,13 +146,6 @@ export class Text extends BaseComponent {
             name: this.id,
             value: textBaseContext
         };
-
-        
-
-        // // TODO handle missing key/anchors
-        // const outputSignals = Object.keys(this.schema).map(key =>
-        //     generateSignalFromAnchor(inputContext[key] || [], key, this.id, nodeId, this.schema[key].container)
-        // ).flat();
 
         // Generate all signals from configurations
         const outputSignals = Object.values(this.configurations)
@@ -226,29 +200,7 @@ export class Text extends BaseComponent {
             ],
             "data": dataAccessor,
             name: `${this.id}_position_markName`,
-            // "layer": [
-            //      {
-            //         mark: {
-            //             type: "text",
-            //             "size": 20,
-            //             "align": "left",
-            //             "color": "white",
-            //             "stroke": "white",
-            //             "strokeWidth": 3,
-            //             "opacity": 1//.5
-            //         },
-            //     },
-            //     {
-            //         mark: {
-            //             type: "text",
-            //             "size": 20,
-            //             "align": "left",
-            //             "color": "firebrick",
-            //         },
-            //     },
-               
-            // ]
-            // 
+           
             mark: {
                         type: "text",
                         "size": 20,

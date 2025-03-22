@@ -90,7 +90,6 @@ class DataTransformer extends BaseComponent {
 
       
 
-      console.log('dataAnchor', this.anchors.get('transform_data'))
     
     // Setup basic anchors
     // this.setupAnchors();
@@ -134,7 +133,6 @@ class DataTransformer extends BaseComponent {
   }
   
   compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
-    console.log('compiging data accessor', inputContext)
     // Add data transforms to the chart
     const transforms = this.compileToTransforms();
     
@@ -202,7 +200,6 @@ class DataTransformer extends BaseComponent {
           break;
       }
     }
-    console.log('transformsCompiled', transforms)
     
     // Add aggregate transform if needed
     if (needsAggregate) {
@@ -242,7 +239,6 @@ export class DataAccessor {
 
   // Aggregation method
   count(): DataAccessor {
-    console.log('PUSHING COUNT', this.sourceComponent.id)
     this.operations.push({ 
       type: 'count', 
       params: { as: 'count' } 

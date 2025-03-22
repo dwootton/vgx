@@ -114,8 +114,6 @@ export class SpecCompiler {
 
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
-        console.log('DFSDDAF', mergedSpec)
-
 
         const patchManager = new VegaPatchManager(mergedSpec);
 
@@ -138,7 +136,6 @@ export class SpecCompiler {
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
 
-        console.log('parentNodes for', parentNodes, 'for', node.id)
         
         if (parentNodes.length === 0) return [];
         
@@ -151,7 +148,6 @@ export class SpecCompiler {
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
-            console.log('parentNode', parentNode, parentNodes)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -167,12 +163,10 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            console.log('parentAnchors', parentAnchors)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
                 const channel = extractAnchorType(anchorId);
-                console.log('anchorId', anchorId, channel)
                 if (!channel) return;
                 
                 // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
@@ -189,7 +183,6 @@ export class SpecCompiler {
                 }
             })
         }
-        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
@@ -233,7 +226,6 @@ export class SpecCompiler {
      */
     private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         let { nodes, edges } = bindingGraph;
-        console.log('FIRST edges', edges,'nodes', nodes)
         const visitedNodes = new Set<string>();
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         const mergedNodeIds = new Set<string>();
@@ -269,23 +261,13 @@ export class SpecCompiler {
             }
 
 
-            console.log('ALLedges', edges)
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
-            console.log('building constraints for', nodeId, 'edges', edges, 'nodes', nodes)
 
-            // Log edges that have node_4 as source or target
-            edges.forEach(edge => {
-                if (edge.source.nodeId === 'node_4' || edge.target.nodeId === 'node_4') {
-                    console.log('Edge with node_4:', edge);
-                }
-            });
-            // Log edges that have 'data' in their names (case insensitive)
-           
+          
             const constraints = this.buildNodeConstraints(node, edges, nodes);
 
-            console.log('constraints32', constraints, 'for', nodeId,node)
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -297,13 +279,11 @@ export class SpecCompiler {
             const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
             // Find and traverse parent nodes
             const parentNodeIds = this.findParentNodes(node, edges, nodes);
-            console.log('parentNodes', parentNodeIds, node,nodes)
             const parentSpecs = parentNodeIds.flatMap(parentId => {
                 // Skip if already visited to prevent infinite loops
                 if (visitedNodes.has(parentId)) {
                     return [];
                 }
-                console.log('finding parent', parentId)
                 return traverseGraph(parentId);
             });
             
@@ -385,7 +365,6 @@ export class SpecCompiler {
                 generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
         } else if (currentNodeSchema.container === "Data") {
-            console.log('data constraints', parentNodeSchema, anchorAccessor)
             
                 constraints[targetAnchorId].push(
                     generateDataConstraints(parentNodeSchema, anchorAccessor)
@@ -409,28 +388,6 @@ export class SpecCompiler {
         const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
         const constraints: Record<AnchorId, Constraint[]> = {};
 
-        // console.log('parentEdges', parentEdges, 'for', node.id)
-        // // Initialize data edges array to track data bindings
-        // const dataEdges = parentEdges.filter(edge => {
-        //     const targetComponent = this.getBindingManager().getComponent(edge.target.nodeId);
-        //     if (!targetComponent) return false;
-            
-        //     const targetAnchorId = edge.target.anchorId;
-        //     const cleanTargetId = targetAnchorId.replace('_internal', '');
-        //     const schema = targetComponent.schema[cleanTargetId];
-            
-        //     return schema && schema.container === 'Data';
-        // });
-
-        // console.log('dataEdges', dataEdges)
-        
-        // // Log data edges for debugging
-        // if (dataEdges.length > 0) {
-        //     console.log('Data edges for component', node.id, ':', dataEdges.map(edge => ({
-        //         source: `${edge.source.nodeId}.${edge.source.anchorId}`,
-        //         target: `${edge.target.nodeId}.${edge.target.anchorId}`
-        //     })));
-        // }
 
         // Process each parent edge
         for (const parentEdge of parentEdges) {
@@ -457,7 +414,6 @@ export class SpecCompiler {
             const cleanTargetId = targetAnchorId.replace('_internal', '');
 
             const currentNodeSchema = component.schema[cleanTargetId]
-            console.log('currentNodeSchema', currentNodeSchema, parentEdge.source.nodeId, parentEdge.source.anchorId)
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
             
             // Skip if no schema exists for this channel
@@ -467,9 +423,7 @@ export class SpecCompiler {
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            if (parentNode.id === 'node_4') {
-                console.log('adding constraint for', targetAnchorId,constraints, currentNodeSchema, parentNodeSchema, anchorProxy);
-            }
+        
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,

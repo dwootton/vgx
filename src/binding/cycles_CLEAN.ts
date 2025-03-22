@@ -3,7 +3,7 @@ import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
 import { createMergedComponentForChannel } from "./mergedComponent_CLEAN";
 // import { expandEdges } from "./SpecCompiler";
-import { getChannelFromEncoding,} from "../utils/anchorGeneration/rectAnchors";
+import { getGenericAnchorTypeFromId,} from "../utils/anchorGeneration/rectAnchors";
 import { AnchorType } from "../types/anchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
@@ -16,6 +16,7 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         if (!targetComponent) {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
+     
         return expandGroupAnchors(edge, sourceComponent, targetComponent)
     })
     
@@ -26,7 +27,7 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 
 // Interactor schema fn 
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-    // Helper function to get anchors based on configuration ID or _all
+    // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
         // If it's _all, return all anchors
         if (anchorId === '_all') {
@@ -47,17 +48,19 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             .filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
             .map(a => a.id.anchorId);
             
+
         // If we found configuration-based anchors, return those
         if (configAnchors.length > 0) {
             return configAnchors;
         }
 
-
+        // If we didn't find any other 
         const baseAnchorId = anchorId
         try {
-            component.getAnchor(baseAnchorId); // This will throw if anchor doesn't exist
+            component.getAnchor(baseAnchorId); 
             return [baseAnchorId];
         } catch (error) {
+            //throw new Error(`Anchor ${baseAnchorId} not found for component ${component.id}`);
             // Anchor doesn't exist, continue with empty array
             return [];
         }
@@ -79,7 +82,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
 export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorId === '_all') return undefined;
-    
     // If it's a simple channel name that matches an AnchorType
     const anchorTypeValues = Object.values(AnchorType) as string[];
     if (anchorTypeValues.includes(anchorId)) {
@@ -99,79 +101,15 @@ export function extractAnchorType(anchorId: string): AnchorType | undefined {
     return undefined;
 }
 export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
-    // Extract the base channel from anchor IDs of various formats
-    
-    
-    const sourceChannel = extractAnchorType(sourceAnchorId);
-    const targetChannel = extractAnchorType(targetAnchorId);
-    if(!sourceChannel || !targetChannel) {
+
+    const sourceAnchorType = extractAnchorType(sourceAnchorId);
+    const targetAnchorType = extractAnchorType(targetAnchorId);
+
+    if(!sourceAnchorType || !targetAnchorType) {
         return false;
     }
-    return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
+    return getGenericAnchorTypeFromId(sourceAnchorType) == getGenericAnchorTypeFromId(targetAnchorType);
 }
-
-// /**
-//  * Detects cycles in a binding graph and transforms it to resolve them.
-//  * 
-//  * @param bindingGraph The original binding graph
-//  * @param bindingManager The binding manager instance
-//  * @returns Transformed binding graph with cycles resolved
-//  */
-// export function resolveCycles(
-//     bindingGraph: BindingGraph,
-//     bindingManager: BindingManager
-// ): BindingGraph {
-//     // Make deep copies to avoid modifying the original
-//     let { nodes, edges } = cloneGraph(bindingGraph);
-
-//     // Find all cycles in the graph
-//     const cycles = detectCyclesByChannel(edges);
-
-//     if (cycles.length === 0) {
-//         return bindingGraph; // No cycles to resolve
-//     }
-
-
-//     // Process each cycle
-//     let transformedGraph: BindingGraph = { nodes, edges };
-
-//     for (const cycle of cycles) {
-//         transformedGraph = resolveCycle(transformedGraph, cycle, bindingManager);
-//     }
-
-//     return transformedGraph;
-// }
-
-
-// /**
-//  * Detects the channel that a cycle is based on
-//  */
-// function detectCycleChannel(edges: BindingEdge[]): string | undefined {
-//     // Extract channels from first edge as a starting point
-//     const channelCounts = new Map<string, number>();
-    
-//     edges.forEach(edge => {
-//         const sourceChannel = extractChannel(edge.source.anchorId);
-//         const targetChannel = extractChannel(edge.target.anchorId);
-        
-//         if (sourceChannel && targetChannel && sourceChannel === targetChannel) {
-//             channelCounts.set(sourceChannel, (channelCounts.get(sourceChannel) || 0) + 1);
-//         }
-//     });
-    
-//     // Return the most common channel in the cycle
-//     let maxCount = 0;
-//     let primaryChannel: string | undefined = undefined;
-    
-//     channelCounts.forEach((count, channel) => {
-//         if (count > maxCount) {
-//             maxCount = count;
-//             primaryChannel = channel;
-//         }
-//     });
-    
-//     return primaryChannel;
-// }
 
 /**
  * Rewires connections for multiple nodes to go through a merged component
@@ -370,6 +308,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
  * Finds cycles within a partition of edges with the same anchor ID.
  */
 function findCyclesInPartition(edges: BindingEdge[]): { nodes: string[], edges: BindingEdge[] }[] {
+    // TODO double cycles don't work....
     const cycles: Array<{ nodes: string[], edges: BindingEdge[] }> = [];
     const visited = new Set<string>();
     const stack = new Set<string>();

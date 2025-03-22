@@ -61,9 +61,14 @@ export class BindingManager {
         return component;
     }
 
-    public addComponent(component: BaseComponent): void {
+public addComponent(component: BaseComponent): void {
         this.components.set(component.id, component);
     }
+
+    public removeComponent(componentId: string): void {
+        this.components.delete(componentId);
+    }
+
 
 
     // Bindings 
@@ -92,6 +97,10 @@ export class BindingManager {
         }
         this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
     };
+
+    public removeBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        this.bindings = this.bindings.filter(binding => binding.sourceId !== sourceId || binding.targetId !== targetId || binding.sourceAnchor !== sourceAnchor || binding.targetAnchor !== targetAnchor);
+    }
 
 
     /* 

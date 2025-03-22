@@ -8,6 +8,9 @@ import { isComponent } from '../utils/component';
 import { BindingManager, VirtualBindingEdge } from '../binding/BindingManager';
 import { compilationContext } from '../binding/binding';
 // import { generateComponentSignalName } from './marks/circle';
+
+import { LazyBindingRegistry, LazyComponent } from '../binding/LazyBinding';
+
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
   id: string;
@@ -53,16 +56,19 @@ export abstract class BaseComponent {
     function getTargetId(binding: BaseComponent | AnchorProxy): string {
       return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
     }
-    console.log('bindings', bindings)
     function isAllBind(key:string){
       return key === 'bind' || (/^bind\[\d+\]$/.test(key) && !key.includes('.'))
     }
 
-
     bindings.forEach(({ value: binding, key }) => {
-      const bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
-      console.log('bindingProperty',bindingProperty)
 
+      const bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
+
+
+      if(binding.isLazy){
+        this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
+        return;
+      }
       // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
       if(bindingProperty === '_all'){
 
@@ -84,10 +90,6 @@ export abstract class BaseComponent {
               }
             });
           }
-          // //@ts-ignore
-          // if(anchor.anchorSchema.interactive){
-          //   this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, anchor.id.anchorId);
-          // }
         })
       }
 
@@ -206,12 +208,25 @@ export abstract class BaseComponent {
   }
 }
 
-const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy, key: string }[] => {
+const findBindings = (value: any, path: string = ''): { value: BaseComponent | AnchorProxy | LazyComponent, key: string }[] => {
   if (!value) return [];
 
   // Handle arrays, but skip if path is 'data'
-  if (Array.isArray(value) && path !== 'data') {
+  if (Array.isArray(value)) {
     return value.flatMap((item, index) => findBindings(item, `${path}[${index}]`));
+  }
+
+  // Check if value is an object with lazy properties
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const lazyBindings = [];
+    for (const prop in value) {
+      if (value[prop] && value[prop].isLazy) {
+        lazyBindings.push({ value: value[prop], key: prop });
+      }
+    }
+    if (lazyBindings.length > 0) {
+      return lazyBindings;
+    }
   }
 
   // Only match if value is a Component or AnchorProxy

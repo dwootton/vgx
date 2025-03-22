@@ -7,7 +7,7 @@ import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+import { getGenericAnchorTypeFromId } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
 import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles_CLEAN";
@@ -17,6 +17,8 @@ import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
 import * as vl from "vega-lite";
 import * as themes from 'vega-themes';
 import { mergeConfig } from 'vega';
+import { VegaPatchManager } from "../compilation/VegaPatchManager";
+import { extractModifiedObjects } from "compilation/patchingUtils";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -30,8 +32,11 @@ type AnchorId = string;
 type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
+    if (schema.container === 'Data'){
+        return `datum[${value.value}]`;
+    }
     if(schema.valueType === 'Categorical'){
-        console.log('generateScalarConstraintsCategorical', value,schema)
+
         return `${value.value}`;
     }
 
@@ -46,7 +51,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.value},${value.value})`
-    }
+    } 
     return "";
 }
 
@@ -67,6 +72,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     }
     if (schema.container === 'Set') {
         value = value as SetValue
+        
         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
     }
     if (schema.container === 'Scalar') {
@@ -78,11 +84,14 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     return "";
 }
 
+function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
+    return `${value.value}`; 
+}
 
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
-        private graphManager: GraphManager,
+    private graphManager: GraphManager,
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
@@ -98,74 +107,28 @@ export class SpecCompiler {
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        const prunedEdges = pruneEdges(rootComponent.id, expandedEdges);
-
-        
+        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, rootComponent.id);
+       
         bindingGraph.edges = prunedEdges;
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
 
 
-        // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
-        console.log('mergedSpec', JSON.parse(JSON.stringify(mergedSpec)))
-        //TODO stop from removing undefined with data
-        const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
-        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
-        console.log('unreferencedRemoved', JSON.parse(JSON.stringify(unreferencedRemoved)), JSON.parse(JSON.stringify(unreferencedRemoved)))
 
-        const newParams = fixVegaSpanBug(unreferencedRemoved.params)
-        unreferencedRemoved.params = newParams
-
-        const sortedParams = unreferencedRemoved.params?.sort((a, b) => {
-            const aEndsWithStart = a.name.endsWith('span_start_x') || a.name.endsWith('span_start_y');
-            const bEndsWithStart = b.name.endsWith('span_start_x') || b.name.endsWith('span_start_y');
-            
-            if (aEndsWithStart && !bEndsWithStart) return 1;
-            if (!aEndsWithStart && bEndsWithStart) return -1;
-            return a.name.localeCompare(b.name);
-        });
-
-        undefinedRemoved.params=sortedParams
-
-
-        const vegaCompilation = vl.compile(undefinedRemoved);
-        console.log('vegaCompilation', vegaCompilation.spec.signals)
-        const existingSignals = vegaCompilation.spec.signals || [];
-        existingSignals.forEach(signal => {
-            console.log('signal1!!!',signal)
-            if(signal.name.includes('VGXMOD_')){
-
-                // Create a copy of the signal name instead of modifying in place
-                const signalName = signal.name.substring(7); // Remove 'VGXMOD_' prefix
-                const signalUpdate = signal.on?.[0];
-                
-                // Find the corresponding signal in the vegaCompilation.spec.signals
-                const matchingSignal = existingSignals.find(s => s.name === signalName);
-                console.log('matchingSignal', matchingSignal)
-                
-                // If we found a matching signal and it has an 'on' property with at least one entry
-                if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
-                    // Add the matching signal's first 'on' entry to the current signal's 'on' array
-                    matchingSignal.on.push(signalUpdate)
-                }
-                console.log('signal1231312', signal)
-            }
-        })
-
-        vegaCompilation.spec.signals = existingSignals;
+        const patchManager = new VegaPatchManager(mergedSpec);
 
         
-        return vegaCompilation;
+        return patchManager.compile();
+       
     }
 
 
     private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
         let edges = [...previousEdges]
-        console.log('buildImplicitContextEdges', node, previousEdges, nodes)
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
@@ -176,7 +139,7 @@ export class SpecCompiler {
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
-        console.log('parentNodesbefore ret ', parentNodes,nodes,node.id,edges)
+
         
         if (parentNodes.length === 0) return [];
         
@@ -189,7 +152,6 @@ export class SpecCompiler {
         
         // 2. For each parent, find default configuration and compatible anchors
         for (const parentNode of parentNodes) {
-            console.log('parentNode', parentNode)
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
             
@@ -205,7 +167,6 @@ export class SpecCompiler {
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            console.log('parentAnchors', parentAnchors, parentComponent.configurations)
             // Process each anchor
             parentAnchors.forEach(anchor => {
                 const anchorId = anchor.id.anchorId;
@@ -226,7 +187,6 @@ export class SpecCompiler {
                 }
             })
         }
-        console.log('highestAnchors', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
@@ -236,7 +196,6 @@ export class SpecCompiler {
                     return targetChannel && isCompatible(channel, targetChannel);
                 });
             
-            console.log('targetAnchors', channel, "_",targetAnchors, component.getAnchors())
             if (targetAnchors.length === 0) continue;
             
             // Create implicit edge
@@ -252,11 +211,11 @@ export class SpecCompiler {
                 implicit: true
             };
                    
-            console.log('implicitEdge', implicitEdge)
             // Add to implicit edges
             edges.push(implicitEdge);
         }
         
+       
         return edges;
     }
         
@@ -306,12 +265,13 @@ export class SpecCompiler {
             }
 
 
-
             const implicitEdges = this.buildImplicitContextEdges(node, edges, nodes);
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
+
+            // Print edges that come from node_4
+            
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-            console.log('ALLconstraints',nodeId, constraints,edges.filter(e=>e.target.nodeId === nodeId))
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -321,13 +281,25 @@ export class SpecCompiler {
             // Find and traverse child nodes
             const childNodeIds = this.findChildNodes(node, edges, nodes);
             const childSpecs = childNodeIds.flatMap(childId => traverseGraph(childId));
+            // Find and traverse parent nodes
+            const parentNodeIds = this.findParentNodes(node, edges, nodes);
+            const parentSpecs = parentNodeIds.flatMap(parentId => {
+                // Skip if already visited to prevent infinite loops
+                if (visitedNodes.has(parentId)) {
+                    return [];
+                }
+                return traverseGraph(parentId);
+            });
+            
+            // Combine child and parent specs
+            const allRelatedSpecs = [...childSpecs, ...parentSpecs];
 
             // Skip merged nodes during first traversal - we'll process them separately
             if (mergedNodeIds.has(nodeId)) {
-                return [...childSpecs];
+                return allRelatedSpecs;
             }
 
-            return [compiledNode, ...childSpecs];
+            return [compiledNode, ...allRelatedSpecs];
         };
 
         // First pass: Traverse the graph starting from the root
@@ -387,6 +359,9 @@ export class SpecCompiler {
             return;
         }
 
+
+
+
         // Add constraints based on container type
         if (currentNodeSchema.container === "Scalar") {
             constraints[targetAnchorId].push(
@@ -396,6 +371,12 @@ export class SpecCompiler {
             constraints[targetAnchorId].push(
                 generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
+        } else if (currentNodeSchema.container === "Data") {
+            
+                constraints[targetAnchorId].push(
+                    generateDataConstraints(parentNodeSchema, anchorAccessor)
+                );
+            
         }
     }
 
@@ -414,16 +395,22 @@ export class SpecCompiler {
         const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
         const constraints: Record<AnchorId, Constraint[]> = {};
 
+
         // Process each parent edge
         for (const parentEdge of parentEdges) {
-            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if (!parentNode) continue;
+            
+           
 
+            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
+            if(!parentNode) continue;
+            
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if (!parentComponent) continue;
+            if(!parentComponent) continue;
 
             const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if (!anchorProxy) continue;
+            if(!anchorProxy) continue;
+            
+            
 
 
 
@@ -435,7 +422,7 @@ export class SpecCompiler {
 
             const currentNodeSchema = component.schema[cleanTargetId]
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
-            
+           
             // Skip if no schema exists for this channel
             if (!currentNodeSchema) continue;
 
@@ -443,7 +430,7 @@ export class SpecCompiler {
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            
+        
             // Add appropriate constraint based on component schema type
             this.addConstraintForChannel(
                 constraints,
@@ -453,6 +440,8 @@ export class SpecCompiler {
                 anchorProxy
             );
         }
+
+
 
         return constraints;
     }
@@ -476,12 +465,29 @@ export class SpecCompiler {
         ));
     }
 
+    private findParentNodes(
+        node: BindingNode,
+        edges: BindingEdge[],
+        allNodes: BindingNode[]
+    ): string[] {
+        // Find edges where this node is the target
+        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
+
+        // Extract unique parent node IDs
+        return Array.from(new Set(
+            parentEdges
+                .map(edge => edge.source.nodeId)
+                .filter(id => allNodes.find(n => n.id === id))
+        ));
+    }
+
+
 
 
     private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
 
         function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-            return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+            return getGenericAnchorTypeFromId(sourceAnchorId) == getGenericAnchorTypeFromId(targetAnchor)
         }
         function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
             const getAnchors = (component: BaseComponent, anchorId: string) =>
@@ -726,7 +732,13 @@ function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string):
         mergedSpec.params = mergeParams(params);
     }
 
-    return mergedSpec;
+
+
+   
+    // Apply the extraction to the merged spec
+    
+
+    return  mergedSpec;
 }
 
 function mergeParams(params: any[]): any[] {
@@ -774,85 +786,3 @@ interface EdgeGroup {
 }
 
 
-
-/*
-
- Temporary fix for the issue where start span parameters don't seem to update?
- Looks like it isn't detecting changing with node_start, and thus it doesn't update it, even when 
- a new drag occurs. 
-
-*/
-function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
-    for (let i = 0; i < params.length; i++) {
-        const param = params[i];
-        
-        
-        // Check if this is a span start parameter for any dimension (x or y)
-        if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
-            param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
-         
-            // Extract the dimension from the parameter name
-            let dimension, startType;
-            
-            if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start')) {
-                dimension = param.name.endsWith('_x_start') ? 'x' : 'y';
-                startType = 'start';
-            } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
-                dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
-                startType = 'begin';
-            } else {
-                // Fallback to extracting channel if the pattern doesn't match
-                const channel = extractAnchorType(param.name);
-                dimension = channel === 'x' ? 'x' : 'y';
-                startType = param.name.includes('_start') ? 'start' : 'begin';
-            }
-
-            console.log('dimension extracted', dimension, 'startType', startType, 'param.name', param.name);
-            const baseName = startType === 'start' ? 
-                param.name.split(`_${dimension}_start`)[0] : 
-                param.name.split(`_begin_${dimension}`)[0];
-            
-            // Find the corresponding stop parameter
-            const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
-            console.log('stopParamName', stopParamName)
-            // Find the corresponding stop parameter
-            // const stopParamName = `${nodeId}_span_${dimension}_stop`;
-            
-            // Ensure the param has an 'on' array
-            if (!param.on) {
-                param.on = [];
-            }
-            
-            // If there's already an event handler, add to it
-            if (param.on.length > 0) {
-                // Add the stop parameter to the events if it's not already there
-                if (!param.on[0].events.signal || !param.on[0].events.signal.includes(stopParamName)) {
-                    if (!Array.isArray(param.on[0].events)) {
-                        console.log('param.on[0].events', param.on[0].events,typeof param.on[0].events)
-                        const pastObject = param.on[0].events;
-
-                        param.on[0].events = [ { signal: stopParamName }];
-                        if (pastObject) {
-                            param.on[0].events.push(pastObject);
-                        }
-                        
-                    } else {
-                        console.log('pushing to array', param.name, "and stop",stopParamName)
-                        param.on[0].events.push({signal:stopParamName});
-
-                       
-                        console.log('param.on[0].events', param.on[0].events)
-                    }
-                }
-            } else {
-                // A scale parameter doesn't have an on array
-                // // Create a new event handler
-                // param.on.push({
-                //     events: { signal: stopParamName },
-                //     update: param.update || param.value
-                // });
-            }
-        }
-    }
-    return params;
-}

@@ -239,6 +239,9 @@ interface Transform {
     return transforms
       .map(transform => {
         const channel = transform.channel;
+        if(channel ==='data'){
+            return []
+        }
         const outputName = `${outputPrefix}_${transform.name || channel}`;
         
         const signal = generateSignal({

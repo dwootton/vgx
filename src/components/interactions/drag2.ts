@@ -212,6 +212,11 @@ export function generateConfigurationAnchors(id: string, configurationId: string
         }
     } else if (schema.container === 'Range') {
         return createRangeAccessor(id, channel, configurationId);
+    } else if (schema.container === 'Data') {
+        console.log('generating dataAnchor', id, configurationId, channel)
+        return {
+            'value': `${id}_${configurationId}_${channel}`
+        }
     }
     return { 'value': '' }
 }
@@ -244,6 +249,7 @@ export class CombinedDrag extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+
                     return generatedAnchor
                 }));
             }
@@ -261,7 +267,6 @@ export class CombinedDrag extends BaseComponent {
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
-        console.log('inputContextDRAG', inputContext,nodeId)
         const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
         const signal = {
             name: this.id, // base signal

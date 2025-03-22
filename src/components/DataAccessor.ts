@@ -2,6 +2,7 @@ import { BaseComponent } from "./base";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { generateConfigurationAnchors } from "./interactions/drag2";
+import { LazyOperation } from "../binding/LazyBinding";
 
 type DataOperation = {
   type: 'filter' | 'aggregate' | 'groupby' | 'count' | 'percent';
@@ -138,8 +139,8 @@ class DataTransformer extends BaseComponent {
     const transforms = this.compileToTransforms();
     
     return {
-      "dataAccessor":{
-        datasetName:this.id +"_transform_data",
+      "data":{
+        name: "VGXMOD_"+this.id +"_transform_data",
         transform: transforms,
         source: "baseChartData"
       }
@@ -257,6 +258,18 @@ export class DataAccessor {
     });
     return this;
   }
+
+
+  // Used to apply operations to data transforms if referenced before initialization
+   public applyOperations(accessor: any, operations: LazyOperation[]){
+    let value = accessor;
+    for (const op of operations) {
+        if (value && value[op.type]) {
+            value = value[op.type](...op.args);
+        }
+    }
+    return value;
+}
   
   // Convert to a component at the end of chaining
   toComponent(): BaseComponent {

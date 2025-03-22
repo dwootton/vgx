@@ -169,6 +169,8 @@ export enum AnchorType {
   
   // Data related
   DATA_TRANSFORMS = 'dataTransforms', 
+
+  TEXT = 'text',
   // Misc
   OTHER = 'other'
 }

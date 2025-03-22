@@ -54,14 +54,13 @@ export class GraphManager {
 
             addNode(component);
 
-            // Get all bindings where this component is either source or target
+            // Get all bindings where this component is either source or target to catch nodes
+            // that are not accdssible through the root node
             const allBindings = this.bindingManager.getBindingsForComponent(componentId, 'both');
             
-            console.log('allBindings', allBindings)
             // Process source bindings
             allBindings.forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
-                console.log('allBindings', binding, sourceId, targetId);
                 [sourceId, targetId].forEach(id => {
                     const comp = this.bindingManager.getComponent(id);
                     if (comp) addNode(comp);
@@ -103,8 +102,6 @@ export class GraphManager {
         // Replace the original arrays with de-duplicated ones
         nodes = uniqueNodes;
         edges = uniqueEdges;
-        console.log('uniqueNodes', uniqueNodes)
-        console.log('uniqueEdges', uniqueEdges)
         return { nodes, edges };
     }
 

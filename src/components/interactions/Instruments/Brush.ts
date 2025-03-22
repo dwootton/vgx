@@ -111,6 +111,35 @@ const configurations = [{
         "value": "PARENT_ID.y" // replace the parent id + get the channel value
     }
     ]
+},
+{// STIL BROKEN
+    'id': 'top',
+    "schema": {
+        "x": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            // "interactive": true
+        },
+        "y": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            // "interactive": true // TODO add back in when it won't screw with the chart domains
+        },
+      
+       
+
+    },
+    "transforms": [{
+        "name": "x",
+        "channel": "x",
+        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+    },
+    {
+        "name": "y",
+        "channel": "y",
+        "value": "PARENT_ID.y" // replace the parent id + get the channel value
+    }
+    ]
 }]
 
 
@@ -188,69 +217,7 @@ export class Brush extends BaseComponent {
         const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":xNodeStart},{"signal":xNodeStop}],"update":`[${xNodeStart},${xNodeStop}]`}]},
                                         {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":yNodeStart},{"signal":yNodeStop}],"update":`[${yNodeStart},${yNodeStop}]`}]}]
 
-        // const signal = {
-        //     name: this.id, // base signal
-        //     value: dragBaseContext,
-        //     on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
-        //     {
-        //         events: {
-        //             type: 'pointermove',
-        //             source: "window",
-        //             between: [
-        //                 { type: "pointerdown", "markname": markName },
-        //                 { type: "pointerup", source: "window", }
-        //             ]
-        //         },
-        //         update: `merge(${nodeId}, {'x': x(), 'y': y(),  'stop': {'x': x(), 'y': y()}})`
-        //     }]
-        // };
-
-
-
-
-
-        // // Generate all signals
-        // const outputSignals = Object.values(this.configurations)
-        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-        //     .flatMap(config => {
-        //         // Build constraint map from inputContext
-        //         const constraintMap = {};
-        //         Object.keys(config.schema).forEach(channel => {
-        //             const key = `${config.id}_${channel}`;
-        //             constraintMap[channel] = inputContext[key] || [];
-        //         });
-
-        //         const signalPrefix = this.id + '_' + config.id
-        //         // Generate signals for this configuratio
-
-
-        //         return generateSignalsFromTransforms(
-        //             config.transforms,
-        //             nodeId,
-        //             signalPrefix,
-        //             constraintMap
-        //         );
-        //     });
-        // // Additional signals can be added here and will be av  ilable in input contexts
-        // const internalSignals = [...this.anchors.keys()]
-        //     .filter(key => key.endsWith('_internal'))
-        //     .map(key => {
-        //         //no need to get constraints as constraints would have had it be already
-        //         // get the transform 
-        //         const config = this.configurations[key.split('_')[0]];
-
-        //         const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-
-
-        //         return compatibleTransforms.map(transform => generateSignal({
-        //             id: nodeId,
-        //             transform: transform,
-        //             output: nodeId + '_' + key,
-        //             constraints: ["VGX_SIGNAL_NAME"]
-        //         }))
-        //     }
-
-        //     ).flat();
+        
         return {
             params: [selection, ...selectionModifications]
         }

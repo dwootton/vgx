@@ -3,24 +3,20 @@ import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
 import { createMergedComponentForChannel } from "./mergedComponent_CLEAN";
 // import { expandEdges } from "./SpecCompiler";
-import { getChannelFromEncoding,} from "../utils/anchorGeneration/rectAnchors";
+import { getGenericAnchorTypeFromId,} from "../utils/anchorGeneration/rectAnchors";
 import { AnchorType } from "../types/anchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
     const expanded= edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
-        console.log('sourceComponent', sourceComponent)
         if (!sourceComponent) {
             throw new Error(`Source component ${edge.source.nodeId} not found`);
         }
         const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
-        console.log('targetComponent', targetComponent)
         if (!targetComponent) {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
-        if(edge.source.nodeId == "node_4"){
-            console.log('expanded edges',edge, expandGroupAnchors(edge, sourceComponent, targetComponent))
-        }
+     
         return expandGroupAnchors(edge, sourceComponent, targetComponent)
     })
     
@@ -31,13 +27,10 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 
 // Interactor schema fn 
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-    // Helper function to get anchors based on configuration ID or _all
+    // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
         // If it's _all, return all anchors
         if (anchorId === '_all') {
-            if(edge.source.nodeId == "node_4"){
-                console.log('ksdljflks',edge, [...component.getAnchors().values()].map(a => a.id.anchorId))
-            }
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
 
@@ -56,17 +49,15 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             .map(a => a.id.anchorId);
             
 
-        console.log('configAnchors', configAnchors)
         // If we found configuration-based anchors, return those
         if (configAnchors.length > 0) {
             return configAnchors;
         }
 
-
+        // If we didn't find any other 
         const baseAnchorId = anchorId
         try {
-            console.log('baseAnchorId', baseAnchorId, component.getAnchor(baseAnchorId),component)
-            component.getAnchor(baseAnchorId); // This will throw if anchor doesn't exist
+            component.getAnchor(baseAnchorId); 
             return [baseAnchorId];
         } catch (error) {
             //throw new Error(`Anchor ${baseAnchorId} not found for component ${component.id}`);
@@ -78,9 +69,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
     let targetAnchors = getAnchors(target, edge.target.anchorId);
-    if(edge.source.nodeId == "node_4"){
-        console.log('targetAnchors', targetAnchors,"sourceAnchors", sourceAnchors)
-    }
 
     return sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
@@ -94,15 +82,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
 export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorId === '_all') return undefined;
-    if (anchorId.includes('data')) {
-        console.log('DATAfdsfsdds', anchorId)
-        return 'data';
-    }
-    if (anchorId.includes('text')) {
-        console.log('TEXTfdsfsdds', anchorId)
-        return 'text';
-    }
-    
     // If it's a simple channel name that matches an AnchorType
     const anchorTypeValues = Object.values(AnchorType) as string[];
     if (anchorTypeValues.includes(anchorId)) {
@@ -122,86 +101,15 @@ export function extractAnchorType(anchorId: string): AnchorType | undefined {
     return undefined;
 }
 export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
-    // Extract the base channel from anchor IDs of various formats
-    
-    
-    const sourceChannel = extractAnchorType(sourceAnchorId);
-    console.log('sourceChannel', sourceChannel, 'anchoirId', sourceAnchorId)
-    const targetChannel = extractAnchorType(targetAnchorId);
-    console.log('sourceChannel', sourceChannel, 'anchoirId', sourceAnchorId)
 
+    const sourceAnchorType = extractAnchorType(sourceAnchorId);
+    const targetAnchorType = extractAnchorType(targetAnchorId);
 
-    if(sourceChannel === 'text'){
-        console.log('sourceChannelTEXT', sourceChannel, 'targetChannel', targetChannel)
-    }
-    if(!sourceChannel || !targetChannel) {
+    if(!sourceAnchorType || !targetAnchorType) {
         return false;
     }
-    return getChannelFromEncoding(sourceChannel) == getChannelFromEncoding(targetChannel);
+    return getGenericAnchorTypeFromId(sourceAnchorType) == getGenericAnchorTypeFromId(targetAnchorType);
 }
-
-// /**
-//  * Detects cycles in a binding graph and transforms it to resolve them.
-//  * 
-//  * @param bindingGraph The original binding graph
-//  * @param bindingManager The binding manager instance
-//  * @returns Transformed binding graph with cycles resolved
-//  */
-// export function resolveCycles(
-//     bindingGraph: BindingGraph,
-//     bindingManager: BindingManager
-// ): BindingGraph {
-//     // Make deep copies to avoid modifying the original
-//     let { nodes, edges } = cloneGraph(bindingGraph);
-
-//     // Find all cycles in the graph
-//     const cycles = detectCyclesByChannel(edges);
-
-//     if (cycles.length === 0) {
-//         return bindingGraph; // No cycles to resolve
-//     }
-
-
-//     // Process each cycle
-//     let transformedGraph: BindingGraph = { nodes, edges };
-
-//     for (const cycle of cycles) {
-//         transformedGraph = resolveCycle(transformedGraph, cycle, bindingManager);
-//     }
-
-//     return transformedGraph;
-// }
-
-
-// /**
-//  * Detects the channel that a cycle is based on
-//  */
-// function detectCycleChannel(edges: BindingEdge[]): string | undefined {
-//     // Extract channels from first edge as a starting point
-//     const channelCounts = new Map<string, number>();
-    
-//     edges.forEach(edge => {
-//         const sourceChannel = extractChannel(edge.source.anchorId);
-//         const targetChannel = extractChannel(edge.target.anchorId);
-        
-//         if (sourceChannel && targetChannel && sourceChannel === targetChannel) {
-//             channelCounts.set(sourceChannel, (channelCounts.get(sourceChannel) || 0) + 1);
-//         }
-//     });
-    
-//     // Return the most common channel in the cycle
-//     let maxCount = 0;
-//     let primaryChannel: string | undefined = undefined;
-    
-//     channelCounts.forEach((count, channel) => {
-//         if (count > maxCount) {
-//             maxCount = count;
-//             primaryChannel = channel;
-//         }
-//     });
-    
-//     return primaryChannel;
-// }
 
 /**
  * Rewires connections for multiple nodes to go through a merged component

@@ -1,7 +1,7 @@
 import { BaseComponent } from "../components/base";
 import { BindingManager } from "./BindingManager";
 
-type LazyOperation = {
+export type LazyOperation = {
     type: 'count' | 'filter' | 'groupby' | 'percent';
     args: any[];
 }
@@ -56,51 +56,32 @@ export class LazyBindingRegistry {
 
             // Rewrite each binding to point to the real component
             bindings.forEach(binding => {
-                // Remove the old binding
-                this.bindingManager.removeBinding(
-                    binding.sourceId,
-                    binding.targetId,
-                    binding.sourceAnchor,
-                    binding.targetAnchor
-                );
 
-                
+                //TODO implement a extension type for DataAccessor components to fix type errors
                 let realBrush = this.bindingManager.getComponent(realComponent.id);
-                
                 let accessor = realBrush;
                 if(realBrush){
-                    console.log('realBrush', realBrush)
                     realBrush = realBrush.data;
                     realBrush = realBrush.toComponent();
                     this.bindingManager.addComponent(realBrush);
                 }
 
-                if(accessor){
-                    accessor = accessor.data;
-                    console.log('new accessor', accessor)
-                }
-
-
-                // Apply operations to get the final value
-                let value = accessor;
-                console.log("RESOLVINGVIA REAL COMPONENT", lazyComponent.operations, 'on:', accessor)
-                for (const op of lazyComponent.operations) {
-                    console.log('PUSHING OP', op.type, op.args, value)
-                    if (value && value[op.type]) {
-                        // if (op.args) {
-                            console.log('PUSHING OPWITH ARGS', value[op.type], op.args)
-                            value = value[op.type](...op.args);
-                        // } else {
-                            // value = value[op.type];
-                        // }
-                    }
-                }
-
                 
-                // console.log('realBrush', realBrush)
-                    
+                if(accessor){
+                    console.log('accessor@@#', accessor)
+                    accessor = accessor.data;
+                    accessor.applyOperations(accessor, lazyComponent.operations);
+                }
 
-
+               
+                // remove old binding 
+                 this.bindingManager.removeBinding(
+                    binding.sourceId,
+                    binding.targetId,
+                    binding.sourceAnchor,
+                    binding.targetAnchor
+                );
+                
                 // Create the inverse binding as these are cases where text should be created via the brush. 
                 this.bindingManager.addBinding(
                    
@@ -110,7 +91,6 @@ export class LazyBindingRegistry {
                     binding.targetAnchor,
                     binding.sourceAnchor
                 );
-                console.log('bindingsNOW', this.bindingManager.getBindings()   );
             });
         });
 

@@ -7,7 +7,7 @@ import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { getChannelFromEncoding } from "../utils/anchorGeneration/rectAnchors";
+import { getGenericAnchorTypeFromId } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
 // import { resolveCycles } from "./cycles";
 import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles_CLEAN";
@@ -17,6 +17,8 @@ import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
 import * as vl from "vega-lite";
 import * as themes from 'vega-themes';
 import { mergeConfig } from 'vega';
+import { VegaPatchManager } from "../compilation/VegaPatchManager";
+import { extractModifiedObjects } from "compilation/patchingUtils";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -79,7 +81,6 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 }
 
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
-    console.log('generateDataConstraints', schema, value)
     return `${value.value}`; 
 }
 
@@ -99,151 +100,27 @@ export class SpecCompiler {
         // specific binding graph for this tree
         let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
 
-        console.log('bindingGraphEDGES', bindingGraph.edges)
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, rootComponent.id);
-
-        console.log('prunedEdges', prunedEdges,'expandedEdges', expandedEdges)
-        // Log if node_4 is a source nodeId in any pruned or expanded edges
-        console.log('node_4 as source in expandedEdges:', expandedEdges.some(edge => edge.source.nodeId === 'node_4'));
-        console.log('node_4 as source in prunedEdges:', prunedEdges.some(edge => edge.source.nodeId === 'node_4'));
-        
-        // Additional details about node_4 edges if they exist
-        const node4ExpandedEdges = expandedEdges.filter(edge => edge.source.nodeId === 'node_4');
-        const node4PrunedEdges = prunedEdges.filter(edge => edge.source.nodeId === 'node_4');
-        
-        if (node4ExpandedEdges.length > 0) {
-            console.log('node_4 expanded edges details:', node4ExpandedEdges);
-        }
-        
-        if (node4PrunedEdges.length > 0) {
-            console.log('node_4 pruned edges details:', node4PrunedEdges);
-        }
+       
         bindingGraph.edges = prunedEdges;
    
         const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
 
 
-        console.log('processedGraph', processedGraph)
-        // Compile the updated graph
         const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
 
-        const compiltation = mergeSpecs(compiledSpecs, rootComponent.id);
-        const mergedSpec = compiltation.mergedSpec;
-        const accessors = compiltation.accessors;   
+        const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
-        //TODO stop from removing undefined with data
-        const undefinedRemoved = removeUndefinedInSpec(mergedSpec);
-        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('DFSDDAF', mergedSpec)
 
-        const newParams = fixVegaSpanBug(unreferencedRemoved.params)
-        unreferencedRemoved.params = newParams
 
-        const sortedParams = unreferencedRemoved.params?.sort((a, b) => {
-            const aEndsWithStart = a.name.endsWith('span_start_x') || a.name.endsWith('span_start_y');
-            const bEndsWithStart = b.name.endsWith('span_start_x') || b.name.endsWith('span_start_y');
-            
-            if (aEndsWithStart && !bEndsWithStart) return 1;
-            if (!aEndsWithStart && bEndsWithStart) return -1;
-            return a.name.localeCompare(b.name);
-        });
+        const patchManager = new VegaPatchManager(mergedSpec);
 
-        undefinedRemoved.params=sortedParams
-
-        console.log('vl spec', undefinedRemoved)
-
-        try {
-
-            undefinedRemoved.datasets = {}
-            // Create empty array placeholders for each dataset
-            accessors.forEach(accessor => {
-                if (accessor && accessor.datasetName) {
-                    // Initialize an empty array as placeholder for the dataset
-                    undefinedRemoved.datasets[accessor.datasetName] = []
-                    console.log(`Added placeholder dataset: ${accessor.datasetName}`);
-                }
-            });
-
-            const vegaCompilation = vl.compile(undefinedRemoved);
-            console.log('vegaCompilation', vegaCompilation)   
-            // Filter out empty datasets from accessors
-            // Only filter datasets that come from accessors, keep all other datasets intact
-            const filteredData = vegaCompilation.spec.data?.filter(dataset => {
-                // Check if this dataset is from an accessor
-                const isFromAccessor = accessors.some(accessor => 
-                    accessor && accessor.datasetName === dataset.name
-                );
-                
-                // If it's from an accessor, only keep it if it has transforms with operations
-                if (isFromAccessor) {
-                    return dataset && 
-                           dataset.transform && 
-                           dataset.transform.length > 0;
-                }
-                
-                // Keep all non-accessor datasets
-                return true;
-            });
-            
-            vegaCompilation.spec.data = filteredData;
-
-            // Process data accessors and add them as datasets to the Vega spec
-            if (accessors && accessors.length > 0) {
-                // Initialize datasets array if it doesn't exist
-                vegaCompilation.spec.data = vegaCompilation.spec.data || [];
-                
-                // Add each data accessor as a dataset
-                accessors.forEach(accessor => {
-                    if (accessor && accessor.datasetName) {
-                        // Create a new dataset entry
-                        const datasetEntry = {
-                            name: accessor.datasetName,
-                            source: accessor.source || 'root', // Default to root if no source specified
-                            transform: accessor.transform || []
-                        };
-                        
-                        // Add the dataset to the Vega spec
-                        vegaCompilation.spec.data.push(datasetEntry);
-                        
-                        console.log(`Added dataset: ${accessor.datasetName} with ${datasetEntry.transform.length} transforms`);
-                    }
-                });
-            // Add placeholder datasets for any data accessors
-            vegaCompilation.spec.datasets = vegaCompilation.spec.datasets || {};
-            
-            }
-            const existingSignals = vegaCompilation.spec.signals || [];
-            existingSignals.forEach(signal => {
-                if(signal.name.includes('VGXMOD_')){
-    
-                    // Create a copy of the signal name instead of modifying in place
-                    const signalName = signal.name.substring(7); // Remove 'VGXMOD_' prefix
-                    const signalUpdate = signal.on?.[0];
-                    
-                    // Find the corresponding signal in the vegaCompilation.spec.signals
-                    const matchingSignal = existingSignals.find(s => s.name === signalName);
-                    
-                    // If we found a matching signal and it has an 'on' property with at least one entry
-                    if (matchingSignal && matchingSignal.on && matchingSignal.on.length > 0) {
-                        // Add the matching signal's first 'on' entry to the current signal's 'on' array
-                        matchingSignal.on.push(signalUpdate)
-                    }
-                }
-            })
-    
-    
-            vegaCompilation.spec.signals = existingSignals;
-
-            console.log("FINAL VEGA SPEC", vegaCompilation.spec)
-
-            
-            return vegaCompilation;
-        } catch (error) {
-            console.log('error', error)
-            return undefined
-        }   
+        
+        return patchManager.compile();
        
     }
 
@@ -649,7 +526,7 @@ export class SpecCompiler {
     private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
 
         function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-            return getChannelFromEncoding(sourceAnchorId) == getChannelFromEncoding(targetAnchor)
+            return getGenericAnchorTypeFromId(sourceAnchorId) == getGenericAnchorTypeFromId(targetAnchor)
         }
         function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
             const getAnchors = (component: BaseComponent, anchorId: string) =>
@@ -797,7 +674,7 @@ export function expandGroupAnchors(
 
 
 
-function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): { mergedSpec: TopLevelSpec, accessors: any[] } {
+function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): TopLevelSpec {
     // Helper to check if spec has layer/mark
     const hasLayerOrMark = (spec: any) => {
         return spec.layer || spec.mark;
@@ -894,30 +771,13 @@ function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string):
         mergedSpec.params = mergeParams(params);
     }
 
-    // Extract any dataAccessor properties and remove them from the spec
-    const extractDataAccessors = (obj: any, path: string = '', accessors: any[] = []) => {
-        if (!obj || typeof obj !== 'object') return accessors;
 
-        // Check if the current object has a dataAccessor property
-        if ('dataAccessor' in obj) {
-            console.log(`Found dataAccessor at ${path}:`, obj.dataAccessor);
-            accessors.push(obj.dataAccessor);
-            delete obj.dataAccessor;
-        }
 
-        // Recursively check all properties
-        Object.entries(obj).forEach(([key, value]) => {
-            const newPath = path ? `${path}.${key}` : key;
-            extractDataAccessors(value, newPath, accessors);
-        });
-
-        return accessors;
-    };
-
+   
     // Apply the extraction to the merged spec
-    const accessors = extractDataAccessors(mergedSpec);
+    
 
-    return { mergedSpec, accessors };
+    return  mergedSpec;
 }
 
 function mergeParams(params: any[]): any[] {
@@ -965,80 +825,3 @@ interface EdgeGroup {
 }
 
 
-
-/*
-
- Temporary fix for the issue where start span parameters don't seem to update?
- Looks like it isn't detecting changing with node_start, and thus it doesn't update it, even when 
- a new drag occurs. 
-
-*/
-function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
-    for (let i = 0; i < params.length; i++) {
-        const param = params[i];
-        
-        
-        // Check if this is a span start parameter for any dimension (x or y)
-        if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
-            param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
-         
-            // Extract the dimension from the parameter name
-            let dimension, startType;
-            
-            if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start')) {
-                dimension = param.name.endsWith('_x_start') ? 'x' : 'y';
-                startType = 'start';
-            } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
-                dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
-                startType = 'begin';
-            } else {
-                // Fallback to extracting channel if the pattern doesn't match
-                const channel = extractAnchorType(param.name);
-                dimension = channel === 'x' ? 'x' : 'y';
-                startType = param.name.includes('_start') ? 'start' : 'begin';
-            }
-
-            const baseName = startType === 'start' ? 
-                param.name.split(`_${dimension}_start`)[0] : 
-                param.name.split(`_begin_${dimension}`)[0];
-            
-            // Find the corresponding stop parameter
-            const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
-            // Find the corresponding stop parameter
-            // const stopParamName = `${nodeId}_span_${dimension}_stop`;
-            
-            // Ensure the param has an 'on' array
-            if (!param.on) {
-                param.on = [];
-            }
-            
-            // If there's already an event handler, add to it
-            if (param.on.length > 0) {
-                // Add the stop parameter to the events if it's not already there
-                if (!param.on[0].events.signal || !param.on[0].events.signal.includes(stopParamName)) {
-                    if (!Array.isArray(param.on[0].events)) {
-                        const pastObject = param.on[0].events;
-
-                        param.on[0].events = [ { signal: stopParamName }];
-                        if (pastObject) {
-                            param.on[0].events.push(pastObject);
-                        }
-                        
-                    } else {
-                        param.on[0].events.push({signal:stopParamName});
-
-                       
-                    }
-                }
-            } else {
-                // A scale parameter doesn't have an on array
-                // // Create a new event handler
-                // param.on.push({
-                //     events: { signal: stopParamName },
-                //     update: param.update || param.value
-                // });
-            }
-        }
-    }
-    return params;
-}

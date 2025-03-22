@@ -111,7 +111,6 @@ export class Circle extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }

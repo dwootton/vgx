@@ -32,7 +32,13 @@ type AnchorId = string;
 type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
+    if (schema.container === 'Data'){
+        console.log('GENERATING SCALAR CDATAONSTRAINTS', schema, value)
+        return `datum[${value.value}]`;
+    }
     if(schema.valueType === 'Categorical'){
+        console.log('GENERATING Scale categorical', value)
+
         return `${value.value}`;
     }
 
@@ -47,13 +53,14 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.value},${value.value})`
-    }
+    } 
     return "";
 }
 
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
     if(schema.valueType === 'Categorical'){
+        console.log('GENERATING RANGE categorical', value)
         // TODO: fix this
         return `${value.value}`;
     }
@@ -81,6 +88,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 }
 
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
+    console.log('GENERATING DATA CONSTRAINTS', schema, value)
     return `${value.value}`; 
 }
 
@@ -265,9 +273,23 @@ export class SpecCompiler {
             edges = [...edges, ...implicitEdges]
             // Build constraints for this node
 
-          
+            // Print edges that come from node_4
+            const node4Edges = edges.filter(edge => edge.source.nodeId === 'node_4');
+            if (node4Edges.length > 0) {
+                console.log('Edges from node_4:', node4Edges.map(edge => ({
+                    source: {
+                        nodeId: edge.source.nodeId,
+                        anchorId: edge.source.anchorId
+                    },
+                    target: {
+                        nodeId: edge.target.nodeId,
+                        anchorId: edge.target.anchorId
+                    }
+                })),nodes,nodeId);
+            }
+            console.log('BUILDING CONSTRAINTS', nodeId,edges,nodes)
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-
+            console.log('CONSTRAINTS32', constraints)
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;
@@ -355,6 +377,9 @@ export class SpecCompiler {
             return;
         }
 
+
+
+
         // Add constraints based on container type
         if (currentNodeSchema.container === "Scalar") {
             constraints[targetAnchorId].push(
@@ -415,6 +440,17 @@ export class SpecCompiler {
 
             const currentNodeSchema = component.schema[cleanTargetId]
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
+            // Debug: If parentNode is node_4, print the schema
+            if (parentNode.id === 'node_4') {
+                console.log('Parent Node Schema for node_4:', {
+                    parentNodeId: parentNode.id,
+                    parentAnchorId: parentEdge.source.anchorId,
+                    parentSchema: parentNodeSchema,
+                    targetNodeId: node.id,
+                    targetAnchorId: targetAnchorId,
+                    targetSchema: currentNodeSchema
+                });
+            }
             
             // Skip if no schema exists for this channel
             if (!currentNodeSchema) continue;

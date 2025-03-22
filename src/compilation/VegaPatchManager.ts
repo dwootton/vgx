@@ -12,7 +12,11 @@ export class VegaPatchManager {
         //TODO CLENAUP:
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(spec);
+
+        console.log('UNDEFINED REMOVED', JSON.parse(JSON.stringify(undefinedRemoved)))
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('UNDEFINED REMOVED3', JSON.parse(JSON.stringify(unreferencedRemoved)))
+
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)
         unreferencedRemoved.params = newParams

@@ -239,6 +239,10 @@ interface Transform {
     return transforms
       .map(transform => {
         const channel = transform.channel;
+        if(channel ==='data'){
+            console.log("MAKINGDATA",parentId,transform,constraints)
+            return []
+        }
         const outputName = `${outputPrefix}_${transform.name || channel}`;
         
         const signal = generateSignal({

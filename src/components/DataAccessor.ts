@@ -20,7 +20,7 @@ const configurations = [{
             valueType: "Numeric"
           },
           "text": { 
-            container: 'Scalar',
+            container: 'Data',
             valueType: "Categorical"
           }
        
@@ -62,75 +62,8 @@ class DataTransformer extends BaseComponent {
         //     return generateConfigurationAnchors(this.id, config.id)
         // }));
     });
-
-
-
-    
-   
-    // this.anchors.set('data', this.createAnchorProxy({ 
-    //     'data': { 
-    //       container: 'Data',
-    //       valueType: "Numeric"
-    //     }
-    //   }, 'data', () => {
-    //     return 
-
-    //   }));
-
-    //   this.anchors.set('text', this.createAnchorProxy({ 
-    //     'text': { 
-    //       container: 'Scalar',
-    //       valueType: "Categorical"
-    //     }
-    //   }, 'text', () => {
-
-    //     return "datum.count";
-
-    //   }));
-
-      
-
-    
-    // Setup basic anchors
-    // this.setupAnchors();
   }
   
-  private setupAnchors() {
-    // Always set up count anchor regardless of operations
-    this.anchors.set('count', this.createAnchorProxy({ 
-      'count': { 
-        container: 'Scalar',
-        valueType: 'Numeric',
-      }
-    }, 'count', () => {
-      return { 'value': `datum.count` };
-    }));
-
-    // Always set up percent anchor
-    this.anchors.set('percent', this.createAnchorProxy({ 
-      'percent': { 
-        container: 'Scalar',
-        valueType: 'Numeric',
-      }
-    }, 'percent', () => {
-      return { 'value': `datum.count` }; // Using count for now
-    }));
-    
-    // // Setup anchors for each field in groupby operations
-    // const groupbyOps = this.operations.filter(op => op.type === 'groupby');
-    // groupbyOps.forEach(op => {
-    //   op.params.fields.forEach((field: string) => {
-    //     this.anchors.set(field, this.createAnchorProxy({ 
-    //       [field]: { 
-    //         container: 'Scalar',
-    //         valueType: 'Categorical',
-    //       }
-    //     }, field, () => {
-    //       return { 'value': `datum.count` }; // Using count for now
-    //     }));
-    //   });
-    // });
-  }
   
   compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
@@ -141,7 +74,14 @@ class DataTransformer extends BaseComponent {
         name: "VGXMOD_"+this.id +"_transform_data",
         transform: transforms,
         source: "baseChartData"
-      }
+      },
+      "params": [
+        //@ts-ignore
+        {
+          "name":this.id +"_transform_text",
+          "value":"count", // the name of the field to read data from
+        }
+      ]
     };
   }
   

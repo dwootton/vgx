@@ -96,9 +96,6 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
-      
-       
-
     },
     "transforms": [
     //     {
@@ -111,6 +108,7 @@ const configurations = [{
     //     "channel": "y",
     //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
     // } 
+    //BROKEN, but not used for signals rn
     { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
     { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
     { "name": "y_start", "channel": "y", "value": "50" },
@@ -163,7 +161,6 @@ export class Brush extends BaseComponent {
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }

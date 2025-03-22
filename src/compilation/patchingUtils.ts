@@ -124,10 +124,23 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
         // Count occurrences to ensure parameter is used at least twice
         const singleQuoteMatches = (specString.match(new RegExp(singleQuotePattern, 'g')) || []).length;
         const doubleQuoteMatches = (specString.match(new RegExp(doubleQuotePattern, 'g')) || []).length;
-        // const directRefMatches = (specString.match(directRefPattern) || []).length;
+        const directRefMatches = (specString.match(directRefPattern) || []).length;
         // console.log('directRefMatches', paramName, directRefMatches)
+        // Special case for debugging node_0_position_text parameter
+        if (paramName === "node_4_transform_data") {
+            const directRefPattern = new RegExp(`\\b${paramName}\\b`);
+            const directRefMatches = (specString.match(directRefPattern) || []).length;
+            
+            console.log('Parameter debugging:', {
+                paramName,
+                singleQuoteMatches,
+                doubleQuoteMatches,
+                directRefMatches,
+                specString: specString.substring(0, 200) + '...' // Show beginning of spec for context
+            });
+        }
 
-        const totalOccurrences = singleQuoteMatches + doubleQuoteMatches;// + directRefMatches;
+        const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
         // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
         return totalOccurrences >= 2;
     }) || [];

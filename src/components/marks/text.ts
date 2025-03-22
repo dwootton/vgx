@@ -6,6 +6,7 @@ import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
 import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent_CLEAN";
+import { getEncodingValue } from '../../utils/encodingHelpers';
 
 
 export const textBaseContext = {
@@ -44,12 +45,12 @@ const configurations = [{
             "valueType": "Data",
             // "interactive": true
         },
-        "markName": {
-            "container": "Scalar",
-            "valueType": "Categorical",
-            // "interactive": true
-        },
-       
+        // "markName": {
+        //     "container": "Scalar",
+        //     "valueType": "Categorical",
+        //     // "interactive": true
+        // },
+
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
@@ -103,8 +104,8 @@ export class Text extends BaseComponent {
         super({ ...config })
 
         this.baseConfig = config;
-        if(!config.text){
-            this.baseConfig.text = {'expr':"'Text!'"}
+        if (!config.text) {
+            this.baseConfig.text = { 'expr': "'Text!'" }
         }
         this.configurations = {};
         configurations.forEach(cfg => {
@@ -113,7 +114,7 @@ export class Text extends BaseComponent {
 
         // Set up the main schema from configurations
         this.schema = {};
- 
+
 
         configurations.forEach(config => {
             this.configurations[config.id] = config
@@ -125,20 +126,20 @@ export class Text extends BaseComponent {
 
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
-                    
+
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
                     console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
-      
+
         });
 
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
-        console.log('compiling text', this.id,inputContext)
+        console.log('compiling text', this.id, inputContext)
 
 
         // Base text signal
@@ -147,34 +148,61 @@ export class Text extends BaseComponent {
             value: textBaseContext
         };
 
+        // Build constraint map
+        const constraintMap: Record<string, any> = {};
+        Object.keys(this.configurations.position.schema).forEach(channel => {
+            const key = `position_${channel}`;
+            constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+        });
+
         // Generate all signals from configurations
         const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
             .flatMap(config => {
+                let transforms = config.transforms || [];
+
                 // Build constraint map from inputContext
                 const constraintMap: Record<string, any> = {};
                 Object.keys(config.schema).forEach(channel => {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
+                console.log('CONSTRAINT MAP', constraintMap)
+
+                // Create a transform for each item in the constraint map
+                for (const channel in constraintMap) {
+                    console.log('CHANNEL', channel, constraintMap)
+                    if (constraintMap[channel] && constraintMap[channel].length > 0 && !transforms.some(t => t.channel === channel)) {
+                        // Use the first constraint value as the transform value
+                        const firstConstraint = constraintMap[channel][0];
+                        transforms.push({
+                            'name': channel,
+                            'channel': channel,
+                            'value': firstConstraint
+                        });
+                        console.log('ADDING TRANSFORM', transforms)
+                    }
+                }
+
 
                 const signalPrefix = this.id + '_' + config.id;
 
                 // Generate signals for this configuration
                 return generateSignalsFromTransforms(
-                    config.transforms,
+                    transforms,
                     nodeId,
                     signalPrefix,
                     constraintMap
                 );
             });
 
+        console.log('OUTPUT SIGNALS', outputSignals)
 
-            const internalSignals = [...this.anchors.keys()]
+
+        const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
-                const constraints = inputContext[key]  || ["VGX_SIGNAL_NAME"];
-               
+                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
+
                 const config = this.configurations[key.split('_')[0]];
                 const compatibleTransforms = config.transforms.filter((transform: any) => transform.channel === key.split('_')[1])
                 return compatibleTransforms.map((transform: any) => generateSignal({
@@ -184,11 +212,12 @@ export class Text extends BaseComponent {
                     constraints: constraints
                 }))
             }
-             
-            ).flat();
-       
-        let dataAccessor = inputContext?.position_data?.[0]? {'name':inputContext?.position_data?.[0]} : {"values":[{}]};
 
+            ).flat();
+
+        let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
+
+        console.log('textfsdljk', getEncodingValue('text', constraintMap, this.id), 'x')
         return {
             params: [
                 {
@@ -200,25 +229,24 @@ export class Text extends BaseComponent {
             ],
             "data": dataAccessor,
             name: `${this.id}_position_markName`,
-           
+
             mark: {
-                        type: "text",
-                        "size": 20,
-                        "align": "left",
-                        "color": "firebrick",
-                    },
-           
+                type: "text",
+                "size": 20,
+                "align": "left",
+                "color": "firebrick",
+            },
             "encoding": {
                 "x": {
-                    "value": { "expr": `${this.id}_position_x` },
+                    "value": getEncodingValue('x', constraintMap, this.id),
                 },
                 "y": {
-                    "value": { "expr": `${this.id}_position_y` },
+                    "value": getEncodingValue('y', constraintMap, this.id),
                 },
                 "text": {
-                    // "value": { "expr": `${this.id}_position_text` },
-                    "value": {"expr":`datum.count`}
-                },
+                    "value": getEncodingValue('text', constraintMap, this.id),
+                }
+
             }
         }
     }

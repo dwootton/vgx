@@ -13,13 +13,8 @@ export class VegaPatchManager {
         //TODO stop from removing undefined with data
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
-        console.log('UNDEFINED REMOVED', JSON.parse(JSON.stringify(undefinedRemoved)))
         const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
-
-
-        console.log('UNDEFINED REMOVED3',  JSON.parse(JSON.stringify(undefinedRemoved)),JSON.parse(JSON.stringify(unreferencedRemoved)),JSON.parse(JSON.stringify(unreferencedRemovedFirst)))
-
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)
         unreferencedRemoved.params = newParams

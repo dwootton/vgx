@@ -33,7 +33,6 @@ type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
     if (schema.container === 'Data'){
-        console.log('GENERATING DATA CONSTRAINTS', schema, value)
         return `datum[${value.value}]`;
     }
     if(schema.valueType === 'Categorical'){
@@ -120,7 +119,6 @@ export class SpecCompiler {
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
 
-        console.log('vl spec',mergedSpec)
         const patchManager = new VegaPatchManager(mergedSpec);
 
         
@@ -273,7 +271,6 @@ export class SpecCompiler {
 
             // Print edges that come from node_4
             
-            console.log('all edges', edges,nodeId ,nodes)
             const constraints = this.buildNodeConstraints(node, edges, nodes);
             
             // Store constraints for later use by merged nodes
@@ -425,18 +422,7 @@ export class SpecCompiler {
 
             const currentNodeSchema = component.schema[cleanTargetId]
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
-            // Debug: If parentNode is node_4, print the schema
-            if (parentNode.id === 'node_4') {
-                console.log('Parent Node Schema for node_4:', {
-                    parentNodeId: parentNode.id,
-                    parentAnchorId: parentEdge.source.anchorId,
-                    parentSchema: parentNodeSchema,
-                    targetNodeId: node.id,
-                    targetAnchorId: targetAnchorId,
-                    targetSchema: currentNodeSchema
-                });
-            }
-            
+           
             // Skip if no schema exists for this channel
             if (!currentNodeSchema) continue;
 

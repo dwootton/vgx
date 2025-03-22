@@ -129,7 +129,6 @@ export class Text extends BaseComponent {
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
 
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-                    console.log('generatedAnchor', generatedAnchor)
                     return generatedAnchor
                 }));
             }
@@ -140,7 +139,6 @@ export class Text extends BaseComponent {
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
-        console.log('compiling text', this.id, inputContext)
 
 
         // Base text signal
@@ -179,11 +177,9 @@ export class Text extends BaseComponent {
                             'channel': channel,
                             'value': firstConstraint
                         });
-                        console.log('ADDING TRANSFORM', transforms)
                     }
                 }
 
-                console.log('CONSTRAINT MAP', constraintMap)
                
 
 
@@ -197,25 +193,21 @@ export class Text extends BaseComponent {
                     constraintMap
                 );
             });
-            console.log('TEXT OUTPUT SIGNALS', outputSignals)
 
         // Check if there's a signal with name ending with 'position_text'
         const hasPositionTextSignal = outputSignals.some(signal => 
             signal.name && signal.name.endsWith('_position_text')
         );
 
-        console.log('HAS POSITION TEXT SIGNAL', hasPositionTextSignal,constraintMap, outputSignals.find(s => s.name === `${this.id}_position_text`))
         
         // If no position_text signal exists, add one
         if (!hasPositionTextSignal) {
-            console.log('ADDING POSITION TEXT SIGNAL', `${this.id}_position_text`)
             outputSignals.push({
                 "name": `${this.id}_position_text`,
                 "value": "SAMPLEtext"
             });
         }
 
-        console.log('OUTPUT SIGNALS', outputSignals)
 
 
         const internalSignals = [...this.anchors.keys()]
@@ -237,7 +229,6 @@ export class Text extends BaseComponent {
 
         let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
 
-        console.log('textfsdljk', getEncodingValue('text', constraintMap, this.id), 'x')
         return {
             params: [
                 {

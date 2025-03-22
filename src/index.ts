@@ -15,7 +15,19 @@ export { Circle } from './components/marks';
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 import { Circle, Line, Text,Rect } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
-import { Grid, BrushConstructor as Brush } from './components/interactions/Instruments/';
+import { Grid, BrushConstructor, Brush } from './components/interactions/Instruments/';
+import { createComponentFactory } from './factories/ComponentFactory';
+
+
+const brush = createComponentFactory(BrushConstructor);
+const drag = createComponentFactory(CombinedDrag);
+const rect = createComponentFactory(Rect);
+const line = createComponentFactory(Line);
+const click = createComponentFactory(Click);
+// const grid = createComponentFactory(Grid);
+const text = createComponentFactory(Text);
+
+
 export const all = {
   scatterplot: (config: any) => new Scatterplot(config),
   histogram: (config: any) => new Histogram(config),
@@ -24,11 +36,11 @@ export const all = {
   heatmap: (config: any) => new Heatmap(config),
   piechart: (config:any)=> new PieChart(config),
   circle: (config:any)=> new Circle(config),
-  drag: (config:any)=> new CombinedDrag(config),
-  brush: (config:any)=> new Brush(config),
-  rect: (config:any)=> new Rect(config),
-  line: (config:any)=> new Line(config),
-  click: (config:any)=> new Click(config),
+  drag: drag,
+  Brush: brush,
+  rect: rect,
+  line: line,
+  click: click,
   Grid: (config:any)=> new Grid(config),
-  text: (config:any)=> new Text(config),
+  text: text
 };

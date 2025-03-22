@@ -1,20 +1,21 @@
 import { createAnchorProxy } from "../../utils/anchorProxy";
 import { BaseComponent } from "../../components/base";
-import {  AnchorOrGroupSchema, ChannelType } from "../../types/anchors";
-export function getChannelFromEncoding(encoding: string): ChannelType {
+import {  AnchorOrGroupSchema, AnchorType, ChannelType } from "../../types/anchors";
+export function getGenericAnchorTypeFromId(encoding: string): AnchorType {
 
-    const channelMap: Record<string, ChannelType> = {
-        "x": "x",
-        "y": "y",
-        "x1": "x",
-        "y1": "y",
-        "x2": "x",
-        "y2": "y",
-        "color": "color",
-        "size": "size",
-        "shape": "shape"    
+    const channelMap: Record<string, AnchorType> = {
+        "x": AnchorType.X,
+        "y": AnchorType.Y,
+        "x1": AnchorType.X,
+        "y1": AnchorType.Y,
+        "x2": AnchorType.X,
+        "y2": AnchorType.Y,
+        "color": AnchorType.COLOR,
+        "size": AnchorType.SIZE,
+        "shape": AnchorType.SHAPE,
+        "text": AnchorType.TEXT,
+        "data": AnchorType.DATA
     }
-    
     return channelMap[encoding]
 }
 
@@ -35,7 +36,7 @@ export function generateRectAnchors(component: BaseComponent): Map<string, Ancho
         anchors.set(coord, {
             id: coord,
             type: 'encoding',
-            channel: getChannelFromEncoding(coord),
+            channel: getGenericAnchorTypeFromId(coord),
             interactive: false
         });
     });

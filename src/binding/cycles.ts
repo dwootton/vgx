@@ -14,10 +14,8 @@ export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, Bindin
     const expandedEdges = deepClone(edges);
 
     const cycleNodesArray = Array.from(cycleNodes);
-    console.log('cycleNodesArray', JSON.parse(JSON.stringify(cycleNodesArray)), JSON.parse(JSON.stringify(cycleEdges)),'creating:',cycleEdges[0].target.anchorId,JSON.parse(JSON.stringify(cycleEdges)))
     const mergedComponent = createMergedComponent(cycleNodesArray[0], cycleNodesArray[1], cycleEdges[0].target.anchorId, bindingManager);
 
-    console.log('mergedComponent', mergedComponent)
 
     // Create a new merged node ID
     const mergedNodeId = mergedComponent.id;
@@ -39,20 +37,13 @@ export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, Bindin
             // component: mergedComponent
         });
 
-    // bindingGraph.nodes.set(mergedNodeId, {
-    //     id: mergedNodeId,
-    //     type: 'merged',
-    //     // component: mergedComponent
-    // });
-    console.log('cycleNodes', JSON.parse(JSON.stringify(cycleNodes)))
-
+    
     // Remove cycle edges
     const newEdges = expandedEdges.filter(edge => {
         // Filter out edges between cycle nodes
         return !(cycleNodesArray.find(node => node === edge.source.nodeId) && cycleNodesArray.find(node => node === edge.target.nodeId) && edge.target.anchorId !== targetAnchorId )
     });
 
-    console.log('newEdges', JSON.parse(JSON.stringify(newEdges)))
 
     // Add new edges from each component to the merged component
     cycleNodes.forEach(nodeId => {
@@ -89,15 +80,12 @@ export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, Bindin
 
             // Modify the compile function of the cloned anchor
             clonedAnchor.compile = () => {
-                console.log('originalResult', originalResult, `${originalAnchor.id.componentId}-${originalResult.value}_internal`)
                 // Handle different SchemaValue types (ScalarValue, SetValue, RangeValue)
                 if ('value' in originalResult) {
                     const value = originalResult.value;
-                    console.log('prereplace', value)
                     // Use the return value of replace since strings are immutable
                     const updatedValue = value.replace('VGX_SIGNAL_NAME', `${originalAnchor.id.componentId}`);
 
-                    console.log('postreplace', updatedValue)
                     return { value: `${updatedValue}_internal` };
                 } else {
                     // For other types, just return a modified version
@@ -106,8 +94,6 @@ export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, Bindin
             };
 
 
-            console.log('originalAnchor', originalAnchor)
-            console.log('originalComponent', originalComponent)
 
             function deepClone(obj: any) {
                 return JSON.parse(JSON.stringify(obj));
@@ -115,7 +101,6 @@ export function resolveCycles(edges: BindingEdge[], allNodes: Map<string, Bindin
 
             const internalAnchorId = `${anchorId}_internal`;
             // originalComponent.setAnchor(anchorId, clonedAnchor);
-            console.log('clonedAnchor', clonedAnchor)
             originalComponent.setAnchor(internalAnchorId, clonedAnchor); // this is the same as the original
             //now retarget all of the inczwoming edges to this new anchor
 

@@ -122,8 +122,6 @@ export class Rect extends BaseComponent {
                 );
             });
 
-            console.log('outputSignalsRECT', outputSignals)
-
 
             const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))

@@ -239,6 +239,10 @@ interface Transform {
     return transforms
       .map(transform => {
         const channel = transform.channel;
+        if(channel ==='data'){
+            console.log("MAKINGDATA",parentId,transform,constraints)
+            return []
+        }
         const outputName = `${outputPrefix}_${transform.name || channel}`;
         
         const signal = generateSignal({
@@ -247,6 +251,7 @@ interface Transform {
           output: outputName,
           constraints: constraints[channel] || [],
         });
+        console.log('SIGNAL', signal)
         return signal
       })
       .filter(signal => signal !== null); // Remove any nulls from skipped signals

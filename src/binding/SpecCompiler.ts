@@ -33,11 +33,10 @@ type Constraint = string;
 
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
     if (schema.container === 'Data'){
-        console.log('GENERATING SCALAR CDATAONSTRAINTS', schema, value)
+        console.log('GENERATING DATA CONSTRAINTS', schema, value)
         return `datum[${value.value}]`;
     }
     if(schema.valueType === 'Categorical'){
-        console.log('GENERATING Scale categorical', value)
 
         return `${value.value}`;
     }
@@ -60,7 +59,6 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
 // 
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
     if(schema.valueType === 'Categorical'){
-        console.log('GENERATING RANGE categorical', value)
         // TODO: fix this
         return `${value.value}`;
     }
@@ -88,7 +86,6 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 }
 
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
-    console.log('GENERATING DATA CONSTRAINTS', schema, value)
     return `${value.value}`; 
 }
 
@@ -123,6 +120,7 @@ export class SpecCompiler {
         const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
 
 
+        console.log('vl spec',mergedSpec)
         const patchManager = new VegaPatchManager(mergedSpec);
 
         
@@ -274,22 +272,8 @@ export class SpecCompiler {
             // Build constraints for this node
 
             // Print edges that come from node_4
-            const node4Edges = edges.filter(edge => edge.source.nodeId === 'node_4');
-            if (node4Edges.length > 0) {
-                console.log('Edges from node_4:', node4Edges.map(edge => ({
-                    source: {
-                        nodeId: edge.source.nodeId,
-                        anchorId: edge.source.anchorId
-                    },
-                    target: {
-                        nodeId: edge.target.nodeId,
-                        anchorId: edge.target.anchorId
-                    }
-                })),nodes,nodeId);
-            }
-            console.log('BUILDING CONSTRAINTS', nodeId,edges,nodes)
+            
             const constraints = this.buildNodeConstraints(node, edges, nodes);
-            console.log('CONSTRAINTS32', constraints)
             
             // Store constraints for later use by merged nodes
             constraintsByNode[nodeId] = constraints;

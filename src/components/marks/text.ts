@@ -55,6 +55,7 @@ const configurations = [{
     "transforms": [
         { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
         { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
+
         // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
     ]
 }];
@@ -166,11 +167,9 @@ export class Text extends BaseComponent {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
-                console.log('CONSTRAINT MAP', constraintMap)
 
                 // Create a transform for each item in the constraint map
                 for (const channel in constraintMap) {
-                    console.log('CHANNEL', channel, constraintMap)
                     if (constraintMap[channel] && constraintMap[channel].length > 0 && !transforms.some(t => t.channel === channel)) {
                         // Use the first constraint value as the transform value
                         const firstConstraint = constraintMap[channel][0];
@@ -183,6 +182,9 @@ export class Text extends BaseComponent {
                     }
                 }
 
+                console.log('CONSTRAINT MAP', constraintMap)
+               
+
 
                 const signalPrefix = this.id + '_' + config.id;
 
@@ -194,6 +196,19 @@ export class Text extends BaseComponent {
                     constraintMap
                 );
             });
+
+        // Check if there's a signal with name ending with 'position_text'
+        const hasPositionTextSignal = outputSignals.some(signal => 
+            signal.name && signal.name.endsWith('_position_text')
+        );
+        
+        // If no position_text signal exists, add one
+        if (!hasPositionTextSignal) {
+            outputSignals.push({
+                "name": `${this.id}_position_text`,
+                "value": "SAMPLEtext"
+            });
+        }
 
         console.log('OUTPUT SIGNALS', outputSignals)
 

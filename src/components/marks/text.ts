@@ -156,8 +156,9 @@ export class Text extends BaseComponent {
             constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
         });
 
+        const configs = JSON.parse(JSON.stringify(this.configurations))
         // Generate all signals from configurations
-        const outputSignals = Object.values(this.configurations)
+        const outputSignals = Object.values(configs)
             .flatMap(config => {
                 let transforms = config.transforms || [];
 
@@ -196,14 +197,18 @@ export class Text extends BaseComponent {
                     constraintMap
                 );
             });
+            console.log('TEXT OUTPUT SIGNALS', outputSignals)
 
         // Check if there's a signal with name ending with 'position_text'
         const hasPositionTextSignal = outputSignals.some(signal => 
             signal.name && signal.name.endsWith('_position_text')
         );
+
+        console.log('HAS POSITION TEXT SIGNAL', hasPositionTextSignal,constraintMap, outputSignals.find(s => s.name === `${this.id}_position_text`))
         
         // If no position_text signal exists, add one
         if (!hasPositionTextSignal) {
+            console.log('ADDING POSITION TEXT SIGNAL', `${this.id}_position_text`)
             outputSignals.push({
                 "name": `${this.id}_position_text`,
                 "value": "SAMPLEtext"

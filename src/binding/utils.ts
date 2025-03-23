@@ -2,7 +2,9 @@ import { TopLevelSpec } from "vega-lite/build/src/spec";
 
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { Parameter } from "vega-typings/types/runtime/runtime";
+import { VariableParameter } from "vega-lite/build/src/parameter";
+import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
+type Parameter = VariableParameter | TopLevelSelectionParameter
 
 // Extract all components from config and their bindings
 export const extractComponentBindings = (config: any): any[] => {

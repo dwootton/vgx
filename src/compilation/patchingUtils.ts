@@ -1,6 +1,9 @@
 import { extractAnchorType } from "../binding/cycles";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
+import { VariableParameter } from "vega-lite/build/src/parameter";
+import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
+type Parameter = VariableParameter | TopLevelSelectionParameter
+
 
 function stripVGXMOD(name: string) {
     return name.replace('VGXMOD_', '')
@@ -182,7 +185,7 @@ export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
  a new drag occurs. 
 
 */
-export function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
+export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
     for (let i = 0; i < params.length; i++) {
         const param = params[i];
         

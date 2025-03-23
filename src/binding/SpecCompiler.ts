@@ -1,15 +1,12 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
 import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
-import { BaseComponent } from "../components/base";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { getGenericAnchorTypeFromId } from "../utils/anchorGeneration/rectAnchors";
 import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
-import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles";
-import { pruneEdges } from "./prune";
+import { extractAnchorType, isCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
 

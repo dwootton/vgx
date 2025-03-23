@@ -427,42 +427,6 @@ export class SpecCompiler {
         return constraints;
     }
 
-    /**
-     * Find child nodes for a given node
-     */
-    private findChildNodes(
-        node: BindingNode,
-        edges: BindingEdge[],
-        allNodes: BindingNode[]
-    ): string[] {
-        // Find edges where this node is the source
-        const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
-
-        // Extract unique child node IDs
-        return Array.from(new Set(
-            childEdges
-                .map(edge => edge.target.nodeId)
-                .filter(id => allNodes.find(n => n.id === id))
-        ));
-    }
-
-    private findParentNodes(
-        node: BindingNode,
-        edges: BindingEdge[],
-        allNodes: BindingNode[]
-    ): string[] {
-        // Find edges where this node is the target
-        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-
-        // Extract unique parent node IDs
-        return Array.from(new Set(
-            parentEdges
-                .map(edge => edge.source.nodeId)
-                .filter(id => allNodes.find(n => n.id === id))
-        ));
-    }
-
-
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
         const elaboratedGraph = this.buildBindingGraph(startComponentId);
 

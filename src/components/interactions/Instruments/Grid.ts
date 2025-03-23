@@ -1,4 +1,4 @@
-import { CombinedDrag, } from "../drag2";
+import { CombinedDrag, } from "../Drag";
 import { BindingManager } from "../../../binding/BindingManager";
 import { Line } from "../../marks/line";
 

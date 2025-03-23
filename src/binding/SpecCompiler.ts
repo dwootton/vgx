@@ -1,6 +1,5 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
-import { compilationContext, deduplicateById, validateComponent, removeUndefinedInSpec, logComponentInfo, detectAndMergeSuperNodes, resolveAnchorValue, removeUnreferencedParams } from "./binding";
 import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
 import { BaseComponent } from "../components/base";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
@@ -8,17 +7,11 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { VariableParameter } from "vega-lite/build/src/parameter";
 import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
 import { getGenericAnchorTypeFromId } from "../utils/anchorGeneration/rectAnchors";
-import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent_CLEAN";
-// import { resolveCycles } from "./cycles";
-import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles_CLEAN";
+import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles";
 import { pruneEdges } from "./prune";
-import { Spec } from "vega-typings";
-import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
-import * as vl from "vega-lite";
-import * as themes from 'vega-themes';
-import { mergeConfig } from 'vega';
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
-import { extractModifiedObjects } from "compilation/patchingUtils";
+import { mergeSpecs } from "./utils";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -95,28 +88,30 @@ export class SpecCompiler {
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
-    public compile(fromComponentId: string): TopLevelSpec {
-        const rootComponent = this.getBindingManager().getComponent(fromComponentId);
-        if (!rootComponent) {
-            throw new Error(`Component "${fromComponentId}" not found.`);
-        }
-
+    private buildBindingGraph(fromComponentId: string): BindingGraph {
         // specific binding graph for this tree
-        let bindingGraph = this.graphManager.generateBindingGraph(rootComponent.id);
+        let bindingGraph = this.graphManager.generateBindingGraph(fromComponentId);
 
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, rootComponent.id);
+        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
        
         bindingGraph.edges = prunedEdges;
    
-        const processedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
+        const elaboratedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
+
+        return elaboratedGraph;
+    }
+
+    public compile(fromComponentId: string): TopLevelSpec {
+
+        const elaboratedGraph = this.buildBindingGraph(fromComponentId);
 
 
-        const compiledSpecs = this.compileBindingGraph(fromComponentId, processedGraph);
+        const compiledSpecs = this.compileBindingGraph(fromComponentId, elaboratedGraph);
 
-        const mergedSpec = mergeSpecs(compiledSpecs, rootComponent.id);
+        const mergedSpec = mergeSpecs(compiledSpecs, fromComponentId);
 
 
         const patchManager = new VegaPatchManager(mergedSpec);
@@ -482,307 +477,32 @@ export class SpecCompiler {
     }
 
 
-
-
-    private prepareEdges(graphEdges: BindingEdge[]): AnchorEdge[] {
-
-        function isCompatible(sourceAnchorId: string, targetAnchor: string) {
-            return getGenericAnchorTypeFromId(sourceAnchorId) == getGenericAnchorTypeFromId(targetAnchor)
-        }
-        function expandAllAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
-            const getAnchors = (component: BaseComponent, anchorId: string) =>
-                anchorId === '_all'
-                    ? [...component.getAnchors().values()].map(a => a.id.anchorId)
-                    : [anchorId];
-
-            const sourceAnchors = getAnchors(source, edge.source.anchorId);
-            const targetAnchors = getAnchors(target, edge.target.anchorId);
-
-            return sourceAnchors.flatMap(sourceAnchor =>
-                targetAnchors
-                    .filter(targetAnchor => {
-                        const sourceType = source.getAnchor(sourceAnchor)?.anchorSchema.type;
-                        const targetType = target.getAnchor(targetAnchor)?.anchorSchema.type;
-                        return sourceType === targetType && isCompatible(sourceAnchor, targetAnchor);
-                    })
-                    .map(targetAnchor => ({
-                        source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
-                        target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
-                    }))
-            );
-        }
-        // new issue: we are now dropping baseContext data rather than just retrning null (if nothing is provided.)
-
-        return graphEdges.flatMap(edge => {
-            const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
-            if (!sourceComponent) {
-                throw new Error(`Source component ${edge.source.nodeId} not found`);
-            }
-
-            // Handle '_all' anchor expansion
-            if (edge.source.anchorId === '_all' || edge.target.anchorId === '_all') {
-                const targetComponent = BindingManager.getInstance().getComponent(edge.target.nodeId);
-                if (!targetComponent) {
-                    throw new Error(`Target component ${edge.target.nodeId} not found`);
-                }
-
-                return expandAllAnchors(edge, sourceComponent, targetComponent)
-                    .flatMap(newEdge => {
-                        const anchorProxy = sourceComponent.getAnchor(newEdge.source.anchorId);
-                        if (!anchorProxy) return [];
-                        return expandGroupAnchors({
-                            originalEdge: newEdge,
-                            anchorProxy
-                        }, sourceComponent);
-                    });
-            }
-
-            // Handle regular edges
-            const anchorProxy = sourceComponent.getAnchor(edge.source.anchorId);
-            if (!anchorProxy) return [];
-            return expandGroupAnchors({
-                originalEdge: edge,
-                anchorProxy
-            }, sourceComponent);
-        });
-    }
-
-
-
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
-        const bindingGraph = this.graphManager.generateBindingGraph(startComponentId);
-        const superNodeMap = detectAndMergeSuperNodes(bindingGraph.edges);
+        const elaboratedGraph = this.buildBindingGraph(startComponentId);
 
-        const processedNodes = Array.from(bindingGraph.nodes.values()).map(node => ({
-            id: node.id,
-            type: node.type,
-            mergedId: superNodeMap.get(node.id) || node.id,
-            anchors: this.getComponentAnchors(node.id)
-        }));
-        const edges = this.prepareEdges(bindingGraph.edges);
-
-        const processedEdges = edges.map(edge => ({
-            source: {
-                original: edge.originalEdge.source.nodeId,
-                merged: superNodeMap.get(edge.originalEdge.source.nodeId) || edge.originalEdge.source.nodeId
-            },
-            target: {
-                original: edge.originalEdge.target.nodeId,
-                merged: superNodeMap.get(edge.originalEdge.target.nodeId) || edge.originalEdge.target.nodeId
-            },
-            anchors: {
-                source: edge.anchorProxy.anchorSchema.id,
-                target: edge.originalEdge.target.anchorId
+        const processedNodes = Array.from(elaboratedGraph.nodes.values()).map(node => {
+            const component = this.getBindingManager().getComponent(node.id);
+            return {
+                component: node,
+                anchors: component ? Array.from(component.getAnchors().values()) : []
             }
-        }));
-
-
-
-        // Group edges by target anchor (matching compileNode logic)
-        const anchorGroups = this.groupEdgesByAnchor(
-            bindingGraph.edges.filter(e => e.target.nodeId === startComponentId)
-        );
+        });
 
         return {
             nodes: processedNodes,
-            edges: processedEdges,
-            superNodes: Array.from(superNodeMap.entries()),
-            anchorGroups
-        };
-    }
-
-    private groupEdgesByAnchor(edges: BindingEdge[]): Map<string, EdgeGroup> {
-        return edges.reduce((acc, edge) => {
-            const anchorId = edge.target.anchorId;
-            if (!acc.has(anchorId)) {
-                acc.set(anchorId, {
-                    anchorId,
-                    edges: [],
-                    resolvedValue: null
-                });
-            }
-            const group = acc.get(anchorId)!;
-            group.edges.push(edge);
-            return acc;
-        }, new Map<string, EdgeGroup>());
-    }
-
-    private getComponentAnchors(nodeId: string): AnchorProxy[] {
-        const component = this.getBindingManager().getComponent(nodeId);
-        return component ? Array.from(component.getAnchors().values()) : [];
+            edges: elaboratedGraph.edges
+        }
     }
 }
 
 
 
 
-export function expandGroupAnchors(
-    edge: AnchorEdge,
-    component: BaseComponent
-): AnchorEdge[] {
-    const { originalEdge, anchorProxy } = edge;
-    const schema = anchorProxy.anchorSchema;
-
-    if (schema.type === 'group') {
-
-        return schema.children.map(childId => ({
-            originalEdge,
-            anchorProxy: component.getAnchor(childId)
-        }));
-    }
-    return [edge];
+export interface ProcessedNode {
+    component: BindingNode;
+    anchors: AnchorProxy[];
 }
-
-
-
-function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: string): TopLevelSpec {
-    // Helper to check if spec has layer/mark
-    const hasLayerOrMark = (spec: any) => {
-        return spec.layer || spec.mark;
-    };
-
-
-    // First merge specs, handling layers
-    const mergedSpec = specs.reduce((merged: any, spec) => {
-        // If either has layer/mark, create layer spec
-        if (hasLayerOrMark(merged) && hasLayerOrMark(spec)) {
-            return {
-                layer: [
-                    merged,
-                    spec
-                ]
-            };
-        }
-
-        // Otherwise merge normally
-        return {
-            ...merged,
-            ...spec,
-            // Concatenate params if they exist
-            params: [
-                ...(merged.params || []),
-                ...(spec.params || [])
-            ]
-        };
-    }, {});
-
-    // Move all params to top level
-    const params: (Parameter)[] = [];
-    const selectParams: (Parameter)[] = [];
-
-    // Function to find base chart layer by rootComponentId
-    const findBaseChartLayer = (obj: any): any | null => {
-        if (!obj || typeof obj !== 'object') return null;
-
-        if (obj.name === rootComponentId) return obj;
-
-        for (const value of Object.values(obj)) {
-            const result = findBaseChartLayer(value);
-            if (result) return result;
-        }
-
-        return null;
-    };
-
-    // Function to move params to top level
-    const moveParamsToTop = (obj: any) => {
-        if (!obj || typeof obj !== 'object') return;
-
-        if (obj.params && Array.isArray(obj.params)) {
-            // Split params into select and non-select
-            const [selectParamsArr, nonSelectParamsArr] = obj.params.reduce(
-                ([select, nonSelect]: [Parameter[], Parameter[]], param: Parameter) => {
-                    if ('select' in param) {
-                        select.push(param);
-                    } else {
-                        nonSelect.push(param);
-                    }
-                    return [select, nonSelect];
-                },
-                [[], []]
-            );
-
-            // Add to respective arrays
-            if (nonSelectParamsArr.length > 0) {
-                params.push(...nonSelectParamsArr);
-            }
-            if (selectParamsArr.length > 0) {
-                selectParams.push(...selectParamsArr);
-            }
-
-            // Remove params from original location
-            delete obj.params;
-        }
-
-        Object.values(obj).forEach(value => {
-            moveParamsToTop(value);
-        });
-    };
-
-    // Move params to their destinations
-    moveParamsToTop(mergedSpec);
-
-    // Add select params to base chart
-    const baseChartLayer = findBaseChartLayer(mergedSpec);
-    if (baseChartLayer && selectParams.length > 0) {
-        baseChartLayer.params = selectParams;
-    }
-    if (params.length > 0) {
-
-        mergedSpec.params = mergeParams(params);
-    }
-
-
-
-   
-    // Apply the extraction to the merged spec
-    
-
-    return  mergedSpec;
-}
-
-function mergeParams(params: any[]): any[] {
-    const paramsByName = new Map<string, any>();
-
-    // Group params by name
-    params.forEach(param => {
-        if (!param.name) return;
-
-        if (paramsByName.has(param.name)) {
-            // Merge with existing param
-            const existing = paramsByName.get(param.name);
-            paramsByName.set(param.name, {
-                ...existing,
-                ...param
-            });
-        } else {
-            paramsByName.set(param.name, param);
-        }
-    });
-
-    return Array.from(paramsByName.values());
-}
-
 export interface ProcessedGraph {
-    nodes: Array<{
-        id: string;
-        type: string;
-        mergedId: string;
-        anchors: AnchorProxy[];
-    }>;
-    edges: Array<{
-        source: { original: string; merged: string };
-        target: { original: string; merged: string };
-        anchors: { source: string; target: string };
-    }>;
-    superNodes: Array<[string, string]>;
-    anchorGroups: Map<string, EdgeGroup>;
-}
-
-interface EdgeGroup {
-    anchorId: string;
+    nodes: ProcessedNode[];
     edges: BindingEdge[];
-    resolvedValue: any;
 }
-
-

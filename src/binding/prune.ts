@@ -1,5 +1,5 @@
 import { BindingEdge, BindingNode } from "./GraphManager";
-import { extractAnchorType, isCompatible } from "./cycles_CLEAN";
+import { extractAnchorType, isCompatible } from "./cycles";
 /**
  * Prunes edges that are not reachable from the root component.
  * Returns both valid edges and implicit edges (pruned edges that might be needed later).

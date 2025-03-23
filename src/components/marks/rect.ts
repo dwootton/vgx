@@ -7,7 +7,7 @@ import { generateAnchorsFromContext } from "../../utils/anchorProxy";
 import { generateComponentSignalName } from "../../utils/component";
 import { generateParams } from "../../utils/compilation";
 import { generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal } from "../utils";
-import { generateConfigurationAnchors } from "../interactions/drag2";
+import { generateConfigurationAnchors } from "../interactions/Drag";
 
 const rectBaseContext = {
     "data": {"values":[{ "val1":"val2"}]},

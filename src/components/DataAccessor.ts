@@ -1,7 +1,7 @@
 import { BaseComponent } from "./base";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
-import { generateConfigurationAnchors } from "./interactions/drag2";
+import { generateConfigurationAnchors } from "./interactions/Drag";
 import { LazyOperation } from "../binding/LazyBinding";
 
 type DataOperation = {

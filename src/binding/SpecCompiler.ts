@@ -297,7 +297,7 @@ export class SpecCompiler {
             );
             
             return component.compileComponent({
-                ['VGX_MERGED_SIGNAL_NAME']: mergedSignals
+                'VGX_MERGED_SIGNAL_NAME': mergedSignals
             });
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }

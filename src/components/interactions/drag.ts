@@ -213,7 +213,6 @@ export function generateConfigurationAnchors(id: string, configurationId: string
     } else if (schema.container === 'Range') {
         return createRangeAccessor(id, channel, configurationId);
     } else if (schema.container === 'Data') {
-        console.log('generating dataAnchor', id, configurationId, channel)
         return {
             'value': `${id}_${configurationId}_${channel}`
         }
@@ -394,9 +393,7 @@ export class Drag extends BaseComponent {
 
         const internalSignals = Object.keys(inputContext).filter(key => key.endsWith('_internal')).map(key =>
             inputContext[key].map((updateStatement: string) => ({
-                // const signal = generateSignalFromAnchor(['SIGNALVAL'],key,this.id,nodeId,this.schema[key].container)[0]
 
-                // console.log('internalSignal', signal)
                 name: this.id + '_' + key,
                 "on": [{
                     "events": {

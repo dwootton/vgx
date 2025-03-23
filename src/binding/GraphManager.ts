@@ -1,5 +1,8 @@
 import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
+import { expandEdges } from "./cycles";
+import { resolveCycleMulti } from "./cycles";
+import { pruneEdges } from "./prune";
 
 export interface BindingNode {
     id: string;
@@ -23,6 +26,22 @@ export class GraphManager {
 
     constructor(getBindingManager: () => BindingManager) {
         this.bindingManager = getBindingManager();
+    }
+
+    public buildCompilationGraph(fromComponentId: string): BindingGraph {
+        // specific binding graph for this tree
+        let bindingGraph = this.generateBindingGraph(fromComponentId);
+
+        // expand any _all anchors to individual anchors
+        const expandedEdges = expandEdges(bindingGraph.edges);
+
+        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
+       
+        bindingGraph.edges = prunedEdges;
+   
+        const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
+
+        return elaboratedGraph;
     }
 
     public generateBindingGraph(startComponentId: string): BindingGraph {

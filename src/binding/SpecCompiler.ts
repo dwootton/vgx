@@ -88,26 +88,10 @@ export class SpecCompiler {
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
-    private buildBindingGraph(fromComponentId: string): BindingGraph {
-        // specific binding graph for this tree
-        let bindingGraph = this.graphManager.generateBindingGraph(fromComponentId);
-
-        // expand any _all anchors to individual anchors
-        const expandedEdges = expandEdges(bindingGraph.edges);
-
-        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
-       
-        bindingGraph.edges = prunedEdges;
-   
-        const elaboratedGraph = resolveCycleMulti(bindingGraph, this.getBindingManager());
-
-        return elaboratedGraph;
-    }
 
     public compile(fromComponentId: string): TopLevelSpec {
 
-        const elaboratedGraph = this.buildBindingGraph(fromComponentId);
-
+        const elaboratedGraph = this.graphManager.buildCompilationGraph(fromComponentId);
 
         const compiledSpecs = this.compileBindingGraph(fromComponentId, elaboratedGraph);
 
@@ -379,22 +363,25 @@ export class SpecCompiler {
 
         // Process each parent edge
         for (const parentEdge of parentEdges) {
-            
-           
 
             const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if(!parentNode) continue;
+            if(!parentNode) {
+                console.error(`Parent node not found: ${parentEdge.source.nodeId} for target: ${node.id}`);
+                continue;
+            }
             
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if(!parentComponent) continue;
+            if(!parentComponent) {
+                console.error(`Parent component not found: ${parentNode.id} for target: ${node.id}`);
+                continue;
+            }
 
             const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if(!anchorProxy) continue;
+            if(!anchorProxy) {
+                console.error(`Anchor not found: ${parentEdge.source.anchorId} on component: ${parentNode.id} for target: ${node.id}`);
+                continue;
+            }
             
-            
-
-
-
             // Get the schema and value from the parent anchor
             const targetAnchorId = parentEdge.target.anchorId;
             const targetAnchorSchema = component.schema[targetAnchorId];
@@ -405,7 +392,10 @@ export class SpecCompiler {
             const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
            
             // Skip if no schema exists for this channel
-            if (!currentNodeSchema) continue;
+            if (!currentNodeSchema) {
+                console.error(`Schema not found for channel: ${cleanTargetId} on component: ${node.id}`);
+                continue;
+            }
 
             // Initialize constraint array if needed
             if (!constraints[targetAnchorId]) {
@@ -428,7 +418,7 @@ export class SpecCompiler {
     }
 
     public getProcessedGraph(startComponentId: string): ProcessedGraph {
-        const elaboratedGraph = this.buildBindingGraph(startComponentId);
+        const elaboratedGraph = this.graphManager.buildCompilationGraph(startComponentId);
 
         const processedNodes = Array.from(elaboratedGraph.nodes.values()).map(node => {
             const component = this.getBindingManager().getComponent(node.id);

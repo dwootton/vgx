@@ -1,6 +1,7 @@
-
-
 //Components: 
+
+import { compileConstraint } from "../binding/constraints";
+import { extractSignalNames } from "../binding/mergedComponent";
 
 // creates the accessor for the signal backing the range
 // export const createRangeAccessor = (id: string, channel: string) => {
@@ -190,39 +191,23 @@ interface Transform {
   export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
     
-    // Skip if constraints are invalid
-    if (constraints.some(c => c === undefined || c.includes('undefined'))) {
-      console.warn(`Skipping signal generation for ${transform.channel} due to undefined constraints`);
-      return null;
-    }
+    // Convert constraints to update expressions
+    const updates = constraints.map(constraint => {
+        if (!constraint) return null;
+        
+        const updateExpr = compileConstraint(constraint, output);
+        const signalNames = extractSignalNames(updateExpr);
+        
+        return {
+            events: signalNames.map(name => ({ signal: name })),
+            update: updateExpr
+        };
+    }).filter(update => update !== null);
     
-    // Replace PARENT_ID in the transform value with the actual ID
-    const parentExtractor = transform.value.replace(/PARENT_ID/g, id);
-    
-    // Process constraints
-    const processedConstraints = constraints.map(constraint => ({
-      events: extractAllNodeNames(constraint).map(node => ({ signal: node })),// TODO FIX DEPENDENCTS
-      update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
-    }));
-
-    
-    // Build the final update expression
-    const finalUpdate = collapseSignalUpdates(processedConstraints, parentExtractor);
-    // Find dependent nodes
-    const dependentNodes = extractAllNodeNames(finalUpdate)
-      .filter(node => node !== output)
-      .map(node => ({ signal: node }));
-    
-       // ...dependentNodes] TODO FIX DEPENDENCTS
-    const uniqueTriggerEvents = [...new Set(dependentNodes.map(JSON.stringify))].map(JSON.parse);
-    // Return the signal definition
     return {
-      name: output,
-      value: null,
-      on: [{
-        events: uniqueTriggerEvents,
-        update: finalUpdate
-      }]
+        name: output,
+        value: null,
+        on: updates
     };
   }
   

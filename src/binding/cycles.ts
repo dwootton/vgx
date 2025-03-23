@@ -98,7 +98,7 @@ export function extractAnchorType(anchorId: string): AnchorType | undefined {
     }
     
     // If we couldn't extract a valid AnchorType, return undefined
-    return undefined;
+    return "Other";
 }
 export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
 

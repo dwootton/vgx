@@ -3,12 +3,11 @@ import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
 import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
-import { VariableParameter } from "vega-lite/build/src/parameter";
-import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
+import { extractConstraintsForMergedComponent } from "./mergedComponent";
 import { extractAnchorType, isCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
+import { createConstraintFromSchema } from "./constraints";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -16,7 +15,6 @@ interface AnchorEdge {
 }
 
 export type Edge = AnchorEdge | VirtualBindingEdge;
-type Parameter = VariableParameter | TopLevelSelectionParameter
 
 type AnchorId = string;
 type Constraint = string;
@@ -345,72 +343,44 @@ export class SpecCompiler {
     /**
      * Build constraint objects from parent nodes
      */
-    private buildNodeConstraints(
-        node: BindingNode,
-        edges: BindingEdge[],
-        allNodes: BindingNode[]
-    ): Record<AnchorId, Constraint[]> {
-        const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return {};
-
-        // Find parent edges and nodes
-        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-        const constraints: Record<AnchorId, Constraint[]> = {};
-
-
-        // Process each parent edge
-        for (const parentEdge of parentEdges) {
-
-            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if(!parentNode) {
-                console.error(`Parent node not found: ${parentEdge.source.nodeId} for target: ${node.id}`);
-                continue;
-            }
-            
-            const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if(!parentComponent) {
-                console.error(`Parent component not found: ${parentNode.id} for target: ${node.id}`);
-                continue;
-            }
-
-            const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if(!anchorProxy) {
-                console.error(`Anchor not found: ${parentEdge.source.anchorId} on component: ${parentNode.id} for target: ${node.id}`);
-                continue;
-            }
-            
-            // Get the schema and value from the parent anchor
-            const targetAnchorId = parentEdge.target.anchorId;
-            const targetAnchorSchema = component.schema[targetAnchorId];
-
-            const cleanTargetId = targetAnchorId.replace('_internal', '');
-
-            const currentNodeSchema = component.schema[cleanTargetId]
-            const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
-           
-            // Skip if no schema exists for this channel
-            if (!currentNodeSchema) {
-                console.error(`Schema not found for channel: ${cleanTargetId} on component: ${node.id}`);
-                continue;
-            }
-
-            // Initialize constraint array if needed
-            if (!constraints[targetAnchorId]) {
-                constraints[targetAnchorId] = [];
-            }
+    private buildNodeConstraints(node: BindingNode, edges: BindingEdge[], allNodes: BindingNode[]): Record<string, Constraint[]> {
+        const constraints: Record<string, Constraint[]> = {};
         
-            // Add appropriate constraint based on component schema type
-            this.addConstraintForChannel(
-                constraints,
-                targetAnchorId,
-                currentNodeSchema,
-                parentNodeSchema,
-                anchorProxy
+        // Find all edges where this node is the target
+        const incomingEdges = edges.filter(edge => edge.target.nodeId === node.id);
+        
+        incomingEdges.forEach(edge => {
+            const sourceNode = allNodes.find(n => n.id === edge.source.nodeId);
+            if (!sourceNode) return;
+            
+            const sourceComponent = this.getBindingManager().getComponent(sourceNode.id);
+            if (!sourceComponent) return;
+            
+            const anchor = sourceComponent.getAnchor(edge.source.anchorId);
+            if (!anchor) return;
+
+            console.log('edgetarget',edge.target.anchorId, edge);
+            
+            const anchorType = extractAnchorType(edge.target.anchorId);
+            const schema = anchor.anchorSchema[anchorType];
+            const value = anchor.compile();
+            if(!schema || !value) {
+                console.error('no schema or value', edge, anchorType, anchor.anchorSchema, value);
+                return;
+            }
+            console.log('preconstraint',anchorType, schema, value, anchor.anchorSchema);
+            const constraint = createConstraintFromSchema(
+                schema,
+                value,
+                `${sourceNode.id}_${edge.source.anchorId}`
             );
-        }
-
-
-
+            
+            if (!constraints[anchorType]) {
+                constraints[anchorType] = [];
+            }
+            constraints[anchorType].push(constraint);
+        });
+        
         return constraints;
     }
 

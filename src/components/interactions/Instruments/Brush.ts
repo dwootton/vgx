@@ -1,4 +1,4 @@
-import { CombinedDrag, dragBaseContext, generateConfigurationAnchors } from "../drag2";
+import { CombinedDrag, dragBaseContext, generateConfigurationAnchors } from "../Drag";
 import { Rect } from "../../marks/rect";
 import { BaseComponent } from "../../base";
 import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
@@ -6,36 +6,14 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
 import { BindingManager } from "../../../binding/BindingManager";
+import { extractComponentBindings } from "../../../binding/utils";
+
+
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
         
-        // Extract all components from config and their bindings
-        const extractComponentBindings = (config: any): any[] => {
-            // If no config or no bind property, return empty array
-            if (!config || !config.bind || typeof config.bind === 'function') {
-                return [];
-            }
-            
-            // If bind is an array, process each item
-            if (Array.isArray(config.bind)) {
-                return config.bind.flatMap(item => {
-                    // If the item is a component with its own bindings, extract those too
-                    if (item && typeof item === 'object' && item.bind) {
-                        return [item, ...extractComponentBindings(item)];
-                    }
-                    return item;
-                });
-            }
-            
-            // If bind is a single object with its own bindings
-            if (typeof config.bind === 'object' && config.bind.bind) {
-                return [config.bind, ...extractComponentBindings(config.bind)];
-            }
-            
-            // If bind is a single object without further bindings
-            return [config.bind];
-        };
+        
         
         // Get all components that need to be bound
         const allBindings = extractComponentBindings(config);
@@ -49,10 +27,6 @@ export class BrushConstructor {
 
         const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
 
-
-        // const brush = new Brush({ bind: drag });
-        // console.log('passing through brush', brush, drag)
-        // Create a proxy to intercept property access on drag
         const dragProxy = new Proxy(drag, {
             get(target, prop, receiver) {
                 // If accessing 'data' property, redirect to brush.data
@@ -168,16 +142,6 @@ export class Brush extends BaseComponent {
 
         this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
 
-        // // Add data as an anchor
-        // this.anchors.set('data', this.createAnchorProxy({ 
-        //     'data': { 
-        //     container: 'Data',
-        //     valueType: 'Data',
-        //     }
-        // }, 'data', () => {
-        //     return { 'value': this._data };
-        // }));
-
 
     }
 
@@ -190,8 +154,6 @@ export class Brush extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
-        const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0] + "_marks" : '';
         const selection = {
             "name": this.id,
             "select": {
@@ -203,34 +165,6 @@ export class Brush extends BaseComponent {
                 }
             }
         }
-
-        // // Generate all signals
-        // const outputSignals = Object.values(this.configurations)
-        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-        //     .flatMap(config => {
-        //         console.log('BRUSHCONFIG', config)
-        //         // Build constraint map from inputContext
-        //         const constraintMap = {};
-        //         Object.keys(config.schema).forEach(channel => {
-        //             const key = `${config.id}_${channel}`;
-        //             constraintMap[channel] = inputContext[key] || [];
-        //         });
-
-        //         const signalPrefix = this.id + '_' + config.id
-        //         // Generate signals for this configuratio
-
-                
-        //         const signals = generateSignalsFromTransforms(
-        //             config.transforms,
-        //             nodeId,
-        //             signalPrefix,
-        //             constraintMap
-        //         );
-        //         console.log('BRUSHCONFIG', signals)
-        //         return signals;
-        //     });
-
-        // console.log('OUTPUT SIGNALS', outputSignals)
 
 
         const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
@@ -250,7 +184,3 @@ export class Brush extends BaseComponent {
         }
     }
 }
-
-// steps :
-
-// 1. change all anchors to be encoding anchors (such that we group on encoding type)

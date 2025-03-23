@@ -38,11 +38,8 @@ export function createAnchorProxy(component: BaseComponent, anchor: AnchorSchema
     anchorSchema: anchor,
     compile: compileFn //|| (() => ({source:'baseContext',value:''}))// TODO change to regular schema type
   };
-  // console.log('anchorProxy', proxy);
   return proxy;
 }
-//TODO: make sure that the interactive data "bubbles up", when anchors are bound.
-
 
 
 

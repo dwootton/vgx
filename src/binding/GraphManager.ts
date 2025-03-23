@@ -1,5 +1,8 @@
 import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
+import { expandEdges } from "./cycles";
+import { resolveCycleMulti } from "./cycles";
+import { pruneEdges } from "./prune";
 
 export interface BindingNode {
     id: string;
@@ -19,14 +22,26 @@ export interface BindingGraph {
 
 export class GraphManager {
     private bindingManager: BindingManager;
-    // superNodes are nodes whose data must be merged due to cycle in the dataflow graph
-    // we maintain a map of original node ID to superNode ID, and then during compilation
-    // the compilation context will refer to the superNode ID. 
-    private superNodes: Map<string, string> = new Map();
 
 
     constructor(getBindingManager: () => BindingManager) {
         this.bindingManager = getBindingManager();
+    }
+
+    public buildCompilationGraph(fromComponentId: string): BindingGraph {
+        // specific binding graph for this tree
+        let bindingGraph = this.generateBindingGraph(fromComponentId);
+
+        // expand any _all anchors to individual anchors
+        const expandedEdges = expandEdges(bindingGraph.edges);
+
+        const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
+       
+        bindingGraph.edges = prunedEdges;
+   
+        const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
+
+        return elaboratedGraph;
     }
 
     public generateBindingGraph(startComponentId: string): BindingGraph {
@@ -35,7 +50,7 @@ export class GraphManager {
         const visited = new Set<string>();
 
         const addNode = (component: BaseComponent) => {
-            if(nodes.find(node => node.id === component.id)) {
+            if (nodes.find(node => node.id === component.id)) {
                 return;
             } else {
                 nodes.push({
@@ -57,7 +72,7 @@ export class GraphManager {
             // Get all bindings where this component is either source or target to catch nodes
             // that are not accdssible through the root node
             const allBindings = this.bindingManager.getBindingsForComponent(componentId, 'both');
-            
+
             // Process source bindings
             allBindings.forEach(binding => {
                 const { sourceId, targetId, sourceAnchor, targetAnchor } = binding;
@@ -70,13 +85,12 @@ export class GraphManager {
                     source: { nodeId: sourceId, anchorId: sourceAnchor },
                     target: { nodeId: targetId, anchorId: targetAnchor }
                 });
-                
+
+
+                // traverse both source and target such that we catch nodes that are not accessible through the root node
                 traverse(sourceId);
                 traverse(targetId);
             });
-
-            
-            
         };
 
         traverse(startComponentId);
@@ -85,45 +99,25 @@ export class GraphManager {
         nodes.forEach(node => {
             uniqueNodesMap.set(node.id, node);
         });
-        
+
         // Convert map back to array
         const uniqueNodes = Array.from(uniqueNodesMap.values());
-        
+
         // De-duplicate edges by creating a unique key for each edge
         const uniqueEdgesMap = new Map();
         edges.forEach(edge => {
             const edgeKey = `${edge.source.nodeId}:${edge.source.anchorId}->${edge.target.nodeId}:${edge.target.anchorId}`;
             uniqueEdgesMap.set(edgeKey, edge);
         });
-        
+
         // Convert map back to array
         const uniqueEdges = Array.from(uniqueEdgesMap.values());
-        
+
         // Replace the original arrays with de-duplicated ones
         nodes = uniqueNodes;
         edges = uniqueEdges;
         return { nodes, edges };
     }
 
-    
-    public setSuperNodeMap(superNodeMap: Map<string, string>): void {
-        this.superNodes = superNodeMap;
-    }
 
-    public getSuperNodeMap(): Map<string, string> {
-        return this.superNodes;
-    }
-
-    public printGraph(startComponentId: string): void {
-        const { nodes, edges } = this.generateBindingGraph(startComponentId);
-
-        nodes.forEach(node =>
-            console.log(`  ${node.id} (${node.type})\n}`)
-        );
-
-        console.log('\nEdges:');
-        edges.forEach(edge =>
-            console.log(`  ${edge.source.nodeId}.${edge.source.anchorId} -> ${edge.target.nodeId}.${edge.target.anchorId}`)
-        );
-    }
 }

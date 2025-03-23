@@ -5,7 +5,7 @@ import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
 import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
-import { extractSignalNames } from "../../binding/mergedComponent_CLEAN";
+import { extractSignalNames } from "../../binding/mergedComponent";
 
 
 export const circleBaseContext = {
@@ -79,7 +79,7 @@ const configurations = [{
 }
 */
 
-import { generateConfigurationAnchors } from "../interactions/drag2";
+import { generateConfigurationAnchors } from "../interactions/Drag";
 export class Circle extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;

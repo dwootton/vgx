@@ -1,4 +1,4 @@
-import { extractAnchorType } from "../binding/cycles_CLEAN";
+import { extractAnchorType } from "../binding/cycles";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
 import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
 
@@ -150,6 +150,8 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
         params: usedParams
     }
 }
+
+
 export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
     if (!obj || typeof obj !== 'object') {
         return obj;

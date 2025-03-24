@@ -4,7 +4,7 @@ import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { extractConstraintsForMergedComponent } from "./mergedComponent";
-import { extractAnchorType, isCompatible } from "./cycles";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
@@ -198,7 +198,7 @@ export class SpecCompiler {
             let targetAnchors = component.getAnchors()
                 .filter(anchor => {
                     const targetChannel = extractAnchorType(anchor.id.anchorId);
-                    return targetChannel && isCompatible(channel, targetChannel);
+                    return targetChannel && isAnchorTypeCompatible(channel, targetChannel);
                 })
                 .filter(anchor=>{
                     // implicit edges should only be used to transfer values from their parents NOT to constrain. 

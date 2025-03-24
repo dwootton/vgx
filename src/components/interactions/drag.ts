@@ -10,7 +10,7 @@ import { constructValueFromContext } from "../../utils/contextHelpers";
 
 
 export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
-export const dragBaseContext = { "x": 0, "y": 0 };
+export const dragBaseContext = { "x": 0, "y": 0 , start: {x:0,y:0}, stop: {x:0,y:0}};
 
 
 const configurations = [{

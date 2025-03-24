@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { AnchorProxy, SchemaType } from "../types/anchors";
 import { Constraint, ConstraintType, constraintToUpdateRule } from './constraints';
-import { extractAnchorType, isCompatible } from "./cycles";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 
 // Identifier for merged component signals in constraints
 export const VGX_MERGED_SIGNAL_NAME = 'VGX_MERGED_SIGNAL_NAME';

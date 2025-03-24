@@ -98,7 +98,7 @@ export function createConstraintFromSchema(
 
     if(schema.valueType === "Categorical"){
         return {
-            type: ConstraintType.IDENTITY,
+            type: ConstraintType.SCALAR,
             triggerReference,
             isImplicit,
             constraintValueType: schema.valueType

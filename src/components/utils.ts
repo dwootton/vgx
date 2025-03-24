@@ -431,8 +431,9 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
         const values = inputContext[firstCompatibleKey];
         console.log('values', values)
         if (Array.isArray(values) && values.length > 0) {
+            console.log('valuesdslkjfaskl', values[0],  compileConstraint(values[0]))
             // Return the first value from the array
-            return values[0].value;
+            return compileConstraint(values[0]);
         }
     }
 

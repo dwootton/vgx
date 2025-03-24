@@ -31,7 +31,7 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
-        
+        console.log('getAnchorsdfasdfas', component, anchorId)
         if (anchorId === '_all') {
             console.log('componentINALL', component, anchorId)
 
@@ -91,9 +91,11 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             
         if (defaultConfig) {
             const configAnchors = [...component.getAnchors().values()]
-                .filter(a => a.id.anchorId.includes(defaultConfig) && a.id.anchorId !== anchorId)
+                .filter(a => a.id.anchorId.includes(defaultConfig) && a.id.anchorId == anchorId)
+
                 .map(a => a.id.anchorId);
                 
+                console.log('configAnchors', configAnchors, anchorId, defaultConfig)
             // If we found configuration-based anchors, return those
             if (configAnchors.length > 0) {
                 return configAnchors;
@@ -103,8 +105,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         // If we didn't find any other 
         const baseAnchorId = anchorId
         try {
+            console.log('baseAnchorId', baseAnchorId, component.getAnchor(baseAnchorId))
             component.getAnchor(baseAnchorId); 
-            return [baseAnchorId];
+            return [];
         } catch (error) {
             //throw new Error(`Anchor ${baseAnchorId} not found for component ${component.id}`);
             // Anchor doesn't exist, continue with empty array
@@ -113,30 +116,41 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         
     };
 
-    const sourceAnchors = getAnchors(source, edge.source.anchorId);
-    let targetAnchors = getAnchors(target, edge.target.anchorId);
+    function checkAnchorTypeCompatibility(sourceAnchorId: string, targetAnchorId: string) {
+        const sourceAnchorType = extractAnchorType(sourceAnchorId);
+        const targetAnchorType = extractAnchorType(targetAnchorId);
 
-    // Check if any source or target anchors contain 'begin_x'
-    if (sourceAnchors.some(anchor => anchor.includes('begin_x')) || 
-        targetAnchors.some(anchor => anchor.includes('begin_x'))) {
-        console.log('Found begin_x in anchors:');
-        console.log('Found begin_xEdge:', edge);
-        console.log('Found begin_xSource component:', source.id);
-        console.log('Found begin_xSource anchors:', sourceAnchors);
-        console.log('Found begin_xTarget component:', target.id);
-        console.log('Found begin_xTarget anchors:', targetAnchors);
+        if(sourceAnchorType == AnchorType.OTHER || targetAnchorType == AnchorType.OTHER) {
+            return true;
+        }
+        return isAnchorTypeCompatible(sourceAnchorId, targetAnchorId);
+    }
+
+    const sourceAnchors = getAnchors(source, edge.source.anchorId)//.filter(sourceAnchorId => checkAnchorTypeCompatibility(sourceAnchorId, edge.source.anchorId));
+    let targetAnchors = getAnchors(target, edge.target.anchorId)//.filter(targetAnchorId => checkAnchorTypeCompatibility(targetAnchorId, edge.target.anchorId));
+
+    // Check if source anchorId has markName in it
+    if (edge.source.anchorId.includes('markName') || sourceAnchors.some(anchor => anchor.includes('markName'))) {
+        console.log('Found markName in source anchorId:');
+        console.log('Found markNameEdge:', edge);
+        console.log('Found markNameSource component:', source.id);
+        console.log('Found markNameSource anchors:', getAnchors(source, edge.source.anchorId), source, edge.source.anchorId);
+        console.log('Found markNameTarget component:', target.id);
+        console.log('Found markNameTarget anchors:', targetAnchors);
     }
 
     console.log('source:',source,'sourceAnchors', sourceAnchors, 'targetAnchors', targetAnchors,edge.target.anchorId, 'sourceAnchorID',edge.source.anchorId)
 
-    return sourceAnchors.flatMap(sourceAnchor =>
+    const expandedEdges = sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
-            .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
+            .filter(targetAnchor => isAnchorTypeCompatible(sourceAnchor, targetAnchor))
             .map(targetAnchor => ({
                 source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
                 target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
             }))
     );
+    console.log('expandedEdges', expandedEdges)
+    return expandedEdges;
 }
 
 export function extractAnchorType(anchorId: string): AnchorType  {
@@ -182,11 +196,12 @@ export function extractAnchorType(anchorId: string): AnchorType  {
 
 }
 
-export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
+export function isAnchorTypeCompatible(sourceAnchorId: string, targetAnchorId: string) {
 
     const sourceAnchorType = extractAnchorType(sourceAnchorId);
     const targetAnchorType = extractAnchorType(targetAnchorId);
 
+    console.log('sourceAnchorType', sourceAnchorType, sourceAnchorId,'targetAnchorType', targetAnchorType,targetAnchorId)
     if(!sourceAnchorType || !targetAnchorType) {
         return false;
     }
@@ -355,7 +370,7 @@ function detectCyclesByChannel(edges: BindingEdge[]): Array<{ nodes: string[], e
     // Partition edges by anchor ID
     anchorIds.forEach(anchorId => {
         const filteredEdges = edges.filter(edge =>
-            (extractAnchorType(edge.source.anchorId) === anchorId || extractAnchorType(edge.target.anchorId) === anchorId) && isCompatible(edge.source.anchorId, edge.target.anchorId)
+            (extractAnchorType(edge.source.anchorId) === anchorId || extractAnchorType(edge.target.anchorId) === anchorId) && isAnchorTypeCompatible(edge.source.anchorId, edge.target.anchorId)
         );
 
         edgesByAnchor.set(anchorId, filteredEdges);

@@ -85,6 +85,7 @@ export abstract class BaseComponent {
 
               // Check if the schema has an interactive property and it's true
               if (schema && schema.interactive) {
+                console.log('adding all interactive binding', getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId)
                 // Add the inverse binding - from the target component back to this component
                 this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId);
               }
@@ -111,10 +112,9 @@ export abstract class BaseComponent {
 
         // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
         binding.anchors.forEach((anchor) => {
-
           const anchorSchema = Object.values(anchor.anchorSchema)[0];
           if(anchorSchema && anchorSchema.interactive && !isParentChart){ // TODO FIX such that chart isn't ddded...
-
+            console.log('adding interactive binding2', getTargetId(binding), this.id, anchor.id.anchorId, bindingProperty)
             this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, bindingProperty);
           }
         })
@@ -123,7 +123,7 @@ export abstract class BaseComponent {
         // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if (binding.anchorSchema.interactive && !isParentChart) {
-
+          console.log('adding interactive binding3', getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId)
           this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }

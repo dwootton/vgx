@@ -7,7 +7,9 @@ export enum ConstraintType {
   CLAMP = 'clamp',      // Restrict to a range
   NEAREST = 'nearest',  // Find nearest value in a set
   ABSOLUTE = 'absolute', // Exact value constraint
-  EXPRESSION = 'expression' // Custom expression
+  EXPRESSION = 'expression', // Custom expression
+  SCALAR = 'scalar', // Scalar value constraint
+  DATA = 'data' // Data value constraint TODO: remove and change this to a valueType
 }
 
 /**
@@ -18,7 +20,7 @@ export interface Constraint {
   type: ConstraintType;
   
   // Source signal name that triggers this constraint
-  sourceSignal?: string;
+  triggerReference?: string;
   
   // For each constraint type, we need different parameters:
   min?: string;         // For CLAMP - can be signal name or expression
@@ -32,22 +34,23 @@ export interface Constraint {
  * Converts a constraint to a Vega-Lite update expression
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
+    console.log('compileConstraint', constraint);
   switch (constraint.type) {
     case ConstraintType.CLAMP:
-      return `clamp(${targetSignal || constraint.sourceSignal}, ${constraint.min}, ${constraint.max})`;
+      return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.min}, ${constraint.max})`;
       
     case ConstraintType.NEAREST:
-      return `nearest(${targetSignal || constraint.sourceSignal}, [${constraint.values?.join(', ')}])`;
+      return `nearest(${targetSignal || constraint.triggerReference}, [${constraint.values?.join(', ')}])`;
       
     case ConstraintType.ABSOLUTE:
       return constraint.value || "0";
       
     case ConstraintType.EXPRESSION:
       // Replace placeholder with actual signal if needed
-      return constraint.expression?.replace('TARGET_SIGNAL', targetSignal || constraint.sourceSignal || '') || "0";
+      return constraint.expression?.replace('TARGET_SIGNAL', targetSignal || constraint.triggerReference || '') || "0";
       
     default:
-      return targetSignal || constraint.sourceSignal || "0";
+      return targetSignal || constraint.triggerReference || "0";
   }
 }
 
@@ -56,9 +59,9 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
  */
 export function constraintToUpdateRule(constraint: Constraint, targetSignal?: string): any {
   // If we have a source signal, this becomes an event-based update
-  if (constraint.sourceSignal) {
+  if (constraint.triggerReference) {
     return {
-      events: { signal: constraint.sourceSignal },
+      events: { signal: constraint.triggerReference },
       update: compileConstraint(constraint, targetSignal)
     };
   }
@@ -75,14 +78,26 @@ export function constraintToUpdateRule(constraint: Constraint, targetSignal?: st
 export function createConstraintFromSchema(
   schema: SchemaType,
   value: any,
-  sourceSignal?: string
+  triggerReference?: string
 ): Constraint {
+
+    console.log('createConstraintFromSchema', schema, value, triggerReference);
+    if (schema.valueType === 'Data') {
+        console.log('createConstraintFromData', schema, value,  triggerReference,"VGX_MOD_"+value.value);
+        return {
+          type: ConstraintType.DATA,
+          triggerReference,
+          value: "VGX_MOD_"+value.value
+        };
+      }
+
+
   if (schema.container === 'Range') {
     // Handle range value constraint (min/max)
     const rangeValue = value as RangeValue;
     return {
       type: ConstraintType.CLAMP,
-      sourceSignal,
+      triggerReference,
       min: String(rangeValue.start),
       max: String(rangeValue.stop)
     };
@@ -93,7 +108,7 @@ export function createConstraintFromSchema(
     const setValue = value as SetValue;
     return {
       type: ConstraintType.NEAREST,
-      sourceSignal,
+      triggerReference,
       values: setValue.values.map(v => String(v))
     };
   }
@@ -103,31 +118,35 @@ export function createConstraintFromSchema(
     if (typeof value === 'object' && 'value' in value) {
       const scalarValue = value as ScalarValue;
       return {
-        type: ConstraintType.ABSOLUTE,
-        sourceSignal,
+        type: ConstraintType.SCALAR,
+        triggerReference,
         value: String(scalarValue.value)
       };
     } else if (typeof value === 'string') {
       // Handle direct string value (like from a compiled anchor)
       return {
         type: ConstraintType.EXPRESSION,
-        sourceSignal,
+        triggerReference,
         expression: value
       };
     } else if (typeof value === 'object' && 'expression' in value) {
       // Handle expression object
       return {
         type: ConstraintType.EXPRESSION,
-        sourceSignal,
+        triggerReference,
         expression: value.expression
       };
     }
   }
+
+  
+
+  console.log('createConstraintFromSchema', schema, value, triggerReference);
   
   // Default fallback for unknown types
   return {
     type: ConstraintType.EXPRESSION,
-    sourceSignal,
+    triggerReference,
     expression: String(value)
   };
 }
@@ -158,11 +177,11 @@ export function createSignalReferenceConstraint(signalName: string): Constraint 
  */
 export function createExpressionConstraint(
   expression: string,
-  sourceSignal?: string
+  triggerReference?: string
 ): Constraint {
   return {
     type: ConstraintType.EXPRESSION,
-    sourceSignal,
+    triggerReference,
     expression
   };
 } 

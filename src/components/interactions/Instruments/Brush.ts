@@ -7,6 +7,8 @@ import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
 import { BindingManager } from "../../../binding/BindingManager";
 import { extractComponentBindings } from "../../../binding/utils";
+import { constructValueFromContext } from "../../../utils/contextHelpers";
+import { Constraint } from "../../../binding/constraints";
 
 
 export class BrushConstructor {
@@ -50,11 +52,10 @@ export class BrushConstructor {
         // Return the proxy instead of the original drag object
         return dragProxy;
 
-        return drag; // pass through to the drag component, but still have parent edges via brush bind.
     }
 }
 
-type CompilationContext = Record<string, string[]>;
+type CompilationContext = Record<string, Constraint[]>;
 
 const configurations = [{
     'id': 'interval',
@@ -83,9 +84,13 @@ const configurations = [{
     //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
     // } 
     //BROKEN, but not used for signals rn
-    { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
-    { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
-    { "name": "y_start", "channel": "y", "value": "50" },
+    { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
+    { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
+    { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
+    { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
+    // { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
+    // { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
+    // { "name": "y_start", "channel": "y", "value": "50" },
     // { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
     ]
 },
@@ -167,20 +172,56 @@ export class Brush extends BaseComponent {
         }
 
 
-        const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
-        const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
+        console.log("BRUSH CONTEXT", inputContext,configurations);
+        // const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
+        // const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
 
-        const yNodeStart = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('start')))[0]
-        const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
+        // const yNodeStart = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('start')))[0]
+        // const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
 
 
+        const {value:x1,signals:x1Signals,data:x1Data} = constructValueFromContext('x1', inputContext, this.id, configurations)
+        const {value:x2,signals:x2Signals,data:x2Data} = constructValueFromContext('x2', inputContext, this.id, configurations)
 
-        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":xNodeStart},{"signal":xNodeStop}],"update":`[${xNodeStart},${xNodeStop}]`}]},
-                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":yNodeStart},{"signal":yNodeStop}],"update":`[${yNodeStart},${yNodeStop}]`}]}]
+        const {value:y1,signals:y1Signals,data:y1Data} = constructValueFromContext('y1', inputContext, this.id, configurations)
+        const {value:y2,signals:y2Signals,data:y2Data} = constructValueFromContext('y2', inputContext, this.id, configurations)
+
+        console.log('x1',x1,x1Signals,x1Data);
+        // need to figure out how to get reasonable 
+
+        const outputSignals = Object.values(this.configurations)
+            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+            .flatMap(config => {
+                // Build constraint map from inputContext
+                const constraintMap = {};
+                Object.keys(config.schema).forEach(channel => {
+                    const key = `${config.id}_${channel}`;
+                    console.log
+                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+                });
+
+                const signalPrefix = this.id + '_' + config.id;
+
+                // Generate signals for this configuration
+                return generateSignalsFromTransforms(
+                    config.transforms,
+                    this.id,
+                    signalPrefix,
+                    constraintMap
+                );
+            });
+
+            console.log('generated signals', outputSignals);
+
+        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x1},{"signal":x2}],"update":`[${x1},${x2}]`}]},
+                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y1},{"signal":y2}],"update":`[${y1},${y2}]`}]}]
+
+        
+        // const additionalSignals = [...x1Signals, ...x2Signals, ...y1Signals, ...y2Signals] // should be empty
 
         
         return {
-            params: [selection, ...selectionModifications]
+            params: [selection, ...selectionModifications, ...outputSignals]
         }
     }
 }

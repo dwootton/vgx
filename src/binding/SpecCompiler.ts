@@ -91,6 +91,7 @@ export class SpecCompiler {
         const compiledSpecs = this.compileBindingGraph(fromComponentId, elaboratedGraph);
 
         const mergedSpec = mergeSpecs(compiledSpecs, fromComponentId);
+        console.log('mergedSpec', mergedSpec);
 
 
         const patchManager = new VegaPatchManager(mergedSpec);
@@ -246,11 +247,14 @@ export class SpecCompiler {
                 console.warn(`Component ${node.id} not found`);
                 return null;
             }
+
+            console.log('compiling regular node', node.id, component);
             
             // Add implicit edges and build constraints
             const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes);
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
+            console.log('compiling regular node constraints', node.id, component, constraints);
             // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
             
@@ -348,6 +352,7 @@ export class SpecCompiler {
         
         // Find all edges where this node is the target
         const incomingEdges = edges.filter(edge => edge.target.nodeId === node.id);
+        console.log('incomingEdges', incomingEdges, 'allNodes', allNodes, 'edges', edges);
         
         incomingEdges.forEach(edge => {
             const sourceNode = allNodes.find(n => n.id === edge.source.nodeId);
@@ -361,25 +366,27 @@ export class SpecCompiler {
 
             console.log('edgetarget',edge.target.anchorId, edge);
             
-            const anchorType = extractAnchorType(edge.target.anchorId);
-            const schema = anchor.anchorSchema[anchorType];
+            const targetAnchorId = edge.target.anchorId
+            const parentAnchorId = edge.source.anchorId
+            const schema = anchor.anchorSchema[parentAnchorId];
             const value = anchor.compile();
             if(!schema || !value) {
-                console.error('no schema or value', edge, anchorType, anchor.anchorSchema, value);
+                console.error('no schema or value', edge,  anchor.anchorSchema, value);
                 return;
             }
-            console.log('preconstraint',anchorType, schema, value, anchor.anchorSchema);
             const constraint = createConstraintFromSchema(
                 schema,
                 value,
                 `${sourceNode.id}_${edge.source.anchorId}`
             );
             
-            if (!constraints[anchorType]) {
-                constraints[anchorType] = [];
+            if (!constraints[targetAnchorId]) {
+                constraints[targetAnchorId] = [];
             }
-            constraints[anchorType].push(constraint);
+            constraints[targetAnchorId].push(constraint);
         });
+
+        console.log('COMPILED CONSTRAINTS', constraints);
         
         return constraints;
     }

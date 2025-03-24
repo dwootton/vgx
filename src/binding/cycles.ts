@@ -80,13 +80,24 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     );
 }
 
-export function extractAnchorType(anchorId: string): AnchorType | undefined {
-    if (anchorId === '_all') return undefined;
+export function extractAnchorType(anchorId: string): AnchorType  {
+    if (anchorId === '_all') return AnchorType.OTHER;
+
+     // Handle special cases like x1, x2, y1, y2
+     if (anchorId === 'x1' || anchorId === 'x2') {
+        return AnchorType.X;
+    }
+    if (anchorId === 'y1' || anchorId === 'y2') {
+        return AnchorType.Y;
+    }
+    
     // If it's a simple channel name that matches an AnchorType
     const anchorTypeValues = Object.values(AnchorType) as string[];
     if (anchorTypeValues.includes(anchorId)) {
         return anchorId as AnchorType;
     }
+    
+   
     
     // For complex IDs like 'point_x', 'span_pla_x', extract the last part
     const parts = anchorId.split('_');
@@ -96,10 +107,11 @@ export function extractAnchorType(anchorId: string): AnchorType | undefined {
     if (anchorTypeValues.includes(lastPart)) {
         return lastPart as AnchorType;
     }
-    
-    // If we couldn't extract a valid AnchorType, return undefined
-    return "Other";
+
+    throw new Error(`Invalid anchor type: ${anchorId}`);
+
 }
+
 export function isCompatible(sourceAnchorId: string, targetAnchorId: string) {
 
     const sourceAnchorType = extractAnchorType(sourceAnchorId);

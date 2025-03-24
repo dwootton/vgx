@@ -16,7 +16,6 @@ export type OtherAnchorIdentifers = string;
 export type AnchorIdentifer = GeometricAnchorIdentifer | SelectionAnchorIdentifer | ScaleAnchorIdentifer | OtherAnchorIdentifers;
 
 // this is the general type of the anchor data. For example, "x1" anchor would be a encoding anchor.
-export type ChannelType = 'x' | 'y' | 'color' | 'size' | 'shape';
 // Anchor Id correspond to all of the different 
 export interface AnchorId {
   componentId: string;
@@ -65,10 +64,10 @@ export type InteractorSchema = {
 // export type EncodingValueSchema = ScalarEncoding | SetEncoding | RangeEncoding;
 
 // Base value types
-export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding'// | 'Boolean';
+export type ValueType = 'Numeric' | 'Categorical' |'Boolean'| 'Encoding' | 'Data';// | 'Boolean';
 
 // Base container types
-export type ContainerType = 'Scalar' | 'Set' | 'Range' | 'Absolute';
+export type ContainerType = 'Scalar' | 'Set' | 'Range' | 'Absolute'; // TODO change data to a valueType
 
 export interface SchemaType {
   container: ContainerType;

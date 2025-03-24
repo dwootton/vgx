@@ -1,10 +1,10 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext } from '../../binding/binding';
+import { CompilationContext } from '../../binding/binding';
 import { SchemaType, SchemaValue } from "../../types/schema";
-import { generateSignalsFromTransforms, generateSignal } from "../utils";
-import { createRangeAccessor } from "../../utils/anchorProxy";
+import { generateSignalsFromTransforms, generateSignal, createRangeAccessor } from "../utils";
+import { constructValueFromContext } from "../../utils/contextHelpers";
 
 const configurations = [{
     'id': 'point',
@@ -82,8 +82,11 @@ export class Click extends BaseComponent {
         });
     }
 
-    compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
+        
+
+        const {value:markName,signals:markNameSignals,data:markNameData} = constructValueFromContext(this.id + '_markName', inputContext, this.id, configurations);
         
         // Base click signal
         const signal = {

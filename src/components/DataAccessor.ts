@@ -3,6 +3,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { generateConfigurationAnchors } from "./interactions/Drag";
 import { LazyOperation } from "../binding/LazyBinding";
+import { CompilationContext } from "../binding/binding";
 
 type DataOperation = {
   type: 'filter' | 'aggregate' | 'groupby' | 'count' | 'percent';
@@ -16,11 +17,11 @@ const configurations = [{
     "schema": {
        
         "data": { 
-            container: 'Data',
-            valueType: "Numeric"
+            container: 'Scalar',
+            valueType: "Data"
           },
           "text": { 
-            container: 'Data',
+            container: 'Scalar',
             valueType: "Categorical"
           }
        
@@ -65,11 +66,11 @@ class DataTransformer extends BaseComponent {
   }
   
   
-  compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+  compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
     const transforms = this.compileToTransforms();
     
-    return {
+    const compilation = {
       "data":{
         name: "VGXMOD_"+this.id +"_transform_data",
         transform: transforms,
@@ -83,6 +84,9 @@ class DataTransformer extends BaseComponent {
         }
       ]
     };
+    console.log('compilationDATAACCESSOR', compilation);
+
+    return compilation;
   }
   
   // Method to compile into VL transforms

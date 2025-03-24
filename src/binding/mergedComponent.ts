@@ -160,7 +160,7 @@ export function extractConstraintsForMergedComponent(
             internalConstraints.forEach(constraint => {
                 const transformedConstraint: Constraint = {
                     ...constraint,
-                    sourceSignal: parentSignalName
+                    triggerReference: parentSignalName
                 };
                 mergedConstraints.push(transformedConstraint);
             });

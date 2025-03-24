@@ -123,6 +123,7 @@ export class Rect extends BaseComponent {
             });
 
 
+
             const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {

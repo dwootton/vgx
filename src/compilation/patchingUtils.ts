@@ -18,7 +18,9 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
     const result: ModifiedElements = { data: [], params: [], scales: []};
 
     function extractDatasets(spec: any) {
-        if (spec.data && spec.data.name?.startsWith('VGXMOD_')) {
+        console.log('extractDatasets', spec, spec.data, spec.data?.name);
+        if (spec.data && spec.data?.name?.startsWith('VGXMOD_')) {
+
             const datasets = (Array.isArray(spec.data) ? spec.data : [spec.data]).map(dataset => ({
                 ...dataset,
                 name: stripVGXMOD(dataset.name)
@@ -93,8 +95,10 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
 
    
 
+    console.log('preextracted   ',JSON.parse(JSON.stringify(spec, null, 2)));
     extractFromSpec(spec, extractDatasets);
     extractFromSpec(spec, extractParams);
+    console.log('postextracted   ',JSON.parse(JSON.stringify(spec, null, 2)));
     return result;
 }
 

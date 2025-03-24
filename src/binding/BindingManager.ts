@@ -2,7 +2,7 @@ import { BaseComponent } from "components/base";
 
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 
-import { BindingEdge, GraphManager } from "./GraphManager";
+import { GraphManager } from "./GraphManager";
 import {SpecCompiler} from "./SpecCompiler";
 
 
@@ -61,14 +61,13 @@ export class BindingManager {
         return component;
     }
 
-public addComponent(component: BaseComponent): void {
+    public addComponent(component: BaseComponent): void {
         this.components.set(component.id, component);
     }
 
-    public removeComponent(componentId: string): void {
-        this.components.delete(componentId);
+    public removeComponent(id: string): void {
+        this.components.delete(id);
     }
-
 
 
     // Bindings 

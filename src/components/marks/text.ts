@@ -7,7 +7,7 @@ import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
 import { getEncodingValue } from '../../utils/encodingHelpers';
-
+import { constructValueFromContext } from "../../utils/contextHelpers";
 
 export const textBaseContext = {
     "x": 0,
@@ -97,11 +97,12 @@ const configurations = [{
 */
 
 import { generateConfigurationAnchors } from "../interactions/Drag";
+
 export class Text extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;
     public baseConfig: any;
-    constructor(config: any = {}) {
+    constructor(config: any = {}) { 
         super({ ...config })
 
         this.baseConfig = config;
@@ -227,7 +228,8 @@ export class Text extends BaseComponent {
 
             ).flat();
 
-        let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
+        const data = constructValueFromContext('data', inputContext, this.id, configurations);
+        // let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
 
         return {
             params: [
@@ -238,7 +240,7 @@ export class Text extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            "data": dataAccessor,
+            "data": data.value,
             name: `${this.id}_position_markName`,
 
             mark: {

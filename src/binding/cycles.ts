@@ -105,6 +105,7 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         // If we didn't find any other 
         const baseAnchorId = anchorId
         try {
+            //TODO this is a hack to remove them, but this was giving me a lot of errors with begin_x, begin_y, etc. 
             console.log('baseAnchorId', baseAnchorId, component.getAnchor(baseAnchorId))
             component.getAnchor(baseAnchorId); 
             return [];

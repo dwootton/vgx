@@ -24,12 +24,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID.y" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
     }
     ]
 }];

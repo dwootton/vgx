@@ -102,7 +102,7 @@ export class SpecCompiler {
     }
 
 
-    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
+    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[], boundConfigurations: string[]): BindingEdge[]{
         let edges = [...previousEdges]
 
         // Skip if this is a merged node
@@ -133,35 +133,54 @@ export class SpecCompiler {
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
             if (!parentComponent) continue;
             
-            // Find default configuration for parent
-            const defaultConfigKey = Object.keys(parentComponent.configurations || {})
-                .find(cfg => parentComponent.configurations[cfg]?.default);
+            // // Find default configuration for parent
+            // const defaultConfigKey = Object.keys(parentComponent.configurations || {})
+            //     .find(cfg => parentComponent.configurations[cfg]?.default);
 
             
-            if (!defaultConfigKey) continue;
+            // if (!defaultConfigKey) continue;
             
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
             // Process each anchor
             parentAnchors.forEach(anchor => {
-                const anchorId = anchor.id.anchorId;
-                const channel = extractAnchorType(anchorId);
+                const componentId = anchor.id.componentId;
+                const channel = extractAnchorType(anchor.id.anchorId);
                 if (!channel) return;
                 
-                // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
-                const match = anchorId.match(/node_(\d+)_/);
-                const value = match ? parseInt(match[1], 10) : 0;
+                // Get the anchor's configuration prefix if it exists
+                const anchorPrefix = anchor.id.anchorId.split('_')[0];
                 
-                // Update highest anchor for this channel if this one is higher
-                if (!highestAnchors[channel] || value > highestAnchors[channel].value) {
-                    highestAnchors[channel] = {
-                        nodeId: parentNode.id,
-                        anchorId,
-                        value
-                    };
+                // Process for all bound configurations, or use empty string if none match
+                const configurationsToProcess = boundConfigurations.length > 0
+                    ? boundConfigurations
+                    : [''];
+                
+                for (const configuration of configurationsToProcess) {
+                    const configurationChannel = configuration ? `${configuration}_${channel}` : channel;
+                    
+                    // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
+                    const match = componentId.match(/node_(\d+)/);
+                    const value = match ? parseInt(match[1], 10) : 0;
+                    
+                    console.log('anchorIdGIGHWSt', anchor.id.anchorId, match, 'value', value, highestAnchors);
+                    
+                    // Update highest anchor for this channel if this one is higher
+                    if (!highestAnchors[configurationChannel] || value > highestAnchors[configurationChannel].value) {
+                        highestAnchors[configurationChannel] = {
+                            nodeId: parentNode.id,
+                            anchorId: anchor.id.anchorId,
+                            value
+                        };
+                    }
                 }
             })
         }
+        // issue here is that implicit anchors match the first anchor vlaue (default), but
+        // sometimes implicit anchors should match the items that other things are bound to. 
+        // this suggests, we also need to have something around output context, or at least a sense
+        // of if the configuration is being used elsewhere, and if so, use that configuration's value.
+        console.log('highestAnchors2', highestAnchors)
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
@@ -189,7 +208,7 @@ export class SpecCompiler {
             // Add to implicit edges
             edges.push(implicitEdge);
         }
-        
+        console.log('implicit edges', edges);
        
         return edges;
     }
@@ -250,8 +269,18 @@ export class SpecCompiler {
 
             console.log('compiling regular node', node.id, component);
             
+            const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
+            console.log('childedges', childEdges)//childEdges,
             // Add implicit edges and build constraints
-            const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes);
+
+            const boundConfigurations = [...new Set(childEdges.map(edge => {
+                console.log('edgeVAL', edge, edge.target.anchorId, edge.target.anchorId.split('_')[0])
+                return edge.source.anchorId.split('_')[0];
+            }))];
+            console.log('configurationsLIST', boundConfigurations)
+            const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes,boundConfigurations);
+
+
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
             console.log('compiling regular node constraints', node.id, component, constraints);
@@ -377,7 +406,8 @@ export class SpecCompiler {
             const constraint = createConstraintFromSchema(
                 schema,
                 value,
-                `${sourceNode.id}_${edge.source.anchorId}`
+                `${sourceNode.id}_${edge.source.anchorId}`,
+                edge.implicit
             );
             
             if (!constraints[targetAnchorId]) {

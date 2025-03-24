@@ -45,10 +45,10 @@ const configurations = [{
         },
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" }, // treat x like a scalar
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" }, // treat x like a scalar
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y"}, //data set y value will be each y value.
     ]
 }];
 
@@ -176,40 +176,23 @@ export class Rect extends BaseComponent {
                 "fill":this.styles.fill,
                 "strokeOpacity":this.styles.strokeOpacity,
                 "strokeDash":this.styles.strokeDash,
-                // x: { 
-                //     expr:  `${this.id}_x_start`
-                // },
-                // x2: {
-                //     expr:   `${this.id}_x_stop`
-                // },
-                // y: {
-                //     expr:  `${this.id}_y_start`
-                // },
-                // y2: {
-                //     expr:  `${this.id}_y_stop`
-                // },
-                // color: {
-                //     expr: inputContext.color || rectBaseContext.color
-                // },
-                // stroke: {
-                //     expr: inputContext.stroke || rectBaseContext.stroke
-                // }
+        
             },
             "encoding":{
                 "x":{
-                    "value":{"expr":`${this.id}_position_x_start`},
+                    "value":{"expr":`${this.id}_position_start_x`},
                     //"type":"quantitative"
                 },
                 "x2":{
-                    "value":{"expr":`${this.id}_position_x_stop`},
+                    "value":{"expr":`${this.id}_position_stop_x`},
                     //"type":"quantitative"
                 },
                 "y":{
-                    "value":{"expr":`${this.id}_position_y_start`},
+                    "value":{"expr":`${this.id}_position_start_y`},
                     //"type":"quantitative"
                 },
                 "y2":{
-                    "value":{"expr":`${this.id}_position_y_stop`},
+                    "value":{"expr":`${this.id}_position_stop_y`},
                     //"type":"quantitative"
                 }
             }

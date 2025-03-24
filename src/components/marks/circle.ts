@@ -40,8 +40,8 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" }
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" }
     ]
 }];
 /*
@@ -70,11 +70,11 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "size", "channel": "size", "value": "PARENT_ID.size" },
-        { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
-        { "name": "stroke", "channel": "stroke", "value": "PARENT_ID.stroke" },
-        { "name": "strokeWidth", "channel": "strokeWidth", "value": "PARENT_ID.strokeWidth" },
-        { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
+        { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+        { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+        { "name": "stroke", "channel": "stroke", "value": "BASE_NODE_ID.stroke" },
+        { "name": "strokeWidth", "channel": "strokeWidth", "value": "BASE_NODE_ID.strokeWidth" },
+        { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
     ]
 }
 */

@@ -53,10 +53,10 @@ const configurations = [{
 
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
 
-        // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
+        // { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
 }];
 
@@ -87,11 +87,11 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "fontSize", "channel": "fontSize", "value": "PARENT_ID.fontSize" },
-        { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
-        { "name": "align", "channel": "align", "value": "PARENT_ID.align" },
-        { "name": "baseline", "channel": "baseline", "value": "PARENT_ID.baseline" },
-        { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
+        { "name": "fontSize", "channel": "fontSize", "value": "BASE_NODE_ID.fontSize" },
+        { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+        { "name": "align", "channel": "align", "value": "BASE_NODE_ID.align" },
+        { "name": "baseline", "channel": "baseline", "value": "BASE_NODE_ID.baseline" },
+        { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
     ]
 }
 */

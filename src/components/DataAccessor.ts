@@ -27,9 +27,9 @@ const configurations = [{
        
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
-        // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+        // { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
 }];
 // Create a component class for data transformation

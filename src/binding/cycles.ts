@@ -29,7 +29,9 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
-        // If it's _all, return all anchors
+        // If it's _all, return all anchors. TODO, change this to do schema matching, give a _all key, and then
+        // when matching below, if an _all key is found, search through all of the anchors to find one
+        // that matches the schema. 
         if (anchorId === '_all') {
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
@@ -83,14 +85,14 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 export function extractAnchorType(anchorId: string): AnchorType  {
     if (anchorId === '_all') return AnchorType.OTHER;
 
-     // Handle special cases like x1, x2, y1, y2
+    // Handle special cases like x1, x2, y1, y2
      if (anchorId === 'x1' || anchorId === 'x2') {
         return AnchorType.X;
     }
     if (anchorId === 'y1' || anchorId === 'y2') {
         return AnchorType.Y;
     }
-    
+
     // If it's a simple channel name that matches an AnchorType
     const anchorTypeValues = Object.values(AnchorType) as string[];
     if (anchorTypeValues.includes(anchorId)) {

@@ -9,7 +9,8 @@ export enum ConstraintType {
   ABSOLUTE = 'absolute', // Exact value constraint
   EXPRESSION = 'expression', // Custom expression
   SCALAR = 'scalar', // Scalar value constraint
-  DATA = 'data' // Data value constraint TODO: remove and change this to a valueType
+  DATA = 'data', // Data value constraint TODO: remove and change this to a valueType
+  IDENTITY = 'identity' // Identity constraint
 }
 
 /**
@@ -21,6 +22,7 @@ export interface Constraint {
   
   // Source signal name that triggers this constraint
   triggerReference?: string;
+  isImplicit?: boolean;
   
   // For each constraint type, we need different parameters:
   min?: string;         // For CLAMP - can be signal name or expression
@@ -48,6 +50,9 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
     case ConstraintType.EXPRESSION:
       // Replace placeholder with actual signal if needed
       return constraint.expression?.replace('TARGET_SIGNAL', targetSignal || constraint.triggerReference || '') || "0";
+      
+    case ConstraintType.IDENTITY:
+      return targetSignal || constraint.triggerReference || "0";
       
     default:
       return targetSignal || constraint.triggerReference || "0";
@@ -78,7 +83,8 @@ export function constraintToUpdateRule(constraint: Constraint, targetSignal?: st
 export function createConstraintFromSchema(
   schema: SchemaType,
   value: any,
-  triggerReference?: string
+  triggerReference?: string,
+  isImplicit?: boolean
 ): Constraint {
 
     console.log('createConstraintFromSchema', schema, value, triggerReference);
@@ -99,7 +105,8 @@ export function createConstraintFromSchema(
       type: ConstraintType.CLAMP,
       triggerReference,
       min: String(rangeValue.start),
-      max: String(rangeValue.stop)
+      max: String(rangeValue.stop),
+      isImplicit
     };
   }
   
@@ -109,7 +116,8 @@ export function createConstraintFromSchema(
     return {
       type: ConstraintType.NEAREST,
       triggerReference,
-      values: setValue.values.map(v => String(v))
+      values: setValue.values.map(v => String(v)),
+      isImplicit
     };
   }
   
@@ -120,21 +128,24 @@ export function createConstraintFromSchema(
       return {
         type: ConstraintType.SCALAR,
         triggerReference,
-        value: String(scalarValue.value)
+        value: String(scalarValue.value),
+        isImplicit
       };
     } else if (typeof value === 'string') {
       // Handle direct string value (like from a compiled anchor)
       return {
         type: ConstraintType.EXPRESSION,
         triggerReference,
-        expression: value
+        expression: value,
+        isImplicit
       };
     } else if (typeof value === 'object' && 'expression' in value) {
       // Handle expression object
       return {
         type: ConstraintType.EXPRESSION,
         triggerReference,
-        expression: value.expression
+        expression: value.expression,
+        isImplicit
       };
     }
   }
@@ -147,7 +158,8 @@ export function createConstraintFromSchema(
   return {
     type: ConstraintType.EXPRESSION,
     triggerReference,
-    expression: String(value)
+    expression: String(value),
+    isImplicit
   };
 }
 

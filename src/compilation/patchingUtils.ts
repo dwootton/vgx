@@ -195,14 +195,14 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
         
         
         // Check if this is a span start parameter for any dimension (x or y)
-        if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
+        if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') || 
             param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
          
             // Extract the dimension from the parameter name
             let dimension, startType;
             
-            if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start')) {
-                dimension = param.name.endsWith('_x_start') ? 'x' : 'y';
+            if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y')) {
+                dimension = param.name.endsWith('_start_x') ? 'x' : 'y';
                 startType = 'start';
             } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
                 dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
@@ -215,11 +215,11 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
             }
 
             const baseName = startType === 'start' ? 
-                param.name.split(`_${dimension}_start`)[0] : 
+                param.name.split(`_start_${dimension}`)[0] : 
                 param.name.split(`_begin_${dimension}`)[0];
             
             // Find the corresponding stop parameter
-            const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
+            const stopParamName = baseName + (startType === 'start' ? `_stop_${dimension}` : `_point_${dimension}`);
             // Find the corresponding stop parameter
             // const stopParamName = `${nodeId}_span_${dimension}_stop`;
             

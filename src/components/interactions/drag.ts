@@ -1,7 +1,7 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal, generateAnchorId } from "../utils";
 import { AnchorSchema, SchemaType, SchemaValue } from "../../types/anchors";
 
 // context: a mapping of property names to constraint expressions
@@ -58,12 +58,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID.y" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
     }
     ]
 }, {
@@ -85,10 +85,10 @@ const configurations = [{
     // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
     // transforms extract info from the underlying data, then can be parameterized
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
     ]
 }, {
     'id': 'begin',
@@ -105,8 +105,8 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.start.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.start.y" }
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.start.y" }
     ]
 }]
 
@@ -124,10 +124,10 @@ const rectSide = {
     },
     "transforms": [{
         "x": {
-            "update": "PARENT_ID.x" // replace the parent id + get the channel value
+            "update": "BASE_NODE_ID.x" // replace the parent id + get the channel value
         },
         "y": {
-            "update": "{'min':PARENT_ID.y.start, 'max':PARENT_ID.y.stop}" // replace the parent id + get the channel value
+            "update": "{'min':BASE_NODE_ID.y.start, 'max':BASE_NODE_ID.y.stop}" // replace the parent id + get the channel value
         }
     }]
 }
@@ -151,18 +151,10 @@ export function generateConfigurationAnchors(id: string, configurationId: string
 }
 
 
-
-// let createRangeAccessor = (id: string, channel: string, configurationId: string) => {
-//     return {
-//         'start': `${id}_${configurationId}_${channel}_start`,
-//         'stop': `${id}_${configurationId}_${channel}_stop`,
-//     }
-// }
-
-
 let generateCompiledValue = (id: string, channel: string, configurationId: string) => {
     return `${id}_${configurationId}_${channel}` // min value
 }
+import { areNamesCompatible } from "../utils";
 
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
@@ -227,7 +219,29 @@ export class CombinedDrag extends BaseComponent {
             });
 
 
-        console.log('compiling Dragvalue',outputSignals)
+        // output signals + inputContext into 
+        // I need configuration to know what the default signal is for each of the values 
+
+        function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
+            // find all of the compatible signals for this key
+
+            
+
+            const compatibleSignals2 = signals.filter(signal => console.log( 'CHECKINGkey',key, 'signal',generateAnchorId(signal.name),areNamesCompatible(key, generateAnchorId(signal.name))));
+
+            const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
+
+            console.log('compatibleSignals',compatibleSignals,inputContext,signals)
+
+        }
+
+        const x345= calculateValueFor('x1', inputContext, outputSignals, configurations);
+
+        
+    
+
+
+        console.log('compiling Dragvalue',outputSignals,inputContext)
         // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
         console.log('anchorDRAG value',this.anchors)
         const x1 = constructValueFromContext('x1', inputContext, this.id, configurations);

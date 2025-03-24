@@ -128,11 +128,11 @@ export class BaseChart extends BaseComponent {
           // }
         },
         "transforms": [
-          { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-          { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
-          // { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
-          // { "name": "size", "channel": "size", "value": "PARENT_ID.size" },
-          // { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
+          { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+          { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+          // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+          // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+          // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
         ]
       }
     }
@@ -228,8 +228,8 @@ export class BaseChart extends BaseComponent {
         if (key === scaleName) {
           // some encoding channels like y have an inverted range, so we must min/max the range
           acc[key] = {
-            'start': `${this.id}_${key}_start`,
-            'stop': `${this.id}_${key}_stop`,
+            'start': `${this.id}_start_${key}`,
+            'stop': `${this.id}_stop_${key}`,
           };
         } else { // this is scalar, numeric
           // acc[key] = {
@@ -276,13 +276,13 @@ export class BaseChart extends BaseComponent {
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
-      { "name": this.id + "_x_start", "expr": "range('x')[0]" },
+      { "name": this.id + "_start_x", "expr": "range('x')[0]" },
       //@ts-ignore
-      { "name": this.id + "_x_stop", "expr": "range('x')[1]" },
+      { "name": this.id + "_stop_x", "expr": "range('x')[1]" },
       //@ts-ignore, note : y range is inverted due to svg layout
-      { "name": this.id + "_y_start", "expr": "range('y')[1]" },
+      { "name": this.id + "_start_y", "expr": "range('y')[1]" },
       //@ts-ignore
-      { "name": this.id + "_y_stop", "expr": "range('y')[0]" },
+      { "name": this.id + "_stop_y", "expr": "range('y')[0]" },
     ]
 
 

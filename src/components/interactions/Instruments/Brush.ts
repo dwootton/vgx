@@ -84,14 +84,14 @@ const configurations = [{
     //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
     // } 
     //BROKEN, but not used for signals rn
-    { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
-    { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
-    { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-    { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
-    // { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
-    // { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
-    // { "name": "y_start", "channel": "y", "value": "50" },
-    // { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
+    { "name": "start_x", "channel": "x", "value": "PARENT_ID.start.x" },
+    { "name": "stop_x", "channel": "x", "value": "PARENT_ID.stop.x" },
+    { "name": "start_y", "channel": "y", "value": "PARENT_ID.start.y" },
+    { "name": "stop_y", "channel": "y", "value": "PARENT_ID.stop.y" },
+    // { "name": "start_x", "channel": "x", "value": "PARENT_ID_x[0]" },
+    // { "name": "stop_x", "channel": "x", "value": "PARENT_ID_x[1]" },
+    // { "name": "start_y", "channel": "y", "value": "50" },
+    // { "name": "stop_y", "channel": "y", "value": "PARENT_ID.stop.y" },
     ]
 },
 {// STIL BROKEN
@@ -111,12 +111,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "(PARENT_ID_interval_x_start+PARENT_ID_interval_x_stop)/2" // replace the parent id + get the channel value
+        "value": "(PARENT_ID_interval_start_x+PARENT_ID_interval_stop_x)/2" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID_interval_y_start" // replace the parent id + get the channel value
+        "value": "PARENT_ID_interval_start_y" // replace the parent id + get the channel value
     }
     ]
 }]

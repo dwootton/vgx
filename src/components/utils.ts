@@ -22,8 +22,8 @@ import { extractSignalNames } from "../binding/mergedComponent";
 
 export const createRangeAccessor = (id: string, channel: string, configurationId: string) => {
     return {
-        'start': `${id}_${configurationId}_${channel}_start`,
-        'stop': `${id}_${configurationId}_${channel}_stop`,
+        'start': `${id}_${configurationId}_start_${channel}`,
+        'stop': `${id}_${configurationId}_stop_${channel}`,
     }
 }
 
@@ -123,8 +123,8 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
         return [];
     }
     
-    const startSignalName = mergedParent + '_' + channel + '_start';
-    const stopSignalName = mergedParent + '_' + channel + '_stop';
+    const startSignalName = mergedParent + '_'  + '_start' + channel;
+    const stopSignalName = mergedParent + '_' + '_stop' + channel;
 
     const startParentExtractor = signalParent + "." + channel + ".start";
     const stopParentExtractor = signalParent + "." + channel + ".stop";
@@ -183,7 +183,7 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
 interface Transform {
     name?: string;      // Optional name for the generated signal
     channel: string;    // The channel this transform applies to (x, y, etc)
-    value: string;      // Expression to extract value (e.g. "PARENT_ID.x.start")
+    value: string;      // Expression to extract value (e.g. "BASE_NODE_ID.x.start")
   }
   
   interface SignalConfig {
@@ -193,83 +193,179 @@ interface Transform {
     constraints: Constraint[];  // Constraints to apply
   }
   
+
+  // Helper function to compile constraint with transform placeholder
+  const compileConstraintWithTransform = (constraint: Constraint): string => {
+    if (!constraint) return "VGX_TRANSFORM_VALUE";
+    if(constraint.isImplicit){
+        console.log('implicit constraint',compileConstraint(constraint))
+        // return "VGX_TRANSFORM_VALUE";
+    }
+    const compiled = compileConstraint(constraint);
+    return compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE");
+};
+
+// Find compatible constraints for a transform
+const findCompatibleConstraints = (transform: Transform, allConstraints: Constraint[]): Constraint[] => {
+    const transformName = transform.name || '';
+    const anchorType = extractAnchorType(transformName);
+
+    return allConstraints.filter(constraint => {
+        if (!constraint) return false;
+
+        const constraintName = constraint.triggerReference || '';
+        console.log('constraintName',constraintName)
+        const constraintEnding = generateAnchorId(constraintName)//.split('_').pop() || constraintName;
+        return areNamesCompatible(transformName, constraintEnding);
+    });
+};
+
+export const generateAnchorId = (name: string): string => {
+                
+    console.log('generateAnchorId', name);
+    
+    if (name.includes('start_')) {
+        return 'start_' + name.split('start_')[1];
+    } else if (name.includes('stop_')) {
+        return 'stop_' + name.split('stop_')[1];
+    } else {
+        return name.split('_').pop() || name;
+    }
+};
+
+export function areNamesCompatible(name1:string, name2:string): boolean {
+
+    console.log('names',name1,name2)
+    const anchorType1 = extractAnchorType(name1);
+    const anchorType2 = extractAnchorType(name2);
+
+    console.log('anchorType1CHECKING',anchorType1,anchorType2, name1,name2)
+    if(anchorType1 === anchorType2){
+        return schemaCompatibility(name1,name2);
+    }
+
+   return false;
+}
+
+function schemaCompatibility(name1: string, name2: string): boolean {
+    console.log('schemaCompatibility name1:',name1,'name2',name2, 'extractAnchorType2',extractAnchorType(name2))
+    // const constraintAnchorType = extractAnchorType(constraintName);
+    // Define name equivalence mappings for semantic relationships
+    const nameEquivalences: Record<string, string[]> = {
+        'x1': ['start_x'],
+        'y1': ['start_y'],
+        'x2': ['stop_x'],
+        'y2': ['stop_y']
+    };
+    
+    // Reverse mapping for lookup in both directions
+    const reverseEquivalences: Record<string, string[]> = {};
+    Object.entries(nameEquivalences).forEach(([key, values]) => {
+        values.forEach(value => {
+            if (!reverseEquivalences[value]) {
+                reverseEquivalences[value] = [];
+            }
+            reverseEquivalences[value].push(key);
+        });
+    });
+    
+    
+    // Check if both names exist in the equivalence maps but aren't directly equivalent
+    const name1InAnyEquivalence = Object.values(nameEquivalences).some(values => values.includes(name1)) || 
+                                 Object.keys(nameEquivalences).includes(name1);
+    const name2InAnyEquivalence = Object.values(nameEquivalences).some(values => values.includes(name2)) || 
+                                 Object.keys(nameEquivalences).includes(name2);
+    
+
+    // if both names are in an equvialence map, ensure that they are compatible, else assume they are.
+    if (name1InAnyEquivalence && name2InAnyEquivalence) {
+        console.log('name1InAnyEquivalence',name1InAnyEquivalence,'name2InAnyEquivalence',name2InAnyEquivalence, name1,name2)
+        // Find all equivalences for name1
+        const name1Equivalences = new Set<string>();
+        if (nameEquivalences[name1]) {
+            nameEquivalences[name1].forEach(val => name1Equivalences.add(val));
+        }
+        if (reverseEquivalences[name1]) {
+            reverseEquivalences[name1].forEach(val => name1Equivalences.add(val));
+        }
+
+        console.log('name1Equivalences',name1Equivalences, name2)
+        
+        if(name1Equivalences.has(name2)){
+            return true;
+        } else {
+            return false;
+        }
+        
+    }
+    
+    return true;
+}
+
+// Merge nested constraints
+const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
+    if (constraints.length === 0) return transformValue;
+    
+    // Sort constraints to establish nesting order
+    let sortedConstraints = [...constraints].sort((a, b) => {
+        // Custom sorting logic if needed
+        return 0; // Default no specific order
+    });
+
+    if(sortedConstraints.length !== 1){
+        console.log('filtering implicit constraints',JSON.parse(JSON.stringify(sortedConstraints))  )
+        sortedConstraints=sortedConstraints.filter(constraint=>!constraint.isImplicit);
+        console.log('filtering implicit constraints post',sortedConstraints)
+    }
+
+    
+    
+    // Nest constraints
+    let result = "VGX_TRANSFORM_VALUE";
+    for (const constraint of sortedConstraints) {
+        result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
+    }
+    
+    // Replace final placeholder with actual transform value
+    return result.replace("VGX_TRANSFORM_VALUE", transformValue);
+};
+
+
   /**
    * Core function to generate a Vega signal from a configuration
    */
   export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
     
-    // Helper function to compile constraint with transform placeholder
-    const compileConstraintWithTransform = (constraint: Constraint): string => {
-        if (!constraint) return "VGX_TRANSFORM_VALUE";
-        
-        const compiled = compileConstraint(constraint);
-        return compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE");
-    };
     
-    // Find compatible constraints for a transform
-    const findCompatibleConstraints = (transform: Transform, allConstraints: Constraint[]): Constraint[] => {
-        const transformName = transform.name || '';
-        const anchorType = extractAnchorType(transformName);
-
-        return allConstraints.filter(constraint => {
-            if (!constraint) return false;
-            
-            const constraintAnchorType = constraint.triggerReference ? 
-                extractAnchorType(constraint.triggerReference) : anchorType;
-            console.log('constraintType',constraintAnchorType)
-            return schemaCompatibility(transformName, constraintAnchorType);
-        });
-    };
-
-    function schemaCompatibility(transformChannel: string, constraintAnchorType: string): boolean {
-        if(constraintAnchorType === 'x1' || constraintAnchorType === 'y1'){
-            if(transformChannel === 'x_start' || transformChannel === 'y_start'){
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        if(constraintAnchorType === 'x2' || constraintAnchorType === 'y2'){
-            if(transformChannel === 'x_stop' || transformChannel === 'y_stop'){
-                return true;
-            } else {
-                return false;
-            }
-        }
-        
-        
-        return true;
-    }
-    
-    // Merge nested constraints
-    const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
-        if (constraints.length === 0) return transformValue;
-        
-        // Sort constraints to establish nesting order
-        const sortedConstraints = [...constraints].sort((a, b) => {
-            // Custom sorting logic if needed
-            return 0; // Default no specific order
-        });
-        
-        // Nest constraints
-        let result = "VGX_TRANSFORM_VALUE";
-        for (const constraint of sortedConstraints) {
-            result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
-        }
-        
-        // Replace final placeholder with actual transform value
-        return result.replace("VGX_TRANSFORM_VALUE", transformValue);
-    };
     
 
     console.log('precompatible constraints',constraints)
     // Process the transform and generate updates
-    const compatibleConstraints = findCompatibleConstraints(transform, constraints);
+    let compatibleConstraints = findCompatibleConstraints(transform, constraints);
     console.log('compatibleConstraints',compatibleConstraints)
-    const mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
+    // Deduplicate compatible constraints
+    // This ensures we don't apply the same constraint multiple times
+    const uniqueConstraints = compatibleConstraints.reduce((unique, constraint, index) => {
+        // Check if this constraint is already in our unique list
+        const isDuplicate = unique.some(existingConstraint => 
+            JSON.stringify(existingConstraint) === JSON.stringify(constraint)
+        );
+        
+        if (!isDuplicate) {
+            unique.push(constraint);
+        }
+        
+        return unique;
+    }, [] as Constraint[]);
     
+    // Use the deduplicated constraints for merging
+     compatibleConstraints = uniqueConstraints;
+    let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
+    console.log('mergedExpression',mergedExpression,id)
+
+    mergedExpression    = mergedExpression.replace(/BASE_NODE_ID/g, id);
+
     // Extract signal names from the merged expression
     const signalNames = extractSignalNames(mergedExpression);
     

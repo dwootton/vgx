@@ -55,6 +55,9 @@ function findAnchorConstraints(schemaId: string, context: CompilationContext, co
     const anchorIds = Object.keys(context).filter(id => extractAnchorType(id) === anchorType);
     console.log('anchorIdssda', schemaId,anchorIds, context,Object.keys(context), configurations);
 
+    // return a set of all constraints that are applicable to that schemaId
+    // so 'x1' should return things for 'point_x', and 'interval_start_x', but not 'interval_start_y' or 'interval_stop_x'
+
     // const expandConfiguration
     // Check compatibility between schema ID and anchor ID
     
@@ -82,6 +85,8 @@ export function constructValueFromContext(
     configurations: any
 ): any {
     const anchorConstraints = findAnchorConstraints(schemaId, context, configurations);
+
+    // merge anchorConstraints together, this will give us 
 
     return {
         value: 'datum[\'x\']',

@@ -18,7 +18,6 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
     const result: ModifiedElements = { data: [], params: [], scales: []};
 
     function extractDatasets(spec: any) {
-        console.log('extractDatasets', spec, spec.data, spec.data?.name);
         if (spec.data && spec.data?.name?.startsWith('VGXMOD_')) {
 
             const datasets = (Array.isArray(spec.data) ? spec.data : [spec.data]).map(dataset => ({

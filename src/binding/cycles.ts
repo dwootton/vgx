@@ -7,7 +7,7 @@ import { getGenericAnchorTypeFromId,} from "../utils/anchorGeneration/rectAnchor
 import { AnchorType } from "../types/anchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
-    const expanded= edges.flatMap(edge => {
+    const expanded = edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
         if (!sourceComponent) {
             throw new Error(`Source component ${edge.source.nodeId} not found`);
@@ -17,7 +17,9 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
      
-        return expandGroupAnchors(edge, sourceComponent, targetComponent)
+        const allEdges = expandGroupAnchors(edge, sourceComponent, targetComponent)
+        console.log('allEdges for edge',allEdges)
+        return allEdges
     })
     
     
@@ -29,9 +31,7 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
-        // If it's _all, return all anchors. TODO, change this to do schema matching, give a _all key, and then
-        // when matching below, if an _all key is found, search through all of the anchors to find one
-        // that matches the schema. 
+        
         if (anchorId === '_all') {
             return [...component.getAnchors().values()].map(a => a.id.anchorId);
         }
@@ -72,6 +72,8 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     const sourceAnchors = getAnchors(source, edge.source.anchorId);
     let targetAnchors = getAnchors(target, edge.target.anchorId);
 
+    console.log('source:',source,'sourceAnchors', sourceAnchors, 'targetAnchors', targetAnchors,edge.target.anchorId, 'sourceAnchorID',edge.source.anchorId)
+
     return sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
             .filter(targetAnchor => isCompatible(sourceAnchor, targetAnchor))
@@ -84,6 +86,16 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
 export function extractAnchorType(anchorId: string): AnchorType  {
     if (anchorId === '_all') return AnchorType.OTHER;
+
+    if(anchorId.includes('markName')){
+        return AnchorType.TEXT;
+    }
+    
+    if(anchorId.includes('_internal')){
+        console.log('about to extract anchor type', anchorId.split('_internal')[0], "extracted:",extractAnchorType(anchorId.split('_internal')[0]))
+        
+        return extractAnchorType(anchorId.split('_internal')[0])
+    }
 
     // Handle special cases like x1, x2, y1, y2
      if (anchorId === 'x1' || anchorId === 'x2') {
@@ -110,7 +122,8 @@ export function extractAnchorType(anchorId: string): AnchorType  {
         return lastPart as AnchorType;
     }
 
-    throw new Error(`Invalid anchor type: ${anchorId}`);
+    return null;
+    // throw new Error(`Invalid anchor type: ${anchorId}`);
 
 }
 

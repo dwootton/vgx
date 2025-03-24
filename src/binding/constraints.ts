@@ -36,7 +36,6 @@ export interface Constraint {
  * Converts a constraint to a Vega-Lite update expression
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
-    console.log('compileConstraint', constraint);
   switch (constraint.type) {
     case ConstraintType.CLAMP:
       return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.min}, ${constraint.max})`;
@@ -87,9 +86,14 @@ export function createConstraintFromSchema(
   isImplicit?: boolean
 ): Constraint {
 
-    console.log('createConstraintFromSchema', schema, value, triggerReference);
+    if (schema.valueType === ConstraintType.ABSOLUTE) {
+        console.log('absolute constraint', value)
+        return {
+            type: ConstraintType.ABSOLUTE,
+            value: value.value
+        };
+    }
     if (schema.valueType === 'Data') {
-        console.log('createConstraintFromData', schema, value,  triggerReference,"VGX_MOD_"+value.value);
         return {
           type: ConstraintType.DATA,
           triggerReference,
@@ -151,8 +155,8 @@ export function createConstraintFromSchema(
   }
 
   
+  console.log('DEFAULT FALLBACK', value, schema)
 
-  console.log('createConstraintFromSchema', schema, value, triggerReference);
   
   // Default fallback for unknown types
   return {

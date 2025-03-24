@@ -12,6 +12,7 @@ export interface BindingNode {
 export interface BindingEdge {
     source: { nodeId: string; anchorId: string; };
     target: { nodeId: string; anchorId: string; };
+    implicit?: boolean;
 }
 
 
@@ -34,11 +35,13 @@ export class GraphManager {
 
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
+        console.log('expandedEdges', expandedEdges)
 
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
        
         bindingGraph.edges = prunedEdges;
    
+        console.log('bindingGraph', bindingGraph)
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
 
         return elaboratedGraph;

@@ -211,9 +211,16 @@ export function createMergedComponentForChannel(
     // Create the merged component ID
     const mergedId = `merged_${nodeIds.join('_')}_${channel}`;
     
+    console.log('schemaComponent', schemaComponent, schemaComponent.schema)
     // Use schema from the component we found
-    const mergedSchema = schemaComponent.schema[channel];
-    
+    const mergedSchemaKeys = Object.keys(schemaComponent.schema)
+    const mergedSchemaKey = mergedSchemaKeys.find(key => key.includes(channel))
+    console.log('mergedSchemaKey', mergedSchemaKey)
+    const mergedSchema = schemaComponent.schema[mergedSchemaKey];
+
+    console.log('mergedSchema', mergedSchema)
+
+
     class MergedComponent extends BaseComponent {
       mergedComponent: boolean;
       nodeIds: string[];
@@ -228,12 +235,13 @@ export function createMergedComponentForChannel(
         
         // Set schema to match the involved components
         this.schema = { [channel]: mergedSchema };
+        console.log('mergedSchema2', mergedSchema,this.schema)
         
         // Create an anchor that provides an absolute value
         this.anchors.set(channel, this.createAnchorProxy(
-          { [channel]: this.schema[channel] },
+          { [channel]: {container:'Scalar ', valueType:ConstraintType.ABSOLUTE} },
           channel,
-          () => ({ absoluteValue: `${this.id}` })
+          () => ({ value: `${this.id}` })
         ));
         
         // Create individual anchors for each connected node

@@ -108,7 +108,7 @@ export type SetValue = {
 }
 
   export type AbsoluteValue = {
-    absoluteValue: string; // maps to the expression for the value
+    value: string; // maps to the expression for the value
   }
 
   export type DataValue = {

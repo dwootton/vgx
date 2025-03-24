@@ -9,7 +9,6 @@ function schemaCompatibility(schemaId: string, anchorId: string): boolean {
     const schemaType = extractAnchorType(schemaId);
     const anchorType = extractAnchorType(anchorId);
 
-    console.log('schemaType', schemaType, 'anchorType', anchorType);
     
     // First check if the anchor types match
     if (schemaType !== anchorType) {
@@ -22,7 +21,6 @@ function schemaCompatibility(schemaId: string, anchorId: string): boolean {
         const schemaModifier = schemaId.includes('_') ? schemaId.split('_').pop() : '';
         const anchorModifier = anchorId.includes('_') ? anchorId.split('_').pop() : '';
 
-        console.log('schemaModifier', schemaModifier,schemaId, 'anchorModifier', anchorModifier, anchorId);
         
         // Handle x1/y1 compatibility with start
         if ((schemaModifier === '1' || schemaModifier === 'start') && 
@@ -51,9 +49,7 @@ function schemaCompatibility(schemaId: string, anchorId: string): boolean {
 function findAnchorConstraints(schemaId: string, context: CompilationContext, configurations: any): Constraint[] {
     // get anchorType from schemaId, and then all of the anchorIds in context that have that anchorType
     const anchorType = extractAnchorType(schemaId);
-    console.log('anchorTypeasda', anchorType, configurations);
     const anchorIds = Object.keys(context).filter(id => extractAnchorType(id) === anchorType);
-    console.log('anchorIdssda', schemaId,anchorIds, context,Object.keys(context), configurations);
 
     // return a set of all constraints that are applicable to that schemaId
     // so 'x1' should return things for 'point_x', and 'interval_start_x', but not 'interval_start_y' or 'interval_stop_x'
@@ -64,14 +60,12 @@ function findAnchorConstraints(schemaId: string, context: CompilationContext, co
     
     // Filter to only compatible anchor IDs
     const compatibleAnchorIds = anchorIds.filter(id => schemaCompatibility(schemaId, id));
-    console.log('compatibleAnchorIds', compatibleAnchorIds);
 
     
     
 
     const allConstraints= compatibleAnchorIds.map(id => context[id]).flat();
 
-    console.log('allConstraints', allConstraints);
 
     return allConstraints;
     

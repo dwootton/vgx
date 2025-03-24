@@ -12,28 +12,6 @@ import { constructValueFromContext } from "../../utils/contextHelpers";
 export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
 export const dragBaseContext = { "x": 0, "y": 0 };
 
-const currentExtractor = (channel: string) => ({
-    type: 'Scalar',
-    channel: channel,
-    update: `VGX_SIGNAL_NAME.${channel}`
-});
-
-const rangeExtractor = (channel: string) => ({
-    type: 'Range',
-    channel: channel,
-    update: `{
-        start: VGX_SIGNAL_NAME.start.${channel},
-        stop: VGX_SIGNAL_NAME.stop.${channel}
-    }`
-});
-
-const startExtractor = (channel: string) => ({
-    type: 'Scalar',
-    channel: channel,
-    update: `VGX_SIGNAL_NAME.start.${channel}`
-});
-
-
 
 const configurations = [{
     'id': 'point',
@@ -52,7 +30,7 @@ const configurations = [{
             "markName": {
                 "container": "Scalar",
                 "valueType": "Categorical",
-                "interactive": true
+                // "restrictions":"input"
             }
     },
     "transforms": [{
@@ -174,13 +152,8 @@ export class CombinedDrag extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-            // this.anchors.set(config.id, this.createAnchorProxy({[config.id]: config.schema[config.id]}, config.id, () => {
-            //     return generateConfigurationAnchors(this.id, config.id)
-            // }));
+          
         });
-        // this.anchors.set('x', this.createAnchorProxy({ 'x': this.schema['x'] }, 'x', () => {
-        //     return { 'value': generateCompiledValue(this.id, 'x') }
-        // }));
 
 
 
@@ -219,7 +192,7 @@ export class CombinedDrag extends BaseComponent {
             });
 
 
-        // output signals + inputContext into 
+                    // output signals + inputContext into 
         // I need configuration to know what the default signal is for each of the values 
 
         function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
@@ -230,40 +203,84 @@ export class CombinedDrag extends BaseComponent {
             const compatibleSignals2 = signals.filter(signal => console.log( 'CHECKINGkey',key, 'signal',generateAnchorId(signal.name),areNamesCompatible(key, generateAnchorId(signal.name))));
 
             const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
+            console.log('compatibleSignals', compatibleSignals,inputContext)
 
-            console.log('compatibleSignals',compatibleSignals,inputContext,signals)
+            if(compatibleSignals.length > 0){
+                //TODO logiuc to find the beter 
+                return compatibleSignals[0].value;
+            }
+
+        // Check if there are any compatible keys in inputContext
+        // Look for keys that match the requested key pattern
+        const compatibleContextKeys = Object.keys(inputContext).filter(contextKey => 
+            areNamesCompatible(key, contextKey)
+        );
+        
+        if (compatibleContextKeys.length > 0) {
+            // Sort by specificity or other criteria if needed
+            // For now, just take the first compatible key's first value
+            const firstCompatibleKey = compatibleContextKeys[0];
+            const values = inputContext[firstCompatibleKey];
+            
+            if (Array.isArray(values) && values.length > 0) {
+                // Return the first value from the array
+                return values[0];
+            }
+        }
+        
+        // If no compatible signals or context keys found, look for a default in configurations
+        const configWithDefault = configuration.find(config => 
+            config.default && config.schema && config.schema[key]
+        );
+        
+        if (configWithDefault) {
+            // Return a default value based on the configuration
+            return configWithDefault.schema[key].defaultValue || null;
+        }
+        
+        // If all else fails, return null or a sensible default
+        return null;
+                
+            
+
+
+            
+
 
         }
 
-        const x345= calculateValueFor('x1', inputContext, outputSignals, configurations);
+        const markName= calculateValueFor('markName', inputContext, outputSignals, configurations);
+
+
+        console.log('markNamefsdfs', markName)
+            // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
+
 
         
     
 
 
-        console.log('compiling Dragvalue',outputSignals,inputContext)
-        // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
-        console.log('anchorDRAG value',this.anchors)
-        const x1 = constructValueFromContext('x1', inputContext, this.id, configurations);
-        const x2 = constructValueFromContext('x2', inputContext, this.id, configurations);
-        const y1 = constructValueFromContext('y1', inputContext, this.id, configurations);
-        const y2 = constructValueFromContext('y2', inputContext, this.id, configurations);
-        const markName = constructValueFromContext('markName', inputContext, this.id, configurations);
+        // // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
+        // const x1 = constructValueFromContext('x1', inputContext, this.id, configurations);
+        // const x2 = constructValueFromContext('x2', inputContext, this.id, configurations);
+        // // const y1 = constructValueFromContext('y1', inputContext, this.id, configurations);
+        // // const y2 = constructValueFromContext('y2', inputContext, this.id, configurations);
+        // // const markName = constructValueFromContext('markName', inputContext, this.id, configurations);
 
 
-        x1.value // reference to signal {expr:'signalName}, data field, {'expr':'datum[field]}, or value directly. 
-        x1.signals // array of signals
+        // x1.value // reference to signal {expr:'signalName}, data field, {'expr':'datum[field]}, or value directly. 
+        // x1.signals // array of signals
 
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{ events: { type: 'pointerdown', 'markname': markName.value }, update: `{'start': {'x': x(), 'y': y()}}` },
+            on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
             {
                 events: {
                     type: 'pointermove',
                     source: "window",
                     between: [
-                        { type: "pointerdown", "markname": markName.value },
+                        { type: "pointerdown", "markname": markName },
                         { type: "pointerup", source: "window", }
                     ]
                 },
@@ -314,7 +331,7 @@ export class CombinedDrag extends BaseComponent {
                     id: nodeId,
                     transform: transform,
                     output: nodeId + '_' + key,
-                    constraints: ["VGX_SIGNAL_NAME"]
+                    constraints: []
                 }))
             }
              

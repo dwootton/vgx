@@ -84,7 +84,6 @@ class DataTransformer extends BaseComponent {
         }
       ]
     };
-    console.log('compilationDATAACCESSOR', compilation);
 
     return compilation;
   }

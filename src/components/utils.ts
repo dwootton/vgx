@@ -1,7 +1,7 @@
 //Components: 
 
 import { extractAnchorType } from "../binding/cycles";
-import { compileConstraint, Constraint } from "../binding/constraints";
+import { compileConstraint, Constraint, ConstraintType } from "../binding/constraints";
 import { extractSignalNames } from "../binding/mergedComponent";
 
 // creates the accessor for the signal backing the range
@@ -197,10 +197,7 @@ interface Transform {
   // Helper function to compile constraint with transform placeholder
   const compileConstraintWithTransform = (constraint: Constraint): string => {
     if (!constraint) return "VGX_TRANSFORM_VALUE";
-    if(constraint.isImplicit){
-        console.log('implicit constraint',compileConstraint(constraint))
-        // return "VGX_TRANSFORM_VALUE";
-    }
+   
     const compiled = compileConstraint(constraint);
     return compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE");
 };
@@ -208,13 +205,11 @@ interface Transform {
 // Find compatible constraints for a transform
 const findCompatibleConstraints = (transform: Transform, allConstraints: Constraint[]): Constraint[] => {
     const transformName = transform.name || '';
-    const anchorType = extractAnchorType(transformName);
 
     return allConstraints.filter(constraint => {
         if (!constraint) return false;
 
         const constraintName = constraint.triggerReference || '';
-        console.log('constraintName',constraintName)
         const constraintEnding = generateAnchorId(constraintName)//.split('_').pop() || constraintName;
         return areNamesCompatible(transformName, constraintEnding);
     });
@@ -222,7 +217,6 @@ const findCompatibleConstraints = (transform: Transform, allConstraints: Constra
 
 export const generateAnchorId = (name: string): string => {
                 
-    console.log('generateAnchorId', name);
     
     if (name.includes('start_')) {
         return 'start_' + name.split('start_')[1];
@@ -235,11 +229,9 @@ export const generateAnchorId = (name: string): string => {
 
 export function areNamesCompatible(name1:string, name2:string): boolean {
 
-    console.log('names',name1,name2)
     const anchorType1 = extractAnchorType(name1);
     const anchorType2 = extractAnchorType(name2);
 
-    console.log('anchorType1CHECKING',anchorType1,anchorType2, name1,name2)
     if(anchorType1 === anchorType2){
         return schemaCompatibility(name1,name2);
     }
@@ -248,7 +240,6 @@ export function areNamesCompatible(name1:string, name2:string): boolean {
 }
 
 function schemaCompatibility(name1: string, name2: string): boolean {
-    console.log('schemaCompatibility name1:',name1,'name2',name2, 'extractAnchorType2',extractAnchorType(name2))
     // const constraintAnchorType = extractAnchorType(constraintName);
     // Define name equivalence mappings for semantic relationships
     const nameEquivalences: Record<string, string[]> = {
@@ -279,7 +270,6 @@ function schemaCompatibility(name1: string, name2: string): boolean {
 
     // if both names are in an equvialence map, ensure that they are compatible, else assume they are.
     if (name1InAnyEquivalence && name2InAnyEquivalence) {
-        console.log('name1InAnyEquivalence',name1InAnyEquivalence,'name2InAnyEquivalence',name2InAnyEquivalence, name1,name2)
         // Find all equivalences for name1
         const name1Equivalences = new Set<string>();
         if (nameEquivalences[name1]) {
@@ -289,7 +279,6 @@ function schemaCompatibility(name1: string, name2: string): boolean {
             reverseEquivalences[name1].forEach(val => name1Equivalences.add(val));
         }
 
-        console.log('name1Equivalences',name1Equivalences, name2)
         
         if(name1Equivalences.has(name2)){
             return true;
@@ -304,6 +293,14 @@ function schemaCompatibility(name1: string, name2: string): boolean {
 
 // Merge nested constraints
 const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
+    console.log('mergeConstraints constraints', constraints)
+    if(constraints.some(constraint=>constraint.type === ConstraintType.ABSOLUTE)){
+        let constraint = constraints.find(constraint=>constraint.type === ConstraintType.ABSOLUTE);
+        if(constraint){
+            console.log('absolute constraint', constraint)
+            return constraint.value as string;
+        }
+    }
     if (constraints.length === 0) return transformValue;
     
     // Sort constraints to establish nesting order
@@ -312,10 +309,12 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
         return 0; // Default no specific order
     });
 
+    // have explicit constraints overrule implicit constraints
     if(sortedConstraints.length !== 1){
-        console.log('filtering implicit constraints',JSON.parse(JSON.stringify(sortedConstraints))  )
         sortedConstraints=sortedConstraints.filter(constraint=>!constraint.isImplicit);
-        console.log('filtering implicit constraints post',sortedConstraints)
+    } else{
+        if(sortedConstraints[0].isImplicit){
+        }
     }
 
     
@@ -338,12 +337,9 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
     const { id, transform, output, constraints } = config;
     
     
-    
 
-    console.log('precompatible constraints',constraints)
     // Process the transform and generate updates
     let compatibleConstraints = findCompatibleConstraints(transform, constraints);
-    console.log('compatibleConstraints',compatibleConstraints)
     // Deduplicate compatible constraints
     // This ensures we don't apply the same constraint multiple times
     const uniqueConstraints = compatibleConstraints.reduce((unique, constraint, index) => {
@@ -362,7 +358,6 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
     // Use the deduplicated constraints for merging
      compatibleConstraints = uniqueConstraints;
     let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
-    console.log('mergedExpression',mergedExpression,id)
 
     mergedExpression    = mergedExpression.replace(/BASE_NODE_ID/g, id);
 

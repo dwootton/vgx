@@ -45,56 +45,16 @@ const configurations = [{
             "valueType": "Data",
             // "interactive": true
         },
-        // "markName": {
-        //     "container": "Scalar",
-        //     "valueType": "Categorical",
-        //     // "interactive": true
-        // },
+
 
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
         { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
-
-        // { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
+        { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
 }];
 
-
-/*
-{
-    'id': 'appearance',
-    "schema": {
-        "fontSize": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-        },
-        "color": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "align": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "baseline": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "opacity": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-        }
-    },
-    "transforms": [
-        { "name": "fontSize", "channel": "fontSize", "value": "BASE_NODE_ID.fontSize" },
-        { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
-        { "name": "align", "channel": "align", "value": "BASE_NODE_ID.align" },
-        { "name": "baseline", "channel": "baseline", "value": "BASE_NODE_ID.baseline" },
-        { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
-    ]
-}
-*/
 
 import { generateConfigurationAnchors } from "../interactions/Drag";
 
@@ -141,6 +101,8 @@ export class Text extends BaseComponent {
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
 
+
+        console.log('TEXTinputContext', inputContext)
 
         // Base text signal
         const signal = {

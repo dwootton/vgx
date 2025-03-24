@@ -8,9 +8,10 @@ export class VegaPatchManager {
     constructor(spec: TopLevelSpec) {
         this.spec = spec;
 
+
+
         this.modifiedElements = extractModifiedObjects(spec);
-        //TODO CLENAUP:
-        //TODO stop from removing undefined with data
+        
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
         const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
@@ -34,6 +35,7 @@ export class VegaPatchManager {
     }
 
     public compile(){
+        console.log('compile vl', this.spec)
         const vegaCompilation = vl.compile(this.spec);
 
 

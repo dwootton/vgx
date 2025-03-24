@@ -173,19 +173,31 @@ export class Circle extends BaseComponent {
             const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
-                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
-               
+                //no need to get constraints as constraints would have had it be already
+                // get the transform 
                 const config = this.configurations[key.split('_')[0]];
+
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+
+
+                console.log('CIRCLekey:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
+
+                const internalId = key.split('_').filter(name=>name !== config.id).join('_')
+
+                const outputName = nodeId + '_' + internalId;
+
+
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
                     transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: constraints
+                    output: outputName,
+                    constraints: []
                 }))
             }
-             
+
             ).flat();
+
+            console.log('circleinternalSignals', internalSignals)
        
 
         return {

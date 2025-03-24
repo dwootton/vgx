@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal, calculateValueFor } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
 import { getEncodingValue } from '../../utils/encodingHelpers';
 import { constructValueFromContext } from "../../utils/contextHelpers";
@@ -110,12 +110,12 @@ export class Text extends BaseComponent {
             value: textBaseContext
         };
 
-        // Build constraint map
+        // // Build constraint map
         const constraintMap: Record<string, any> = {};
-        Object.keys(this.configurations.position.schema).forEach(channel => {
-            const key = `position_${channel}`;
-            constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-        });
+        // Object.keys(this.configurations.position.schema).forEach(channel => {
+        //     const key = `position_${channel}`;
+        //     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+        // });
 
         const configs = JSON.parse(JSON.stringify(this.configurations))
         // Generate all signals from configurations
@@ -124,11 +124,13 @@ export class Text extends BaseComponent {
                 let transforms = config.transforms || [];
 
                 // Build constraint map from inputContext
-                const constraintMap: Record<string, any> = {};
+                // const constraintMap: Record<string, any> = {};
                 Object.keys(config.schema).forEach(channel => {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
+
+                console.log("TEXTCONSTRAINTMAP", constraintMap,inputContext)
 
                 // Create a transform for each item in the constraint map
                 for (const channel in constraintMap) {
@@ -156,6 +158,41 @@ export class Text extends BaseComponent {
                     constraintMap
                 );
             });
+            
+
+            const internalSignals = [...this.anchors.keys()]
+        .filter(key => key.endsWith('_internal'))
+        .map(key => {
+            //no need to get constraints as constraints would have had it be already
+            // get the transform 
+            const config = this.configurations[key.split('_')[0]];
+
+            const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+
+
+                console.log('TezxtSKe:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
+
+            const internalId = key.split('_').filter(name=>name !== config.id).join('_')
+
+            const outputName = nodeId + '_' + internalId;
+
+
+            return compatibleTransforms.map(transform => generateSignal({
+                id: nodeId,
+                transform: transform,
+                output: outputName,
+                constraints: []
+            }))
+        }
+
+        ).flat();
+
+
+        console.log('textinternalSignals', internalSignals, 'outputSignals', outputSignals)
+
+
+
+
 
         // Check if there's a signal with name ending with 'position_text'
         const hasPositionTextSignal = outputSignals.some(signal => 
@@ -172,25 +209,22 @@ export class Text extends BaseComponent {
         }
 
 
+        const allSignals = [...outputSignals, ...internalSignals];
+        console.log("ALLSIGNALS", allSignals)
 
-        const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
+        const data = calculateValueFor('data', inputContext, allSignals, configurations);
+        const text = calculateValueFor('text', inputContext, allSignals, configurations);
+        const x = calculateValueFor('x', inputContext, allSignals, configurations);
+        const y = calculateValueFor('y', inputContext, allSignals, configurations);
 
-                const config = this.configurations[key.split('_')[0]];
-                const compatibleTransforms = config.transforms.filter((transform: any) => transform.channel === key.split('_')[1])
-                return compatibleTransforms.map((transform: any) => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: constraints
-                }))
-            }
+        console.log("TEXT CALCULATEd", data, text, x, y)
 
-            ).flat();
+        
 
-        const data = constructValueFromContext('data', inputContext, this.id, configurations);
+
+
+       
+        // const data = constructValueFromContext('data', inputContext, this.id, configurations);
         // let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
 
         return {
@@ -202,7 +236,7 @@ export class Text extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            "data": data.value,
+            "data": data,
             name: `${this.id}_position_markName`,
 
             mark: {
@@ -213,13 +247,13 @@ export class Text extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": getEncodingValue('x', constraintMap, this.id),
+                    "value": x,
                 },
                 "y": {
-                    "value": getEncodingValue('y', constraintMap, this.id),
+                    "value": y,
                 },
                 "text": {
-                    "value": getEncodingValue('text', constraintMap, this.id),
+                    "value": text,
                 }
 
             }

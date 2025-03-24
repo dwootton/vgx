@@ -8,6 +8,7 @@ import { extractAnchorType, isCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
+import { mergeConstraints } from "../components/utils";
 
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -84,6 +85,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
     return `${value.value}`; 
 }
+
 
 // The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
@@ -297,6 +299,8 @@ export class SpecCompiler {
         
         // Process merged nodes
         const mergedSpecs = this.compileMergedNodes(mergedNodeIds, nodes, edges, constraintsByNode);
+
+        console.log('mergedSpecs', mergedSpecs)
         
         return [...regularSpecs, ...mergedSpecs];
     }
@@ -340,13 +344,9 @@ export class SpecCompiler {
             const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes,boundConfigurations);
 
 
-            console.log('all edges for:', node.id, [...edges, ...implicitEdges].filter(edge => 
-                edge.source.anchorId.includes('markName') || 
-                edge.target.anchorId.includes('markName')
-            ));
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
-            console.log('all constraints for:',node.id, constraints)
+            console.log('all constraints for:',node.id, edges.filter(edge => edge.target.nodeId === node.id),implicitEdges, constraints)
 
             // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
@@ -366,14 +366,51 @@ export class SpecCompiler {
             if (!component) return null;
             
             const parentAnchors = this.getParentAnchors(nodeId, allNodes, edges);
-            const mergedSignals = extractConstraintsForMergedComponent(
+            const mergedConstraints = extractConstraintsForMergedComponent(
                 parentAnchors, 
                 constraintsByNode, 
                 component
             );
+
+            type Update = {
+                events: { signal: string }[];
+                update: string;
+            }
+            const updates: Update[] = [];
+
+            Object.keys(mergedConstraints).forEach(key => {
+                const parentSignalName = key;
+                const expression = mergeConstraints(mergedConstraints[key],parentSignalName );
+                console.log('expression', expression,parentSignalName)
+                
+                updates.push({
+                    'events': [
+                        {
+                            'signal': parentSignalName
+                        }
+                    ],
+                    'update': expression
+                })
+            })
+
+
+            // console.log('SDNJVAS', mergedSignal)
+
+
+
+            // const mergedSignals = mergedConstraints.map(constraint => {
             
+            const mergedSignal = {
+                name: nodeId,
+                value: null,
+                on: updates
+            }
+
+            console.log('mergedSignal', mergedSignal)
+
+
             return component.compileComponent({
-                'VGX_MERGED_SIGNAL_NAME': mergedSignals
+                'VGX_MERGED_SIGNAL_NAME': mergedSignal
             });
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }

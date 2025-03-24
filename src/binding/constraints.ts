@@ -1,4 +1,4 @@
-import { SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
+import { SchemaType, RangeValue, SetValue, ScalarValue, ValueType } from "../types/anchors";
 
 /**
  * Defines the type of constraint to apply to a signal
@@ -23,6 +23,8 @@ export interface Constraint {
   // Source signal name that triggers this constraint
   triggerReference?: string;
   isImplicit?: boolean;
+
+  constraintValueType?: ValueType;
   
   // For each constraint type, we need different parameters:
   min?: string;         // For CLAMP - can be signal name or expression
@@ -36,7 +38,15 @@ export interface Constraint {
  * Converts a constraint to a Vega-Lite update expression
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
+
+    // current hack for categorical values
+    if(constraint.constraintValueType === "Categorical"){
+        return `${targetSignal || constraint.triggerReference}`;
+    }
   switch (constraint.type) {
+    case ConstraintType.SCALAR:
+        return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.value}, ${constraint.value})`;
+  
     case ConstraintType.CLAMP:
       return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.min}, ${constraint.max})`;
       
@@ -86,11 +96,20 @@ export function createConstraintFromSchema(
   isImplicit?: boolean
 ): Constraint {
 
+    if(schema.valueType === "Categorical"){
+        return {
+            type: ConstraintType.IDENTITY,
+            triggerReference,
+            isImplicit,
+            constraintValueType: schema.valueType
+        }
+    }
+    
     if (schema.valueType === ConstraintType.ABSOLUTE) {
         console.log('absolute constraint', value)
         return {
             type: ConstraintType.ABSOLUTE,
-            value: value.value
+            value: value.value,
         };
     }
     if (schema.valueType === 'Data') {

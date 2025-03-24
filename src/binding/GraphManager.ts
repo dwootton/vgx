@@ -41,9 +41,9 @@ export class GraphManager {
        
         bindingGraph.edges = prunedEdges;
    
-        console.log('bindingGraph', bindingGraph)
+        console.log('bindingGraph',JSON.parse(JSON.stringify(bindingGraph,null,2)))
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
-
+        console.log('elaboratedGraph', elaboratedGraph)
         return elaboratedGraph;
     }
 

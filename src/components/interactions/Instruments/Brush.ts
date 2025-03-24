@@ -27,7 +27,7 @@ export class BrushConstructor {
 
         this.id = brush.id;
 
-        const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
+        const drag = new CombinedDrag({ bind: [...allBindings,{ span: [new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}),brush ]},] });
 
         const dragProxy = new Proxy(drag, {
             get(target, prop, receiver) {
@@ -76,22 +76,22 @@ const configurations = [{
     //     {
     //     "name": "x",
     //     "channel": "x",
-    //     "value": "PARENT_ID.x" // replace the parent id + get the channel value
+    //     "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
     // },
     // {
     //     "name": "y",
     //     "channel": "y",
-    //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
+    //     "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
     // } 
     //BROKEN, but not used for signals rn
-    { "name": "start_x", "channel": "x", "value": "PARENT_ID.start.x" },
-    { "name": "stop_x", "channel": "x", "value": "PARENT_ID.stop.x" },
-    { "name": "start_y", "channel": "y", "value": "PARENT_ID.start.y" },
-    { "name": "stop_y", "channel": "y", "value": "PARENT_ID.stop.y" },
-    // { "name": "start_x", "channel": "x", "value": "PARENT_ID_x[0]" },
-    // { "name": "stop_x", "channel": "x", "value": "PARENT_ID_x[1]" },
+    { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+    { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
+    { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+    { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
+    // { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID_x[0]" },
+    // { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID_x[1]" },
     // { "name": "start_y", "channel": "y", "value": "50" },
-    // { "name": "stop_y", "channel": "y", "value": "PARENT_ID.stop.y" },
+    // { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
     ]
 },
 {// STIL BROKEN
@@ -111,12 +111,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "(PARENT_ID_interval_start_x+PARENT_ID_interval_stop_x)/2" // replace the parent id + get the channel value
+        "value": "(BASE_NODE_ID_interval_start_x+BASE_NODE_ID_interval_stop_x)/2" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID_interval_start_y" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID_interval_start_y" // replace the parent id + get the channel value
     }
     ]
 }]

@@ -130,6 +130,7 @@ export function extractSignalNames(updateExpr: string): string[] {
   return [...new Set(matches)]; // Deduplicate
 }
 
+import { mergeConstraints } from "../components/utils";
 /**
  * Extract constraints for a merged component from all parent components
  */
@@ -137,36 +138,66 @@ export function extractConstraintsForMergedComponent(
     parentAnchors: { anchor: AnchorProxy, targetId: string }[],
     constraintsByNode: Record<string, Record<string, Constraint[]>>,
     component: BaseComponent
-): Constraint[] {
-    const mergedConstraints: Constraint[] = [];
+): Record<string, Constraint[]> {
+    const mergedConstraints: Record<string, Constraint[]> = {};
     
+    console.log('parentSignalNameQNDHJO2', parentAnchors)
     parentAnchors.forEach(anchorFromParent => {
         const parentId = anchorFromParent.anchor.id.componentId;
         const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
+        console.log('parentSignalNameQNDHJO$', anchorFromParent,parentSignalName)
+
+        if(!mergedConstraints[parentSignalName]){
+            mergedConstraints[parentSignalName] = [];
+        }
         
         const otherParentIds = parentAnchors
             .map(anchor => anchor.anchor.id.componentId)
             .filter(id => id !== parentId);
+
+          console.log('otherParentIds', otherParentIds)
         
         otherParentIds.forEach(otherParentId => {
             const otherConstraints = constraintsByNode[otherParentId];
+            console.log('otherConstraintsX', otherConstraints, otherParentId)
             if (!otherConstraints) return;
             
             const channel = component.getAnchors()[0]?.id.anchorId;
+            console.log('otherConstraintschannel', channel)
             if (!channel) return;
+            const constrainKeys = Object.keys(otherConstraints).filter(key => key.includes(channel)&&key.includes('internal'));
+            let internalConstraints = otherConstraints[constrainKeys[0]] || [];
+            console.log('otherConstraintsinternalConstraints', internalConstraints)
+
+            // Deduplicate constraints to avoid applying the same constraint multiple times
+            const uniqueConstraints = internalConstraints.reduce((unique, constraint) => {
+                // Check if this constraint is already in our unique list
+                const isDuplicate = unique.some(existingConstraint => 
+                    JSON.stringify(existingConstraint) === JSON.stringify(constraint)
+                );
+                
+                if (!isDuplicate) {
+                    unique.push(constraint);
+                }
+                
+                return unique;
+            }, [] as Constraint[]);
             
-            const internalConstraints = otherConstraints[`${channel}_internal`] || [];
-            
+            // Use the deduplicated constraints
+            internalConstraints = uniqueConstraints;
+            console.log('otherConstraintsinternalConstraintsDEDUPLICATED', internalConstraints)
+
+           
             internalConstraints.forEach(constraint => {
                 const transformedConstraint: Constraint = {
                     ...constraint,
                     triggerReference: parentSignalName
                 };
-                mergedConstraints.push(transformedConstraint);
+                mergedConstraints[parentSignalName] = [...mergedConstraints[parentSignalName], transformedConstraint];
             });
         });
     });
-    
+    console.log('mergedConstraints', mergedConstraints)
     return mergedConstraints;
 }
 
@@ -262,15 +293,16 @@ export function createMergedComponentForChannel(
        */
       compileComponent(context: any): Partial<UnitSpec<Field>> {
         // Extract merged signal constraints, if any
-        const mergedSignalConstraints = context['VGX_MERGED_SIGNAL_NAME'] || [];
+        const mergedSignal = context['VGX_MERGED_SIGNAL_NAME'] || [];
         
-        // Create the merged signal with update rules
-        const mergedSignal = {
-          name: `${this.id}`,
-          value: 0,
-          on: this.buildUpdateRules(mergedSignalConstraints)
-        };
+        // // Create the merged signal with update rules
+        // const mergedSignal = {
+        //   name: `${this.id}`,
+        //   value: 0,
+        //   on: this.buildUpdateRules(mergedSignalConstraints)
+        // };
         
+        console.log('mergedSignal', mergedSignal)
         return {
           params: [mergedSignal]
         };

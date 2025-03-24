@@ -3,6 +3,7 @@
 import { extractAnchorType } from "../binding/cycles";
 import { compileConstraint, Constraint, ConstraintType } from "../binding/constraints";
 import { extractSignalNames } from "../binding/mergedComponent";
+import { CompilationContext } from "binding/binding";
 
 // creates the accessor for the signal backing the range
 // export const createRangeAccessor = (id: string, channel: string) => {
@@ -204,6 +205,10 @@ interface Transform {
 
 // Find compatible constraints for a transform
 const findCompatibleConstraints = (transform: Transform, allConstraints: Constraint[]): Constraint[] => {
+    if(allConstraints.some(constraint=>constraint.type === ConstraintType.ABSOLUTE)){
+        const absoluteConstraint = allConstraints.find(constraint=>constraint.type === ConstraintType.ABSOLUTE) as Constraint;
+        return [absoluteConstraint];
+    }
     const transformName = transform.name || '';
 
     return allConstraints.filter(constraint => {
@@ -211,6 +216,7 @@ const findCompatibleConstraints = (transform: Transform, allConstraints: Constra
 
         const constraintName = constraint.triggerReference || '';
         const constraintEnding = generateAnchorId(constraintName)//.split('_').pop() || constraintName;
+        console.log('constraintEnding', constraintEnding, transformName,transform.name,constraintName)
         return areNamesCompatible(transformName, constraintEnding);
     });
 };
@@ -240,6 +246,11 @@ export function areNamesCompatible(name1:string, name2:string): boolean {
 }
 
 function schemaCompatibility(name1: string, name2: string): boolean {
+
+    if(name1.includes('merged') || name2.includes('merged')){
+        console.log('INSIDEMerged', name1, name2)
+        return true;
+    }
     // const constraintAnchorType = extractAnchorType(constraintName);
     // Define name equivalence mappings for semantic relationships
     const nameEquivalences: Record<string, string[]> = {
@@ -292,7 +303,7 @@ function schemaCompatibility(name1: string, name2: string): boolean {
 }
 
 // Merge nested constraints
-const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
+export const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
     console.log('mergeConstraints constraints', constraints)
     if(constraints.some(constraint=>constraint.type === ConstraintType.ABSOLUTE)){
         let constraint = constraints.find(constraint=>constraint.type === ConstraintType.ABSOLUTE);
@@ -322,7 +333,11 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
     // Nest constraints
     let result = "VGX_TRANSFORM_VALUE";
     for (const constraint of sortedConstraints) {
+        console.log('constrainfsdfsdt', constraint)
         result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
+        if(constraint.triggerReference =="node_2_position_x"){    
+            console.log('constrainfsdfsdtresult', constraint, result)
+        }
     }
     
     // Replace final placeholder with actual transform value
@@ -335,11 +350,13 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
    */
   export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
-    
-    
+
+
 
     // Process the transform and generate updates
     let compatibleConstraints = findCompatibleConstraints(transform, constraints);
+
+    console.log('compatibleConstraintsINSIDE', config,compatibleConstraints,'all',constraints)
     // Deduplicate compatible constraints
     // This ensures we don't apply the same constraint multiple times
     const uniqueConstraints = compatibleConstraints.reduce((unique, constraint, index) => {
@@ -357,13 +374,20 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
     
     // Use the deduplicated constraints for merging
      compatibleConstraints = uniqueConstraints;
+
+     console.log('compatibleConstraintsINSIDE2', id, compatibleConstraints, transform.value,mergeConstraints(compatibleConstraints, transform.value))
     let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
 
+    console.log('mergedExpression', id,mergedExpression,compatibleConstraints)
     mergedExpression    = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
     // Extract signal names from the merged expression
     const signalNames = extractSignalNames(mergedExpression);
     
+    console.log('signalNames', signalNames)
+    if(signalNames.includes('node_0_point_x')){
+        console.log('NODE0PTXsignalNames', signalNames, mergedExpression)
+    }
     // Create the update object
     const updates = [{
         events: signalNames.map(name => ({ signal: name })),
@@ -372,10 +396,58 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
     return {
         name: output,
         value: null,
+        init:mergedExpression,
         on: updates
     };
   }
-  
+  export function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
+    // find all of the compatible signals for this key
+
+    const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
+    console.log('compatibleSignalsKEY',key, compatibleSignals, inputContext)
+
+    // if (compatibleSignals.length > 0) {
+    //     //TODO logiuc to find the beter 
+    //     return compatibleSignals[0].value;
+    // }
+
+    // Check if there are any compatible keys in inputContext
+    // Look for keys that match the requested key pattern
+
+    if(compatibleSignals.length > 0){
+        return {'expr':compatibleSignals[0].name};
+    }
+
+
+    const compatibleContextKeys = Object.keys(inputContext).filter(contextKey =>
+        areNamesCompatible(key, contextKey)
+    );
+
+    console.log('compatibleContextKeys', compatibleContextKeys)
+    if (compatibleContextKeys.length > 0) {
+        // Sort by specificity or other criteria if needed
+        // For now, just take the first compatible key's first value
+        const firstCompatibleKey = compatibleContextKeys[0];
+        const values = inputContext[firstCompatibleKey];
+        console.log('values', values)
+        if (Array.isArray(values) && values.length > 0) {
+            // Return the first value from the array
+            return values[0].value;
+        }
+    }
+
+    // TODO: get base generation for keys working. 
+    if(key ==='data'){
+        return {'values':[{}]}
+    }
+
+
+    console.log('NO SIGNAL FOUND', key)
+
+    // If all else fails, return null or a sensible default
+    return null;
+
+}
   /**
    * Generate signals from a collection of transforms
    * This simplifies the process of creating multiple related signals
@@ -400,6 +472,7 @@ const mergeConstraints = (constraints: Constraint[], transformValue: string): st
           output: outputName,
           constraints: constraints[channel] || [],
         });
+        console.log('generatedSignal', signal,constraints[channel])
         return signal
       })
       .filter(signal => signal !== null); // Remove any nulls from skipped signals

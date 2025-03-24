@@ -1,7 +1,7 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal, generateAnchorId } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal, generateAnchorId, calculateValueFor } from "../utils";
 import { AnchorSchema, SchemaType, SchemaValue } from "../../types/anchors";
 
 // context: a mapping of property names to constraint expressions
@@ -22,16 +22,16 @@ const configurations = [{
             "valueType": "Numeric",
             "interactive": true
         },
-            "y": {
-                "container": "Scalar",
-                "valueType": "Numeric",
-                "interactive": true
-            },
-            "markName": {
-                "container": "Scalar",
-                "valueType": "Categorical",
-                // "restrictions":"input"
-            }
+        "y": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "markName": {
+            "container": "Scalar",
+            "valueType": "Categorical",
+            // "restrictions":"input"
+        }
     },
     "transforms": [{
         "name": "x",
@@ -57,7 +57,7 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
-        
+
     },
 
     // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
@@ -152,7 +152,7 @@ export class CombinedDrag extends BaseComponent {
                     return generatedAnchor
                 }));
             }
-          
+
         });
 
 
@@ -160,6 +160,7 @@ export class CombinedDrag extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        console.log("DRAGINPUTCONTEXT", inputContext)
 
         // I want to generate all of of the signals for the configuration
         // I want to constrain any of the signals that are compoatible with a constraint from inputContext
@@ -182,7 +183,7 @@ export class CombinedDrag extends BaseComponent {
                 const signalPrefix = this.id + '_' + config.id
                 // Generate signals for this configuratio
 
-                
+
                 return generateSignalsFromTransforms(
                     config.transforms,
                     nodeId,
@@ -192,72 +193,23 @@ export class CombinedDrag extends BaseComponent {
             });
 
 
-                    // output signals + inputContext into 
+        // output signals + inputContext into 
         // I need configuration to know what the default signal is for each of the values 
 
-        function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
-            // find all of the compatible signals for this key
 
-            
-
-            const compatibleSignals2 = signals.filter(signal => console.log( 'CHECKINGkey',key, 'signal',generateAnchorId(signal.name),areNamesCompatible(key, generateAnchorId(signal.name))));
-
-            const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
-            console.log('compatibleSignals', compatibleSignals,inputContext)
-
-            if(compatibleSignals.length > 0){
-                //TODO logiuc to find the beter 
-                return compatibleSignals[0].value;
-            }
-
-        // Check if there are any compatible keys in inputContext
-        // Look for keys that match the requested key pattern
-        const compatibleContextKeys = Object.keys(inputContext).filter(contextKey => 
-            areNamesCompatible(key, contextKey)
-        );
+        const markName = calculateValueFor('markName', inputContext, outputSignals, configurations);
+        console.log('DRAGMARKNAME', markName)
         
-        if (compatibleContextKeys.length > 0) {
-            // Sort by specificity or other criteria if needed
-            // For now, just take the first compatible key's first value
-            const firstCompatibleKey = compatibleContextKeys[0];
-            const values = inputContext[firstCompatibleKey];
-            
-            if (Array.isArray(values) && values.length > 0) {
-                // Return the first value from the array
-                return values[0];
-            }
-        }
-        
-        // If no compatible signals or context keys found, look for a default in configurations
-        const configWithDefault = configuration.find(config => 
-            config.default && config.schema && config.schema[key]
-        );
-        
-        if (configWithDefault) {
-            // Return a default value based on the configuration
-            return configWithDefault.schema[key].defaultValue || null;
-        }
-        
-        // If all else fails, return null or a sensible default
-        return null;
-                
-            
 
-
-            
-
-
-        }
-
-        const markName= calculateValueFor('markName', inputContext, outputSignals, configurations);
+        // const markName = calculateValueFor('markName', inputContext, outputSignals, configurations);
 
 
         console.log('markNamefsdfs', markName)
-            // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
+        // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
 
 
-        
-    
+
+
 
 
         // // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
@@ -274,13 +226,13 @@ export class CombinedDrag extends BaseComponent {
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
+            on: [{ events: { type: 'pointerdown', 'markname': markName+"_marks" }, update: `{'start': {'x': x(), 'y': y()}}` },
             {
                 events: {
                     type: 'pointermove',
                     source: "window",
                     between: [
-                        { type: "pointerdown", "markname": markName },
+                        { type: "pointerdown", "markname": markName+"_marks" },
                         { type: "pointerup", source: "window", }
                     ]
                 },
@@ -306,7 +258,7 @@ export class CombinedDrag extends BaseComponent {
         //         const signalPrefix = this.id + '_' + config.id
         //         // Generate signals for this configuratio
 
-                
+
         //         return generateSignalsFromTransforms(
         //             config.transforms,
         //             nodeId,
@@ -315,7 +267,7 @@ export class CombinedDrag extends BaseComponent {
         //         );
         //     });
 
-            console.log('DRAGoutputSignals', outputSignals)
+        console.log('DRAGoutputSignals', outputSignals)
         // Additional signals can be added here and will be av  ilable in input contexts
         const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
@@ -327,15 +279,29 @@ export class CombinedDrag extends BaseComponent {
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
 
+                console.log('key:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
+
+                const internalId = key.split('_').filter(name=>name !== config.id).join('_')
+
+                const outputName = nodeId + '_' + internalId
+                console.log('outputName',outputName)
+
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
                     transform: transform,
-                    output: nodeId + '_' + key,
+                    output: outputName,
                     constraints: []
                 }))
             }
-             
+
             ).flat();
+            console.log('draginternalSignals', internalSignals)
+
+
+
+
+        const allSignals = [...outputSignals, ...internalSignals];
+        console.log("ALLSIGNALSDRAG", allSignals)
         return {
             params: [signal, ...outputSignals, ...internalSignals]
         }

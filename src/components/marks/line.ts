@@ -189,7 +189,8 @@ export class Line extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
-                const config = this.configurations[key.split('_')[0]];
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,

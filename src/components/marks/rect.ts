@@ -56,15 +56,12 @@ export class Rect extends BaseComponent {
     public styles: any;
 
     constructor(config={}){
-        super({...config})
+        super({...config},configurations)
 
         this.styles = config;
 
       
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+        
 
         // Set up the main schema from configurations
         this.schema = {};
@@ -75,7 +72,6 @@ export class Rect extends BaseComponent {
         // });
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -131,7 +127,8 @@ export class Rect extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
-                const config = this.configurations[key.split('_')[0]];
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,

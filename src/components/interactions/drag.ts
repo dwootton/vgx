@@ -132,13 +132,17 @@ export function generateConfigurationAnchors(id: string, configurationId: string
 let generateCompiledValue = (id: string, channel: string, configurationId: string) => {
     return `${id}_${configurationId}_${channel}` // min value
 }
+
+console.log("CRRATINGCOMBiNEDDRAGOUT")
 import { areNamesCompatible } from "../utils";
 
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
-        super(config);
-        configurations.forEach(config => {
-            this.configurations[config.id] = config
+        console.log('CRRATINGCOMBiNEDDRAG', configurations)
+        super(config, configurations);
+        
+        this.configurations.forEach(config => {
+            // this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -273,12 +277,13 @@ export class CombinedDrag extends BaseComponent {
             .map(key => {
                 //no need to get constraints as constraints would have had it be already
                 // get the transform 
-                const config = this.configurations[key.split('_')[0]];
+
+                console.log('key:',key,key.split('_'), this.configurations,key.split('_')[0]);
+                const config = this.configurations.find(config => config.id === key.split('_')[0]);
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
 
-                console.log('key:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
 
                 const internalId = key.split('_').filter(name=>name !== config.id).join('_')
 

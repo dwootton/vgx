@@ -85,12 +85,9 @@ export class Circle extends BaseComponent {
     public configurations: Record<string, any>;
 
     constructor(config: any = {}) {
-        super({ ...config })
+        super({ ...config },configurations)
 
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+       
 
         // Set up the main schema from configurations
         this.schema = {};
@@ -101,7 +98,6 @@ export class Circle extends BaseComponent {
         // });
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -175,7 +171,8 @@ export class Circle extends BaseComponent {
             .map(key => {
                 //no need to get constraints as constraints would have had it be already
                 // get the transform 
-                const config = this.configurations[key.split('_')[0]];
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 

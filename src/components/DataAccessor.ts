@@ -38,14 +38,13 @@ class DataTransformer extends BaseComponent {
   private sourceSelectionName: string;
   
   constructor(sourceComponent: BaseComponent, accessor: DataAccessor) {
-    super({});
+    super({},configurations);
     this.sourceSelectionName = sourceComponent.id;
     this.accessor = accessor
     
     // this.configurations = configurations;
 
     configurations.forEach(config => {
-        this.configurations[config.id] = config
         const schema = config.schema
         for (const key in schema) {
             const schemaValue = schema[key];

@@ -7,6 +7,7 @@ import { getGenericAnchorTypeFromId,} from "../utils/anchorGeneration/rectAnchor
 import { AnchorType } from "../types/anchors";
 
 export function expandEdges(edges: BindingEdge[]): BindingEdge[] {  
+    console.log('INPUTexpanding edges', edges)
     const expanded = edges.flatMap(edge => {
         const sourceComponent = BindingManager.getInstance().getComponent(edge.source.nodeId);
         if (!sourceComponent) {
@@ -16,12 +17,14 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         if (!targetComponent) {
             throw new Error(`Target component ${edge.target.nodeId} not found`);
         }
+
+        console.log('COUNTEXPANDED')
      
         const allEdges = expandGroupAnchors(edge, sourceComponent, targetComponent)
         return allEdges
     })
     
-    
+    console.log('fullyexpanded', expanded)
     return expanded.filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
 }
 
@@ -30,8 +33,7 @@ function expandGroupAnchorsNEW(edge: BindingEdge, source: BaseComponent, target:
     const sourceAnchors = expandAnchorsFromEdge(edge.source.anchorId, source);
     const targetAnchors = expandAnchorsFromEdge(edge.target.anchorId, target);
 
-    console.log('FULLYEXPANDEDEDGEsourceAnchors', sourceAnchors, edge)
-    console.log('FULLYEXPANDEDEDGEtargetAnchors', targetAnchors, edge)
+    console.log('FULLYEXPANDEDEDGEAnchors', sourceAnchors, targetAnchors, edge)
 
     function expandAnchorsFromEdge(anchorId: string, component: BaseComponent): string[] {
         const allAnchors = [...component.getAnchors().values()].map(a => a.id.anchorId)
@@ -56,6 +58,10 @@ function expandGroupAnchorsNEW(edge: BindingEdge, source: BaseComponent, target:
             return allAnchors.filter(a => a.includes(anchorId));
         }
 
+        // if(allAnchors.includes(anchorId)){
+        //     return [anchorId]
+        // }
+
         console.log('no config match :(',anchorId, component.id)
 
         return [anchorId]
@@ -73,16 +79,29 @@ function expandGroupAnchorsNEW(edge: BindingEdge, source: BaseComponent, target:
     console.log('expandedNEWedges', expandedEdges);
     console.log("FULLYEXPANDEDEDGESNEW", expandedEdges)
     return expandedEdges;
-
-
-
-
 }
+
+
+// function isAnchorIdCompatible(sourceAnchorId: string, targetAnchorId: string) {
+//     const sourceAnchorType = extractAnchorType(sourceAnchorId);
+//     const targetAnchorType = extractAnchorType(targetAnchorId);
+
+//     if(!isAnchorTypeCompatible(sourceAnchorId, targetAnchorId)){
+//         return false;
+//     }
+
+    
+
+//     return true;
+// }
+
 
 // Interactor schema fn 
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
 
-    expandGroupAnchorsNEW(edge, source, target)
+    return expandGroupAnchorsNEW(edge, source, target);
+
+
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
         if (anchorId === '_all') {
@@ -184,6 +203,7 @@ export function extractAnchorType(anchorId: string): AnchorType  {
     }
     
     if(anchorId.includes('_internal')){
+        console.log('includesInternal')
         
         return extractAnchorType(anchorId.split('_internal')[0])
     }
@@ -250,12 +270,15 @@ function rewireMultiNodeConnections(
         }
 
         //find the anchorIds for this node via cycleEdges
-        const anchorIds = cycleEdges.filter(edge => edge.source.nodeId === nodeId || edge.target.nodeId === nodeId).map(edge => edge.source.anchorId === edge.target.anchorId ? edge.source.anchorId : edge.target.anchorId)
+        let allEdgeAnchorIdsInCycle = cycleEdges.filter(edge => edge.source.nodeId === nodeId || edge.target.nodeId === nodeId).map(edge => edge.source.anchorId === edge.target.anchorId ? edge.source.anchorId : edge.target.anchorId)
+        allEdgeAnchorIdsInCycle = allEdgeAnchorIdsInCycle.map(id => id.split('_internal')[0])
+        console.log('CYCLEanchorId', 'cycleenodes:',allEdgeAnchorIdsInCycle, component)
+
+       
 
         // Get the anchor for this component that uses this channel
-        const anchorId = component.getAnchors().find(anchor => 
-            anchorIds.includes(anchor.id.anchorId)
-        )?.id.anchorId as string;
+        const anchorId = component.getAnchors().find(anchor => allEdgeAnchorIdsInCycle.includes(anchor.id.anchorId))?.id.anchorId as string;
+
 
         const channel = extractAnchorType(anchorId)
 

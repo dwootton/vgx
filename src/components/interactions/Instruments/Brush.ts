@@ -125,12 +125,11 @@ const configurations = [{
 export class Brush extends BaseComponent {
     _data: DataAccessor;
     accessors: DataAccessor[];
-    constructor(config: any = {}) {
-        super(config);
+    constructor(config: any = {},) {
+        super(config,configurations);
         this._data = new DataAccessor(this);
         this.accessors = [];
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];

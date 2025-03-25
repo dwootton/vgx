@@ -48,7 +48,7 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     return "";
 }
 
-// 
+
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
     if(schema.container === 'Absolute'){
         console.

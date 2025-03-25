@@ -35,6 +35,7 @@ export class GraphManager {
         // specific binding graph for this tree
         let bindingGraph = this.generateBindingGraph(fromComponentId);
 
+        console.log('BINDING GRAPH', JSON.parse(JSON.stringify(bindingGraph)), this.bindingManager.getBindings())
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 

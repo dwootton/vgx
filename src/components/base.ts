@@ -101,7 +101,6 @@ export abstract class BaseComponent {
               return anchorId.includes('plot');
             }
             if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
-              console.log('parentAnchor', parentAnchor.id.anchorId, 'childAnchor', childAnchor.id.anchorId)
                 this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);
             }
         });

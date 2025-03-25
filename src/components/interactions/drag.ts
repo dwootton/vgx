@@ -134,12 +134,9 @@ let generateCompiledValue = (id: string, channel: string, configurationId: strin
     return `${id}_${configurationId}_${channel}` // min value
 }
 
-console.log("CRRATINGCOMBiNEDDRAGOUT")
-import { areNamesCompatible } from "../utils";
 
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
-        console.log('CRRATINGCOMBiNEDDRAG', configurations)
         super(config, configurations);
         
         this.configurations.forEach(config => {
@@ -173,7 +170,6 @@ export class CombinedDrag extends BaseComponent {
         // then, using this relevant context I want to merge these signals into a single value that returns either a value, or a expr for use. 
         const nodeId = inputContext.nodeId || this.id;
 
-        console.log('DRAGinputContext', inputContext)
         // Generate all signals
         const outputSignals = Object.values(this.configurations)
             .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
@@ -203,30 +199,7 @@ export class CombinedDrag extends BaseComponent {
         const rawMarkName = calculateValueFor('markName', inputContext, outputSignals, configurations);
 
         const markName = rawMarkName ? rawMarkName+"_marks" : '';
-        console.log('DRAGMARKNAME22', markName)
         
-
-        // const markName = calculateValueFor('markName', inputContext, outputSignals, configurations);
-
-
-        console.log('markNamefsdfs', markName)
-        // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
-
-
-
-
-
-
-        // // const markName = inputContext['point_markName']?.[0] ? inputContext['point_markName'][0]+"_marks" : '';
-        // const x1 = constructValueFromContext('x1', inputContext, this.id, configurations);
-        // const x2 = constructValueFromContext('x2', inputContext, this.id, configurations);
-        // // const y1 = constructValueFromContext('y1', inputContext, this.id, configurations);
-        // // const y2 = constructValueFromContext('y2', inputContext, this.id, configurations);
-        // // const markName = constructValueFromContext('markName', inputContext, this.id, configurations);
-
-
-        // x1.value // reference to signal {expr:'signalName}, data field, {'expr':'datum[field]}, or value directly. 
-        // x1.signals // array of signals
 
         const signal = {
             name: this.id, // base signal
@@ -245,53 +218,18 @@ export class CombinedDrag extends BaseComponent {
             }]
         };
 
-
-
-
-
-        // Generate all signals
-        // const outputSignals = Object.values(this.configurations)
-        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-        //     .flatMap(config => {
-        //         // Build constraint map from inputContext
-        //         const constraintMap = {};
-        //         Object.keys(config.schema).forEach(channel => {
-        //             const key = `${config.id}_${channel}`;
-        //             constraintMap[channel] = inputContext[key] || [];
-        //         });
-
-        //         const signalPrefix = this.id + '_' + config.id
-        //         // Generate signals for this configuratio
-
-
-        //         return generateSignalsFromTransforms(
-        //             config.transforms,
-        //             nodeId,
-        //             signalPrefix,
-        //             constraintMap
-        //         );
-        //     });
-
-        console.log('DRAGoutputSignals', outputSignals)
         // Additional signals can be added here and will be av  ilable in input contexts
         const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
-                //no need to get constraints as constraints would have had it be already
-                // get the transform 
-
-
                 const configId = key.split('_')[0];
                 const config = this.configurations.find(config => config.id === configId);
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
-
-
                 const internalId = key.split('_').filter(name=>name !== config.id).join('_')
 
                 const outputName = nodeId + '_' + internalId
-                console.log('outputName',outputName)
 
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
@@ -302,13 +240,11 @@ export class CombinedDrag extends BaseComponent {
             }
 
             ).flat();
-            console.log('draginternalSignals', internalSignals)
 
 
 
 
         const allSignals = [...outputSignals, ...internalSignals];
-        console.log("ALLSIGNALSDRAG", allSignals)
         return {
             params: [signal, ...outputSignals, ...internalSignals]
         }

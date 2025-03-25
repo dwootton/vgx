@@ -92,12 +92,9 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
         }
     }
 
-   
 
-    console.log('preextracted   ',JSON.parse(JSON.stringify(spec, null, 2)));
     extractFromSpec(spec, extractDatasets);
     extractFromSpec(spec, extractParams);
-    console.log('postextracted   ',JSON.parse(JSON.stringify(spec, null, 2)));
     return result;
 }
 
@@ -147,10 +144,6 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
        
 
         const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
-        if(totalOccurrences <2){
-            console.log('removing unused param:', paramName, ' used:',totalOccurrences)
-        }
-        // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
         return totalOccurrences >= 2;
     }) || [];
 
@@ -199,8 +192,8 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
         // Check if this is a span start parameter for any dimension (x or y)
 
         //TOD include param.name.endsWith('begin_x') || param.name.endsWith('begin_y')
-        if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') 
-            // param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
+        if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') ||
+            param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
             ) {
          
             // Extract the dimension from the parameter name

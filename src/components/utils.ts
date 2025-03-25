@@ -279,7 +279,6 @@ function schemaCompatibility(name1: string, name2: string): boolean {
                                  Object.keys(nameEquivalences).includes(name2);
     
 
-    console.log('name1InAnyEquivalence', name1InAnyEquivalence, name2InAnyEquivalence, name1, name2)
     // if both names are in an equvialence map, ensure that they are compatible, else assume they are.
     if (name1InAnyEquivalence && name2InAnyEquivalence) {
         // Find all equivalences for name1
@@ -386,7 +385,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     return {
         name: output,
         value: null,
-        //init:mergedExpression,
+        update:mergedExpression,
         on: updates
     };
   }
@@ -405,19 +404,13 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     const compatibleContextKeys = Object.keys(inputContext).filter(contextKey =>
         areNamesCompatible(key, contextKey)
     );
-    console.log('inputContext', inputContext,compatibleContextKeys)
 
 
     if (compatibleContextKeys.length > 0) {
-        // Sort by specificity or other criteria if needed
-        // For now, just take the first compatible key's first value
-        console.log('compatibleContextKeys', compatibleContextKeys)
         const firstCompatibleKey = compatibleContextKeys[0];
         const values = inputContext[firstCompatibleKey];
         if (Array.isArray(values) && values.length > 0) {
-            // Return the first value from the array
             //TODO ensure no parentId
-            console.log('vlaue',values,compileConstraint(values[0]))
             return compileConstraint(values[0]);
         }
     }

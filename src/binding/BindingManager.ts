@@ -100,7 +100,6 @@ export class BindingManager {
        
 
         if(isAnchorTypeCompatible(sourceAnchor, targetAnchor) || (sourceAnchor =='_all' || targetAnchor =='_all')){
-            console.log('ADDING BINDING:', sourceId, targetId, sourceAnchor, targetAnchor)  
             this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
 
         } else {

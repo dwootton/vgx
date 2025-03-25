@@ -210,14 +210,12 @@ export class Brush extends BaseComponent {
         //         );
         //     });
 
-            console.log('generated signals');
 
         const x1 = calculateValueFor('x1', inputContext, [], configurations);
         const x2 = calculateValueFor('x2', inputContext, [], configurations);
         const y1 = calculateValueFor('y1', inputContext, [], configurations);
         const y2 = calculateValueFor('y2', inputContext, [], configurations);
 
-        console.log('x1dsadas',x1,x2,y1,y2)
 
 
         const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x1.expr},{"signal":x2.expr}],"update":`[${x1.expr},${x2.expr}]`}]},

@@ -78,7 +78,6 @@ const configurations = [{
     ]
 }
 */
-console.log('in circlcsdjkf')
 import { generateConfigurationAnchors } from "../interactions/Drag";
 export class Circle extends BaseComponent {
     public schema: Record<string, SchemaType>;
@@ -113,19 +112,6 @@ export class Circle extends BaseComponent {
       
         });
 
-        // // Create anchors for each schema item
-        // Object.keys(this.schema).forEach(key => {
-        //     const schemaValue = schema[key];
-        //     const keyName = config.id + '_' + key
-        //     console.log('creating anchor for ', keyName)
-        //     console.log('setting schema', keyName, schemaValue)
-        //     this.schema[keyName] = schemaValue;
-        //     this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
-        //         const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
-        //         console.log('generatedAnchor', generatedAnchor)
-        //         return generatedAnchor
-        //     }));
-        // });
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
@@ -177,7 +163,6 @@ export class Circle extends BaseComponent {
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
 
-                console.log('CIRCLekey:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
 
                 const internalId = key.split('_').filter(name=>name !== config.id).join('_')
 
@@ -194,7 +179,6 @@ export class Circle extends BaseComponent {
 
             ).flat();
 
-            console.log('circleinternalSignals', internalSignals)
        
 
         return {

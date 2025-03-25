@@ -10,7 +10,6 @@ export class VegaPatchManager {
 
 
 
-        console.log('FULLCOMPspec', spec)
         
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
@@ -18,6 +17,7 @@ export class VegaPatchManager {
         const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
 
         this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
+
 
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)

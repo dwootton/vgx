@@ -102,10 +102,6 @@ export class Text extends BaseComponent {
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
 
-
-        console.log('TEXTinputContext', inputContext)
-
-        // Base text signal
         const signal = {
             name: this.id,
             value: textBaseContext
@@ -113,11 +109,7 @@ export class Text extends BaseComponent {
 
         // // Build constraint map
         const constraintMap: Record<string, any> = {};
-        // Object.keys(this.configurations.position.schema).forEach(channel => {
-        //     const key = `position_${channel}`;
-        //     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-        // });
-
+     
         const configs = JSON.parse(JSON.stringify(this.configurations))
         // Generate all signals from configurations
         const outputSignals = Object.values(configs)
@@ -130,8 +122,6 @@ export class Text extends BaseComponent {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
-
-                console.log("TEXTCONSTRAINTMAP", constraintMap,inputContext)
 
                 // Create a transform for each item in the constraint map
                 for (const channel in constraintMap) {
@@ -171,9 +161,6 @@ export class Text extends BaseComponent {
 
             const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
-
-                console.log('TezxtSKe:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
-
             const internalId = key.split('_').filter(name=>name !== config.id).join('_')
 
             const outputName = nodeId + '_' + internalId;
@@ -188,12 +175,6 @@ export class Text extends BaseComponent {
         }
 
         ).flat();
-
-
-        console.log('textinternalSignals', internalSignals, 'outputSignals', outputSignals)
-
-
-
 
 
         // Check if there's a signal with name ending with 'position_text'
@@ -212,22 +193,12 @@ export class Text extends BaseComponent {
 
 
         const allSignals = [...outputSignals, ...internalSignals];
-        console.log("ALLSIGNALS", allSignals)
 
         const data = calculateValueFor('data', inputContext, allSignals, configurations);
         const text = calculateValueFor('text', inputContext, allSignals, configurations);
         const x = calculateValueFor('x', inputContext, allSignals, configurations);
         const y = calculateValueFor('y', inputContext, allSignals, configurations);
 
-        console.log("TEXT CALCULATEd", data, text, x, y)
-
-        
-
-
-
-       
-        // const data = constructValueFromContext('data', inputContext, this.id, configurations);
-        // let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
 
         return {
             params: [

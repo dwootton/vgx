@@ -28,7 +28,7 @@ const configurations = [{
             "interactive": true
         },
         "markName": {
-            "container": "Scalar",
+            "container": "Absolute",
             "valueType": "Categorical",
             // "restrictions":"input"
         }
@@ -124,7 +124,8 @@ export function generateConfigurationAnchors(id: string, configurationId: string
         return {
             'value': `${id}_${configurationId}_${channel}`
         }
-    }
+    } 
+    
     return { 'value': '' }
 }
 
@@ -172,6 +173,7 @@ export class CombinedDrag extends BaseComponent {
         // then, using this relevant context I want to merge these signals into a single value that returns either a value, or a expr for use. 
         const nodeId = inputContext.nodeId || this.id;
 
+        console.log('DRAGinputContext', inputContext)
         // Generate all signals
         const outputSignals = Object.values(this.configurations)
             .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
@@ -184,8 +186,6 @@ export class CombinedDrag extends BaseComponent {
                 });
 
                 const signalPrefix = this.id + '_' + config.id
-                // Generate signals for this configuratio
-
 
                 return generateSignalsFromTransforms(
                     config.transforms,
@@ -278,8 +278,9 @@ export class CombinedDrag extends BaseComponent {
                 //no need to get constraints as constraints would have had it be already
                 // get the transform 
 
-                console.log('key:',key,key.split('_'), this.configurations,key.split('_')[0]);
-                const config = this.configurations.find(config => config.id === key.split('_')[0]);
+
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 

@@ -104,78 +104,8 @@ export abstract class BaseComponent {
     });
   }
 
-  private elaborateBindingsOLD(bindingItem: { value: BaseComponent | AnchorProxy, bindingProperty: string }) {
-
-    const binding = bindingItem.value;
-    const bindingProperty = bindingItem.bindingProperty;
-    const defaultConfig = Object.keys(binding.configurations).find(configId => binding.configurations[configId].default);
-    console.log('elaborateBindings', defaultConfig, binding, bindingProperty)
-
-
-
-    // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-    if (bindingProperty === '_all') {
-
-      // go through all target anchors, and if any are interactive, add a binding to the inverse
-      if (isComponent(binding)) {
-        binding.anchors.forEach((anchor) => {
-
-          // Check if the anchor has an anchorSchema with properties
-          if (anchor.anchorSchema) {
-            // Iterate through each property in the anchorSchema
-            Object.keys(anchor.anchorSchema).forEach(key => {
-
-              const schema = anchor.anchorSchema[key];
-
-              // Check if the schema has an interactive property and it's true
-              if (schema && schema.interactive) {
-                // Add the inverse binding - from the target component back to this component
-                this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId);
-              }
-            });
-          }
-        })
-      }
-
-    }
-
-    // Check if this is a BaseChart by using instanceof or checking for chart-specific properties
-    const isParentChart = ['Scatterplot', 'Histogram', 'BarChart'].includes(this.constructor.name);
-
-    if (isComponent(binding)) {
-      this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
-
-      const defaultConfig = Object.keys(binding.configurations).find(configId => binding.configurations[configId].default);
-
-      // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-      const anchorsToBind = Object.values(binding.getAnchors()).filter(anchor => anchor.id.anchorId.includes(defaultConfig))
-
-      console.log('anchorsToBind', anchorsToBind, defaultConfig, binding)
-      anchorsToBind.forEach((anchor) => {
-        const anchorSchema = Object.values(anchor.anchorSchema)[0];
-        if (anchorSchema && anchorSchema.interactive && !isParentChart) { // TODO FIX such that chart isn't ddded...
-          this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, bindingProperty);
-        }
-      })
-
-    } else {
-      console.log('anchorsToBind2', binding)
-
-      // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
-      this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
-      if (binding.value.anchorSchema.interactive && !isParentChart) {
-        this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);
-      }
-    }
-
-
-
-
-  }
-
   private addParameterBindings(bindings: { value: BaseComponent | AnchorProxy, key: string }[]) {
 
-    console.log('addParameterBindings', bindings)
     bindings.forEach(binding => {
 
 

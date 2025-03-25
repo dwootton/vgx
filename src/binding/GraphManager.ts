@@ -39,8 +39,9 @@ export class GraphManager {
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
+        console.log('EXPANDEEDGES', expandedEdges)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
-       
+        console.log('PRUNEDEDGES', prunedEdges)
         bindingGraph.edges = prunedEdges;
    
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);

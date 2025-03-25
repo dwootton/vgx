@@ -21,7 +21,7 @@ interface Binding {
     targetAnchor: string;
 }
 import { ProcessedGraph } from "./SpecCompiler";
-import { isAnchorTypeCompatible } from "./cycles";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 export class BindingManager {
     private static instance: BindingManager;
     private graphManager: GraphManager;
@@ -96,8 +96,11 @@ export class BindingManager {
             return;
         }
 
+        
+       
 
         if(isAnchorTypeCompatible(sourceAnchor, targetAnchor) || (sourceAnchor =='_all' || targetAnchor =='_all')){
+            console.log('ADDING BINDING:', sourceId, targetId, sourceAnchor, targetAnchor)  
             this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
 
         } else {

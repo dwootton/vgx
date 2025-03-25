@@ -10,6 +10,7 @@ export class VegaPatchManager {
 
 
 
+        console.log('FULLCOMPspec', spec)
         
         const undefinedRemoved = removeUndefinedInSpec(spec);
 

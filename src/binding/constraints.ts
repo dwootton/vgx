@@ -39,11 +39,21 @@ export interface Constraint {
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
-    // current hack for categorical values
+    // // current hack for categorical values
+    // if(constraint.constraintValueType === "Categorical"){
+    //     return `${targetSignal || constraint.triggerReference}`;
+    // }
     if(constraint.constraintValueType === "Categorical"){
+        return `${ constraint.triggerReference}`;
+    } else if(constraint.constraintValueType === "Data"){
         return `${targetSignal || constraint.triggerReference}`;
     }
+
+    // else numeric
+     
   switch (constraint.type) {
+    case ConstraintType.ABSOLUTE:
+      return constraint.value || "0";
     case ConstraintType.SCALAR:
         return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.value}, ${constraint.value})`;
   
@@ -52,10 +62,6 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
       
     case ConstraintType.NEAREST:
       return `nearest(${targetSignal || constraint.triggerReference}, [${constraint.values?.join(', ')}])`;
-      
-    case ConstraintType.ABSOLUTE:
-      return constraint.value || "0";
-      
     case ConstraintType.EXPRESSION:
       // Replace placeholder with actual signal if needed
       return constraint.expression?.replace('TARGET_SIGNAL', targetSignal || constraint.triggerReference || '') || "0";

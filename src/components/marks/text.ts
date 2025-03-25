@@ -46,7 +46,7 @@ const configurations = [{
             // "interactive": true
         },
         "markName": {
-            "container": "Scalar",
+            "container": "Absolute",
             "valueType": "Categorical",
             // "interactive": true
         },

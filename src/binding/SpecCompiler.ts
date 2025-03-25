@@ -340,7 +340,7 @@ export class SpecCompiler {
             }))];
             const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes,boundConfigurations);
 
-
+            console.log('allEdges', node, [...edges, ...implicitEdges])
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
 

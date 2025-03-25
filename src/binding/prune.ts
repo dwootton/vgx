@@ -29,7 +29,7 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
 
     rootChannels.add('data')
     rootChannels.add('text')
-
+    rootChannels.add('markName')
     // Filter edges based on anchor type compatibility and valid nodes
     const validEdges: BindingEdge[] = [];
     

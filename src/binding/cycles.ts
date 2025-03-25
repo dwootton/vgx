@@ -26,14 +26,17 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 }
 
 
-function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+function expandGroupAnchorsNEW(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     const sourceAnchors = expandAnchorsFromEdge(edge.source.anchorId, source);
     const targetAnchors = expandAnchorsFromEdge(edge.target.anchorId, target);
 
+    console.log('FULLYEXPANDEDEDGEsourceAnchors', sourceAnchors, edge)
+    console.log('FULLYEXPANDEDEDGEtargetAnchors', targetAnchors, edge)
 
     function expandAnchorsFromEdge(anchorId: string, component: BaseComponent): string[] {
         const allAnchors = [...component.getAnchors().values()].map(a => a.id.anchorId)
 
+        console.log('allAnchors', allAnchors, anchorId, component.id)
         if(anchorId === '_all'){
 
             const defaultConfig = Object.keys(component.configurations).find(configId=>component.configurations[configId].default);
@@ -41,8 +44,10 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             if(!defaultConfig){
                 return allAnchors
             }
+
+            console.log('defaultConfig', defaultConfig, allAnchors)
             // return just the default anchors 
-            return allAnchors.filter(a => a.includes(defaultConfig.id))
+            return allAnchors.filter(a => a.includes(defaultConfig))
         }
 
         // If anchorId matches any configuration id
@@ -51,7 +56,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             return allAnchors.filter(a => a.includes(anchorId));
         }
 
-        return []
+        console.log('no config match :(',anchorId, component.id)
+
+        return [anchorId]
     }
 
     const expandedEdges = sourceAnchors.flatMap(sourceAnchor =>
@@ -63,7 +70,8 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             }))
     );
 
-    console.log('expandedNEWedges', expandedEdges)
+    console.log('expandedNEWedges', expandedEdges);
+    console.log("FULLYEXPANDEDEDGESNEW", expandedEdges)
     return expandedEdges;
 
 
@@ -72,7 +80,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 }
 
 // Interactor schema fn 
-function expandGroupAnchorsOLD(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+
+    expandGroupAnchorsNEW(edge, source, target)
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
         if (anchorId === '_all') {
@@ -104,9 +114,7 @@ function expandGroupAnchorsOLD(edge: BindingEdge, source: BaseComponent, target:
         if(component.configurations[anchorId]) {
 
             const componentAnchors = [...component.getAnchors().values()]
-            console.log('componentAnchors', componentAnchors)
             const filteredAnchors = componentAnchors.filter(a => a.id.anchorId.includes(anchorId))
-            console.log('filteredAnchors', filteredAnchors)
             const mappedAnchors = filteredAnchors.map(a => a.id.anchorId)
             return mappedAnchors
         }
@@ -121,7 +129,6 @@ function expandGroupAnchorsOLD(edge: BindingEdge, source: BaseComponent, target:
 
                 .map(a => a.id.anchorId);
                 
-                console.log('configAnchors', configAnchors, anchorId, defaultConfig)
             // If we found configuration-based anchors, return those
             if (configAnchors.length > 0) {
                 return configAnchors;
@@ -165,6 +172,7 @@ function expandGroupAnchorsOLD(edge: BindingEdge, source: BaseComponent, target:
                 target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
             }))
     );
+    console.log("FULLYEXPANDEDEDGESOLD", expandedEdges)
     return expandedEdges;
 }
 

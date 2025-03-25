@@ -160,7 +160,6 @@ export class CombinedDrag extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        console.log("DRAGINPUTCONTEXT", inputContext)
 
         // I want to generate all of of the signals for the configuration
         // I want to constrain any of the signals that are compoatible with a constraint from inputContext

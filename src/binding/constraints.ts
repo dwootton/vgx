@@ -106,7 +106,6 @@ export function createConstraintFromSchema(
     }
     
     if (schema.valueType === ConstraintType.ABSOLUTE) {
-        console.log('absolute constraint', value)
         return {
             type: ConstraintType.ABSOLUTE,
             value: value.value,
@@ -174,7 +173,6 @@ export function createConstraintFromSchema(
   }
 
   
-  console.log('DEFAULT FALLBACK', value, schema)
 
   
   // Default fallback for unknown types

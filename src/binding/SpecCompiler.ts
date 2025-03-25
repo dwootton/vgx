@@ -157,7 +157,6 @@ export class SpecCompiler {
             parentAnchors.forEach(anchor => {
                 const componentId = anchor.id.componentId;
                 const anchorType = extractAnchorType(anchor.id.anchorId);
-                console.log('anchor', anchor.id.anchorId, anchorType)
                 if (!anchorType) return;
                 
                 // Get the anchor's configuration prefix if it exists
@@ -274,7 +273,6 @@ export class SpecCompiler {
                 // implicitEdges.push(implicitEdge)
             }
         }
-       console.log('implicitEdgesall', implicitEdges)
         return implicitEdges;
     }
         
@@ -300,7 +298,6 @@ export class SpecCompiler {
         // Process merged nodes
         const mergedSpecs = this.compileMergedNodes(mergedNodeIds, nodes, edges, constraintsByNode);
 
-        console.log('mergedSpecs', mergedSpecs)
         
         return [...regularSpecs, ...mergedSpecs];
     }
@@ -346,7 +343,6 @@ export class SpecCompiler {
 
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
-            console.log('all constraints for:',node.id, edges.filter(edge => edge.target.nodeId === node.id),implicitEdges, constraints, edges)
 
             // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
@@ -381,7 +377,6 @@ export class SpecCompiler {
             Object.keys(mergedConstraints).forEach(key => {
                 const parentSignalName = key;
                 const expression = mergeConstraints(mergedConstraints[key],parentSignalName );
-                console.log('expression', expression,parentSignalName)
                 
                 updates.push({
                     'events': [
@@ -394,7 +389,6 @@ export class SpecCompiler {
             })
 
 
-            // console.log('SDNJVAS', mergedSignal)
 
 
 
@@ -406,7 +400,6 @@ export class SpecCompiler {
                 on: updates
             }
 
-            console.log('mergedSignal', mergedSignal)
 
 
             return component.compileComponent({
@@ -449,7 +442,6 @@ export class SpecCompiler {
         const anchorAccessor = anchorProxy.compile();
         // Handle special case for absolute values
 
-        console.log('anchorAccessor', anchorAccessor)
         if ('absoluteValue' in anchorAccessor) {
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
             return;
@@ -501,7 +493,7 @@ export class SpecCompiler {
 
             const schema = anchor.anchorSchema[parentAnchorId];
             const value = anchor.compile();
-            
+
             if(!schema || !value) {
                 console.error('no schema or value', edge,  anchor.anchorSchema, value);
                 return;
@@ -513,7 +505,6 @@ export class SpecCompiler {
                 `${sourceNode.id}_${edge.source.anchorId}`,
                 edge.implicit
             );
-            console.log('constraint', constraint)
             
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];

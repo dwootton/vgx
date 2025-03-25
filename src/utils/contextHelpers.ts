@@ -112,7 +112,6 @@ export function fakeconstructValueFromContext(
     
     // If this anchor is a data type, return the data reference
     if (isDataAnchor) {
-        console.log('in data anchor', anchorConstraints);
         // Find the constraint with the data value
         const dataConstraint = anchorConstraints.find(c => c.value);
         if (dataConstraint && dataConstraint.value) {

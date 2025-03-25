@@ -141,11 +141,9 @@ export function extractConstraintsForMergedComponent(
 ): Record<string, Constraint[]> {
     const mergedConstraints: Record<string, Constraint[]> = {};
     
-    console.log('parentSignalNameQNDHJO2', parentAnchors)
     parentAnchors.forEach(anchorFromParent => {
         const parentId = anchorFromParent.anchor.id.componentId;
         const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
-        console.log('parentSignalNameQNDHJO$', anchorFromParent,parentSignalName)
 
         if(!mergedConstraints[parentSignalName]){
             mergedConstraints[parentSignalName] = [];
@@ -155,19 +153,15 @@ export function extractConstraintsForMergedComponent(
             .map(anchor => anchor.anchor.id.componentId)
             .filter(id => id !== parentId);
 
-          console.log('otherParentIds', otherParentIds)
         
         otherParentIds.forEach(otherParentId => {
             const otherConstraints = constraintsByNode[otherParentId];
-            console.log('otherConstraintsX', otherConstraints, otherParentId)
             if (!otherConstraints) return;
             
             const channel = component.getAnchors()[0]?.id.anchorId;
-            console.log('otherConstraintschannel', channel)
             if (!channel) return;
             const constrainKeys = Object.keys(otherConstraints).filter(key => key.includes(channel)&&key.includes('internal'));
             let internalConstraints = otherConstraints[constrainKeys[0]] || [];
-            console.log('otherConstraintsinternalConstraints', internalConstraints)
 
             // Deduplicate constraints to avoid applying the same constraint multiple times
             const uniqueConstraints = internalConstraints.reduce((unique, constraint) => {
@@ -185,7 +179,6 @@ export function extractConstraintsForMergedComponent(
             
             // Use the deduplicated constraints
             internalConstraints = uniqueConstraints;
-            console.log('otherConstraintsinternalConstraintsDEDUPLICATED', internalConstraints)
 
            
             internalConstraints.forEach(constraint => {
@@ -197,7 +190,6 @@ export function extractConstraintsForMergedComponent(
             });
         });
     });
-    console.log('mergedConstraints', mergedConstraints)
     return mergedConstraints;
 }
 
@@ -242,14 +234,11 @@ export function createMergedComponentForChannel(
     // Create the merged component ID
     const mergedId = `merged_${nodeIds.join('_')}_${channel}`;
     
-    console.log('schemaComponent', schemaComponent, schemaComponent.schema)
     // Use schema from the component we found
     const mergedSchemaKeys = Object.keys(schemaComponent.schema)
     const mergedSchemaKey = mergedSchemaKeys.find(key => key.includes(channel))
-    console.log('mergedSchemaKey', mergedSchemaKey)
     const mergedSchema = schemaComponent.schema[mergedSchemaKey];
 
-    console.log('mergedSchema', mergedSchema)
 
 
     class MergedComponent extends BaseComponent {
@@ -266,7 +255,6 @@ export function createMergedComponentForChannel(
         
         // Set schema to match the involved components
         this.schema = { [channel]: mergedSchema };
-        console.log('mergedSchema2', mergedSchema,this.schema)
         
         // Create an anchor that provides an absolute value
         this.anchors.set(channel, this.createAnchorProxy(
@@ -302,7 +290,6 @@ export function createMergedComponentForChannel(
         //   on: this.buildUpdateRules(mergedSignalConstraints)
         // };
         
-        console.log('mergedSignal', mergedSignal)
         return {
           params: [mergedSignal]
         };

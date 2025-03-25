@@ -2,7 +2,7 @@ import { Field } from 'vega-lite/build/src/channeldef';
 import { TopLevelSpec, UnitSpec } from 'vega-lite/build/src/spec';
 import { generateId } from '../utils/id';
 import { AnchorValue } from 'vega';
-import {  AnchorProxy, AnchorSchema, AnchorIdentifer, SchemaType, SchemaValue } from '../types/anchors';
+import { AnchorProxy, AnchorSchema, AnchorIdentifer, SchemaType, SchemaValue } from '../types/anchors';
 import { createAnchorProxy, isAnchorProxy } from '../utils/anchorProxy';
 import { isComponent } from '../utils/component';
 import { BindingManager, VirtualBindingEdge } from '../binding/BindingManager';
@@ -27,7 +27,7 @@ export abstract class BaseComponent {
   public id: string;
   public bindingManager: BindingManager;
 
-  
+
 
 
   constructor(config: any) {
@@ -56,7 +56,7 @@ export abstract class BaseComponent {
     function getTargetId(binding: BaseComponent | AnchorProxy): string {
       return isComponent(binding) ? binding.id : (binding as AnchorProxy).id.componentId;
     }
-    function isAllBind(key:string){
+    function isAllBind(key: string) {
       return key === 'bind' || (/^bind\[\d+\]$/.test(key) && !key.includes('.'))
     }
 
@@ -69,78 +69,72 @@ export abstract class BaseComponent {
       if (match) {
         // Extract the base name (like "bind" or "span") and ignore the index
         const baseName = match[1];
-        console.log('Stripping array index from', bindingProperty, 'to', baseName)
         let newBindingProperty = baseName;
-        
+
         // For "bind" specifically, we want to use "_all"
         if (baseName === 'bind') {
           newBindingProperty = '_all';
         }
-        
+
         bindingProperty = newBindingProperty;
       }
-      console.log('bindingProperty', bindingProperty)
 
 
-      if(binding.isLazy){
+      if (binding.isLazy) {
         this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
         return;
       }
       // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-      if(bindingProperty === '_all'){
+      if (bindingProperty === '_all') {
 
         // go through all target anchors, and if any are interactive, add a binding to the inverse
-        if(isComponent(binding)){
-        binding.anchors.forEach((anchor) => {
+        if (isComponent(binding)) {
+          binding.anchors.forEach((anchor) => {
 
-          // Check if the anchor has an anchorSchema with properties
-          if (anchor.anchorSchema) {
-            // Iterate through each property in the anchorSchema
-            Object.keys(anchor.anchorSchema).forEach(key => {
+            // Check if the anchor has an anchorSchema with properties
+            if (anchor.anchorSchema) {
+              // Iterate through each property in the anchorSchema
+              Object.keys(anchor.anchorSchema).forEach(key => {
 
-              const schema = anchor.anchorSchema[key];
+                const schema = anchor.anchorSchema[key];
 
-              // Check if the schema has an interactive property and it's true
-              if (schema && schema.interactive) {
-                console.log('adding all interactive binding', getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId)
-                // Add the inverse binding - from the target component back to this component
-                this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId);
-              }
-            });
-          }
-        })
-      }
+                // Check if the schema has an interactive property and it's true
+                if (schema && schema.interactive) {
+                  // Add the inverse binding - from the target component back to this component
+                  this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, anchor.id.anchorId);
+                }
+              });
+            }
+          })
+        }
 
-      } 
-      
-      function getConfigurationId(bindingProperty: string){
-        const split = bindingProperty.split('.')
-        // If no configuration id is provided, return 'span' as default
-        // In the future, we could grab the first id from default configurations
-        // return split[1] || configurations[0].id
-        return 'span'
       }
 
       // Check if this is a BaseChart by using instanceof or checking for chart-specific properties
-      const isParentChart = ['Scatterplot','Histogram','BarChart'].includes(this.constructor.name);
+      const isParentChart = ['Scatterplot', 'Histogram', 'BarChart'].includes(this.constructor.name);
 
       if (isComponent(binding)) {
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, '_all');
 
+        const defaultConfig = Object.keys(binding.configurations).find(configId=>binding.configurations[configId].default);
+
         // TODO interactive binding reversal– this may be not needed depending on how scalar:scalar is handled
-        binding.anchors.forEach((anchor) => {
+        const anchorsToBind = Object.values(binding.getAnchors()).filter(anchor=>anchor.id.anchorId.includes(defaultConfig))
+        
+        console.log('anchorsToBind', anchorsToBind, defaultConfig,binding)
+        anchorsToBind.forEach((anchor) => {
           const anchorSchema = Object.values(anchor.anchorSchema)[0];
-          if(anchorSchema && anchorSchema.interactive && !isParentChart){ // TODO FIX such that chart isn't ddded...
-            console.log('adding interactive binding2', getTargetId(binding), this.id, anchor.id.anchorId, bindingProperty)
-            this.bindingManager.addBinding(getTargetId(binding),this.id, anchor.id.anchorId, bindingProperty);
+          if (anchorSchema && anchorSchema.interactive && !isParentChart) { // TODO FIX such that chart isn't ddded...
+            this.bindingManager.addBinding(getTargetId(binding), this.id, anchor.id.anchorId, bindingProperty);
           }
         })
 
       } else {
+        console.log('anchorsToBind2',  binding)
+
         // TODO: i think intertactiveity is not populating up and thus we don't get the inversee/internal stuff. 
         this.bindingManager.addBinding(this.id, getTargetId(binding), bindingProperty, binding.id.anchorId);
         if (binding.anchorSchema.interactive && !isParentChart) {
-          console.log('adding interactive binding3', getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId)
           this.bindingManager.addBinding(getTargetId(binding), this.id, binding.id.anchorId, binding.id.anchorId);
         }
       }
@@ -174,7 +168,7 @@ export abstract class BaseComponent {
   // }
 
   public initializeAnchors() {
-  
+
     this.anchors.set('_all', this.createAnchorProxy({}, '_all', () => {
       return { source: '', value: '' }
     }));

@@ -57,6 +57,7 @@ export abstract class BaseComponent {
   private elaborateBindings(bindingItem: { value: BaseComponent | AnchorProxy, bindingProperty: string }) {
     const { value: childComponent, bindingProperty } = bindingItem;
 
+
     // Early return if not a valid component, for now no support for anchor proxies
     if (!isComponent(childComponent)) {
         console.warn('Cannot elaborate binding for AnchorProxy', bindingItem);
@@ -65,6 +66,7 @@ export abstract class BaseComponent {
 
     // Find default configuration for this component
     const defaultParentConfig = this.configurations.find(config => config.default);
+
     if (!defaultParentConfig) {
         console.warn('No default config found for', bindingProperty, this.id, childComponent.id);
         return;

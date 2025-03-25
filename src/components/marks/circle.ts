@@ -81,7 +81,6 @@ const configurations = [{
 import { generateConfigurationAnchors } from "../interactions/Drag";
 export class Circle extends BaseComponent {
     public schema: Record<string, SchemaType>;
-    public configurations: Record<string, any>;
 
     constructor(config: any = {}) {
         super({ ...config },configurations)

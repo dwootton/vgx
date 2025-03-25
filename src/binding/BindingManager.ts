@@ -96,9 +96,6 @@ export class BindingManager {
             return;
         }
 
-        
-       
-
         if(isAnchorTypeCompatible(sourceAnchor, targetAnchor) || (sourceAnchor =='_all' || targetAnchor =='_all')){
             this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
 

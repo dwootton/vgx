@@ -345,7 +345,6 @@ export class BaseChart extends BaseComponent {
 
 
   compileComponent(value: any): Partial<UnitSpec<Field>> {
-    console.log('compiling chart', this.id)
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
@@ -358,7 +357,6 @@ export class BaseChart extends BaseComponent {
       { "name": this.id + "_plot_stop_y", "expr": "range('y')[0]" },
     ]
 
-    console.log('compiling chartafter', this.id, this.spec.params)
 
 
 

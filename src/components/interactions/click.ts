@@ -61,9 +61,8 @@ export class Click extends BaseComponent {
     public configurations: Record<string, any>;
 
     constructor(config: any = {}) {
-        super(config);
+        super(config,configurations);
         
-        this.configurations = configurations;
         this.schema = {};
         
         configurations.forEach(config => {

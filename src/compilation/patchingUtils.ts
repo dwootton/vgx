@@ -200,6 +200,7 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
 
         //TOD include param.name.endsWith('begin_x') || param.name.endsWith('begin_y')
         if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') 
+            // param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
             ) {
          
             // Extract the dimension from the parameter name

@@ -63,11 +63,10 @@ export class Click extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
         
-        this.configurations = {};
+        this.configurations = configurations;
         this.schema = {};
         
         configurations.forEach(config => {
-            this.configurations[config.id] = config;
             const schema = config.schema;
             for (const key in schema) {
                 const schemaValue = schema[key];

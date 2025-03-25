@@ -200,8 +200,10 @@ export class CombinedDrag extends BaseComponent {
         // I need configuration to know what the default signal is for each of the values 
 
 
-        const markName = calculateValueFor('markName', inputContext, outputSignals, configurations);
-        console.log('DRAGMARKNAME', markName)
+        const rawMarkName = calculateValueFor('markName', inputContext, outputSignals, configurations);
+
+        const markName = rawMarkName ? rawMarkName+"_marks" : '';
+        console.log('DRAGMARKNAME22', markName)
         
 
         // const markName = calculateValueFor('markName', inputContext, outputSignals, configurations);
@@ -229,13 +231,13 @@ export class CombinedDrag extends BaseComponent {
         const signal = {
             name: this.id, // base signal
             value: dragBaseContext,
-            on: [{ events: { type: 'pointerdown', 'markname': markName+"_marks" }, update: `{'start': {'x': x(), 'y': y()}}` },
+            on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
             {
                 events: {
                     type: 'pointermove',
                     source: "window",
                     between: [
-                        { type: "pointerdown", "markname": markName+"_marks" },
+                        { type: "pointerdown", "markname": markName },
                         { type: "pointerup", source: "window", }
                     ]
                 },

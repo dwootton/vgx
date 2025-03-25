@@ -27,6 +27,8 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
         if (channel) rootChannels.add(channel);
     });
 
+
+    //TODO really, this should actually not prune something unless it is an encoding not included or something...
     rootChannels.add('data')
     rootChannels.add('text')
     rootChannels.add('markName')

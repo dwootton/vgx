@@ -386,7 +386,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     return {
         name: output,
         value: null,
-        init:mergedExpression,
+        //init:mergedExpression,
         on: updates
     };
   }

@@ -109,17 +109,14 @@ export class Line extends BaseComponent {
         super({ ...config })
 
        
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+        this.configurations = configurations;
 
         // Set up the main schema from configurations
         this.schema = {};
        
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
+            // this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];

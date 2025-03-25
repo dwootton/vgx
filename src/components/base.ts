@@ -97,7 +97,11 @@ export abstract class BaseComponent {
         childAnchors.forEach(childAnchor => {
             this.bindingManager.addBinding(this.id, childComponent.id, parentAnchor.id.anchorId, childAnchor.id.anchorId);
 
-            if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive) {
+            function isChartAnchor(anchorId: string): boolean {
+              return anchorId.includes('plot');
+            }
+            if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
+              console.log('parentAnchor', parentAnchor.id.anchorId, 'childAnchor', childAnchor.id.anchorId)
                 this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);
             }
         });

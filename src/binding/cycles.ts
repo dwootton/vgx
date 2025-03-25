@@ -1,4 +1,4 @@
-import { BindingEdge, BindingGraph, BindingNode } from "./GraphManager";
+import { AnchorId, BindingEdge, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager } from "./BindingManager";
 import { BaseComponent } from "../components/base";
 import { createMergedComponentForChannel } from "./mergedComponent";
@@ -18,7 +18,6 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         }
      
         const allEdges = expandGroupAnchors(edge, sourceComponent, targetComponent)
-        console.log('allEdges for edge',edge,allEdges)
         return allEdges
     })
     
@@ -27,50 +26,75 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
 }
 
 
-// Interactor schema fn 
 function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
+    const sourceAnchors = expandAnchorsFromEdge(edge.source.anchorId, source);
+    const targetAnchors = expandAnchorsFromEdge(edge.target.anchorId, target);
+
+
+    function expandAnchorsFromEdge(anchorId: string, component: BaseComponent): string[] {
+        const allAnchors = [...component.getAnchors().values()].map(a => a.id.anchorId)
+
+        if(anchorId === '_all'){
+
+            const defaultConfig = Object.keys(component.configurations).find(configId=>component.configurations[configId].default);
+            // if no default config, return all anchors
+            if(!defaultConfig){
+                return allAnchors
+            }
+            // return just the default anchors 
+            return allAnchors.filter(a => a.includes(defaultConfig.id))
+        }
+
+        // If anchorId matches any configuration id
+        if (component.configurations[anchorId]) {
+            // Return all anchors that include this configuration id
+            return allAnchors.filter(a => a.includes(anchorId));
+        }
+
+        return []
+    }
+
+    const expandedEdges = sourceAnchors.flatMap(sourceAnchor =>
+        targetAnchors
+            .filter(targetAnchor => isAnchorTypeCompatible(sourceAnchor, targetAnchor))
+            .map(targetAnchor => ({
+                source: { nodeId: edge.source.nodeId, anchorId: sourceAnchor },
+                target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
+            }))
+    );
+
+    console.log('expandedNEWedges', expandedEdges)
+    return expandedEdges;
+
+
+
+
+}
+
+// Interactor schema fn 
+function expandGroupAnchorsOLD(edge: BindingEdge, source: BaseComponent, target: BaseComponent): BindingEdge[] {
     // Helper function to get anchors based on the anchorId that was bound (including _all)
     const getAnchors = (component: BaseComponent, anchorId: string) => {
-        console.log('getAnchorsdfasdfas', component, anchorId)
         if (anchorId === '_all') {
-            console.log('componentINALL', component, anchorId)
-
-
-            // return [...component.getAnchors().values()].map(a => a.id.anchorId)
             if(Object.keys(component.configurations).find(confidId=>component.configurations[confidId].default)){
-                // throw new Error('Multiple configurations found for component', component.id)
-                
-                if(edge.target.nodeId =='node_0'){
-                    console.log('node_0_vale', component, anchorId)
-                }
+              
                 const defaultConfig = Object.keys(component.configurations).find(confidId=>component.configurations[confidId].default)
-                console.log('defaultConfig', defaultConfig)
-                const defaultConfigSchema = component.configurations[defaultConfig]
-                console.log('defaultConfigSchema', defaultConfigSchema)
 
                 const allAnchors = [...component.getAnchors().values()].map(a => a.id.anchorId)
                 if(!defaultConfig){
-                    console.log('returin all anchorsINSIDE', component, anchorId, [...component.getAnchors().values()].map(a => a.id.anchorId);)
 
                     return allAnchors
                 }
                 // console.log('returin all anchorsPitsod')
-                console.log('allAnchors', allAnchors, 'defualtConfig',defaultConfig)
                 const filteredAnchors = allAnchors.filter(a => a.includes(defaultConfig))
-                console.log('filteredAnchors', filteredAnchors,defaultConfig)
                 if(filteredAnchors.length == 0){
-                    console.log('no filteredAnchors', component, anchorId, allAnchors)
                     return allAnchors
                 }
 
-                // Check if any of the filtered anchors contain 'begin_x'
-                if (allAnchors.some(anchor => anchor.includes('begin_x'))) {
-                    console.log("BEGINX_found_in_filtered_anchors", filteredAnchors);
-                }
+               
 
                 return filteredAnchors;
             } else {
-                console.log('returin all anchors', component, anchorId, [...component.getAnchors().values()].map(a => a.id.anchorId);)
                 return [...component.getAnchors().values()].map(a => a.id.anchorId);
             }
         }
@@ -80,7 +104,9 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         if(component.configurations[anchorId]) {
 
             const componentAnchors = [...component.getAnchors().values()]
-            const filteredAnchors = componentAnchors.filter(a => a.id.anchorId.includes(anchorId) && a.id.anchorId !== anchorId)
+            console.log('componentAnchors', componentAnchors)
+            const filteredAnchors = componentAnchors.filter(a => a.id.anchorId.includes(anchorId))
+            console.log('filteredAnchors', filteredAnchors)
             const mappedAnchors = filteredAnchors.map(a => a.id.anchorId)
             return mappedAnchors
         }
@@ -130,17 +156,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
     const sourceAnchors = getAnchors(source, edge.source.anchorId)//.filter(sourceAnchorId => checkAnchorTypeCompatibility(sourceAnchorId, edge.source.anchorId));
     let targetAnchors = getAnchors(target, edge.target.anchorId)//.filter(targetAnchorId => checkAnchorTypeCompatibility(targetAnchorId, edge.target.anchorId));
 
-    // Check if source anchorId has markName in it
-    if (edge.source.anchorId.includes('markName') || sourceAnchors.some(anchor => anchor.includes('markName'))) {
-        console.log('Found markName in source anchorId:');
-        console.log('Found markNameEdge:', edge);
-        console.log('Found markNameSource component:', source.id);
-        console.log('Found markNameSource anchors:', getAnchors(source, edge.source.anchorId), source, edge.source.anchorId);
-        console.log('Found markNameTarget component:', target.id);
-        console.log('Found markNameTarget anchors:', targetAnchors);
-    }
-
-    console.log('source:',source,'sourceAnchors', sourceAnchors, 'targetAnchors', targetAnchors,edge.target.anchorId, 'sourceAnchorID',edge.source.anchorId)
 
     const expandedEdges = sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
@@ -150,7 +165,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
                 target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
             }))
     );
-    console.log('expandedEdges', expandedEdges)
     return expandedEdges;
 }
 
@@ -162,7 +176,6 @@ export function extractAnchorType(anchorId: string): AnchorType  {
     }
     
     if(anchorId.includes('_internal')){
-        console.log('about to extract anchor type', anchorId.split('_internal')[0], "extracted:",extractAnchorType(anchorId.split('_internal')[0]))
         
         return extractAnchorType(anchorId.split('_internal')[0])
     }
@@ -202,7 +215,6 @@ export function isAnchorTypeCompatible(sourceAnchorId: string, targetAnchorId: s
     const sourceAnchorType = extractAnchorType(sourceAnchorId);
     const targetAnchorType = extractAnchorType(targetAnchorId);
 
-    console.log('sourceAnchorType', sourceAnchorType, sourceAnchorId,'targetAnchorType', targetAnchorType,targetAnchorId)
     if(!sourceAnchorType || !targetAnchorType) {
         return false;
     }
@@ -293,7 +305,6 @@ export function resolveCycleMulti(
     let processedGraph = cloneGraph(graph);
     // Keep resolving cycles until none are left
     let cycles = detectCyclesByChannel(processedGraph.edges);
-    console.log('CYCLES', cycles)
     let count = 10;
     // while (cycles.length > 0 && count > 0) {
         // Process each cycle
@@ -533,8 +544,6 @@ function filterOutCycleEdges(edges: BindingEdge[], cycle: { nodes: string[], edg
 //         throw new Error(`Components not found: ${node1Id}, ${node2Id}`);
 //     }
 
-//     console.log('rewiringNodeConnections', node1AnchorId, component1)
-//     console.log('rewiringNodeConnectionsNode2', node2AnchorId, component2)
 
 //     //TODO: need to not just cycle cycles[0], but instead get the anchorIOd from thedges and then use thart. 
 //     // Create _internal anchors

@@ -9,9 +9,11 @@ export interface BindingNode {
     type: string;
 }
 
+export interface AnchorId { nodeId: string; anchorId: string; };
+
 export interface BindingEdge {
-    source: { nodeId: string; anchorId: string; };
-    target: { nodeId: string; anchorId: string; };
+    source: AnchorId;
+    target: AnchorId;
     implicit?: boolean;
 }
 
@@ -33,9 +35,10 @@ export class GraphManager {
         // specific binding graph for this tree
         let bindingGraph = this.generateBindingGraph(fromComponentId);
 
+        console.log('OGbindingGraph',JSON.parse(JSON.stringify(bindingGraph,null,2)))
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
-        console.log('expandedEdges', expandedEdges)
+        console.log('OGbindingGraphexpanded', expandedEdges)
 
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
        

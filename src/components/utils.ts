@@ -400,19 +400,13 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
         on: updates
     };
   }
+
+  
   export function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
     // find all of the compatible signals for this key
 
     const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
     console.log('compatibleSignalsKEY',key, compatibleSignals, inputContext)
-
-    // if (compatibleSignals.length > 0) {
-    //     //TODO logiuc to find the beter 
-    //     return compatibleSignals[0].value;
-    // }
-
-    // Check if there are any compatible keys in inputContext
-    // Look for keys that match the requested key pattern
 
     if(compatibleSignals.length > 0){
         return {'expr':compatibleSignals[0].name};

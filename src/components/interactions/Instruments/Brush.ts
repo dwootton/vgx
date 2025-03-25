@@ -189,34 +189,34 @@ export class Brush extends BaseComponent {
 
         // need to figure out how to get reasonable 
 
-        const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-            .flatMap(config => {
-                // Build constraint map from inputContext
-                const constraintMap = {};
-                Object.keys(config.schema).forEach(channel => {
-                    const key = `${config.id}_${channel}`;
-                    console.log
-                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-                });
+        // const outputSignals = Object.values(this.configurations)
+        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+        //     .flatMap(config => {
+        //         // Build constraint map from inputContext
+        //         const constraintMap = {};
+        //         Object.keys(config.schema).forEach(channel => {
+        //             const key = `${config.id}_${channel}`;
+        //             console.log
+        //             constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+        //         });
 
-                const signalPrefix = this.id + '_' + config.id;
+        //         const signalPrefix = this.id + '_' + config.id;
 
-                // Generate signals for this configuration
-                return generateSignalsFromTransforms(
-                    config.transforms,
-                    this.id,
-                    signalPrefix,
-                    constraintMap
-                );
-            });
+        //         // Generate signals for this configuration
+        //         return generateSignalsFromTransforms(
+        //             config.transforms,
+        //             this.id,
+        //             signalPrefix,
+        //             constraintMap
+        //         );
+        //     });
 
-            console.log('generated signals', outputSignals);
+            console.log('generated signals');
 
-        const x1 = calculateValueFor('x1', inputContext, outputSignals, configurations);
-        const x2 = calculateValueFor('x2', inputContext, outputSignals, configurations);
-        const y1 = calculateValueFor('y1', inputContext, outputSignals, configurations);
-        const y2 = calculateValueFor('y2', inputContext, outputSignals, configurations);
+        const x1 = calculateValueFor('x1', inputContext, [], configurations);
+        const x2 = calculateValueFor('x2', inputContext, [], configurations);
+        const y1 = calculateValueFor('y1', inputContext, [], configurations);
+        const y2 = calculateValueFor('y2', inputContext, [], configurations);
 
         console.log('x1dsadas',x1,x2,y1,y2)
 
@@ -229,7 +229,7 @@ export class Brush extends BaseComponent {
 
         
         return {
-            params: [selection, ...selectionModifications, ...outputSignals]
+            params: [selection, ...selectionModifications]
         }
     }
 }

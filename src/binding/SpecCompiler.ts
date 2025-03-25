@@ -346,7 +346,7 @@ export class SpecCompiler {
 
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
-            console.log('all constraints for:',node.id, edges.filter(edge => edge.target.nodeId === node.id),implicitEdges, constraints)
+            console.log('all constraints for:',node.id, edges.filter(edge => edge.target.nodeId === node.id),implicitEdges, constraints, edges)
 
             // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
@@ -501,10 +501,12 @@ export class SpecCompiler {
 
             const schema = anchor.anchorSchema[parentAnchorId];
             const value = anchor.compile();
+            
             if(!schema || !value) {
                 console.error('no schema or value', edge,  anchor.anchorSchema, value);
                 return;
             }
+
             const constraint = createConstraintFromSchema(
                 schema,
                 value,

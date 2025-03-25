@@ -62,7 +62,24 @@ export abstract class BaseComponent {
 
     bindings.forEach(({ value: binding, key }) => {
 
-      const bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
+      let bindingProperty = key.includes('.') ? key.split('.')[1] : (isAllBind(key) ? '_all' : key);
+
+      // Check if bindingProperty has array index patterns like "bind[0]" or "span[0]"
+      const match = bindingProperty.match(/^(\w+)\[(\d+)\]$/);
+      if (match) {
+        // Extract the base name (like "bind" or "span") and ignore the index
+        const baseName = match[1];
+        console.log('Stripping array index from', bindingProperty, 'to', baseName)
+        let newBindingProperty = baseName;
+        
+        // For "bind" specifically, we want to use "_all"
+        if (baseName === 'bind') {
+          newBindingProperty = '_all';
+        }
+        
+        bindingProperty = newBindingProperty;
+      }
+      console.log('bindingProperty', bindingProperty)
 
 
       if(binding.isLazy){

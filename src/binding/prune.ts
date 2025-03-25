@@ -15,6 +15,7 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
 
     const rootChannels = new Set<string>();
     
+    console.log('pruningedges',edges, rootId)
     // Find all edges where root is the source to determine valid channels
     edges.filter(edge => edge.source.nodeId === rootId).forEach(edge => {
         const channel = extractAnchorType(edge.source.anchorId);
@@ -29,6 +30,8 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
 
     rootChannels.add('data')
     rootChannels.add('text')
+
+    console.log('rootChannels',rootChannels)
     // Filter edges based on anchor type compatibility and valid nodes
     const validEdges: BindingEdge[] = [];
     

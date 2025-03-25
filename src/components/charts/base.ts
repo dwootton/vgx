@@ -134,6 +134,68 @@ export class BaseChart extends BaseComponent {
           // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
           // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
         ]
+      },
+      'x': {
+        "schema": {
+          "x": {
+            "container": "Range",
+            "valueType": "Numeric"
+          },
+          "y": {
+            "container": "Scalar",
+            "valueType": "Numeric"
+          },
+          // "color": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "size": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "opacity": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // }
+        },
+        "transforms": [
+          { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+          { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+          // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+          // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+          // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
+        ]
+      },
+      'y': {
+        "schema": {
+          "x": {
+            "container": "Scalar",
+            "valueType": "Numeric"
+          },
+          "y": {
+            "container": "Range",
+            "valueType": "Numeric"
+          },
+          // "color": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "size": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // },
+          // "opacity": {
+          //   "container": "Scalar",
+          //   "valueType": "Numeric"
+          // }
+        },
+        "transforms": [
+          { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+          { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+          // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+          // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+          // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
+        ]
       }
     }
     return configurations;

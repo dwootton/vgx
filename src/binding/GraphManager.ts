@@ -9,9 +9,12 @@ export interface BindingNode {
     type: string;
 }
 
+export interface AnchorId { nodeId: string; anchorId: string; };
+
 export interface BindingEdge {
-    source: { nodeId: string; anchorId: string; };
-    target: { nodeId: string; anchorId: string; };
+    source: AnchorId;
+    target: AnchorId;
+    implicit?: boolean;
 }
 
 
@@ -32,15 +35,16 @@ export class GraphManager {
         // specific binding graph for this tree
         let bindingGraph = this.generateBindingGraph(fromComponentId);
 
+        console.log('BINDING GRAPH', JSON.parse(JSON.stringify(bindingGraph)), this.bindingManager.getBindings())
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
+        console.log('EXPANDEEDGES', expandedEdges)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
-       
+        console.log('PRUNEDEDGES', prunedEdges)
         bindingGraph.edges = prunedEdges;
    
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
-
         return elaboratedGraph;
     }
 

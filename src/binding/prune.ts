@@ -1,5 +1,5 @@
 import { BindingEdge, BindingNode } from "./GraphManager";
-import { extractAnchorType, isCompatible } from "./cycles";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 /**
  * Prunes edges that are not reachable from the root component.
  * Returns both valid edges and implicit edges (pruned edges that might be needed later).
@@ -27,8 +27,11 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
         if (channel) rootChannels.add(channel);
     });
 
+
+    //TODO really, this should actually not prune something unless it is an encoding not included or something...
     rootChannels.add('data')
     rootChannels.add('text')
+    rootChannels.add('markName')
     // Filter edges based on anchor type compatibility and valid nodes
     const validEdges: BindingEdge[] = [];
     
@@ -45,7 +48,7 @@ export function pruneEdges(nodes: BindingNode[], edges: BindingEdge[], rootId: s
         const targetAnchorType = extractAnchorType(edge.target.anchorId);
         
         // Keep edges where both anchor types are defined and compatible
-        if (sourceAnchorType && targetAnchorType && isCompatible(edge.source.anchorId, edge.target.anchorId) && rootChannels.has(sourceAnchorType)) {
+        if (sourceAnchorType && targetAnchorType && isAnchorTypeCompatible(edge.source.anchorId, edge.target.anchorId) && rootChannels.has(sourceAnchorType)) {
             validEdges.push(edge);
         }
     }

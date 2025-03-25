@@ -44,7 +44,7 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" }, //data set x value will be each x value.
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" } //data set y value will be each y value.
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" }, //data set x value will be each x value.
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" } //data set y value will be each y value.
     ]
 }];

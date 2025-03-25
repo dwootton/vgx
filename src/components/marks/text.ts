@@ -4,10 +4,10 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal, calculateValueFor } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
 import { getEncodingValue } from '../../utils/encodingHelpers';
-
+import { constructValueFromContext } from "../../utils/contextHelpers";
 
 export const textBaseContext = {
     "x": 0,
@@ -45,80 +45,42 @@ const configurations = [{
             "valueType": "Data",
             // "interactive": true
         },
-        // "markName": {
-        //     "container": "Scalar",
-        //     "valueType": "Categorical",
-        //     // "interactive": true
-        // },
+        "markName": {
+            "container": "Absolute",
+            "valueType": "Categorical",
+            // "interactive": true
+        },
+
 
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
-
-        // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+        { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
 }];
 
 
-/*
-{
-    'id': 'appearance',
-    "schema": {
-        "fontSize": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-        },
-        "color": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "align": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "baseline": {
-            "container": "Scalar",
-            "valueType": "String"
-        },
-        "opacity": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-        }
-    },
-    "transforms": [
-        { "name": "fontSize", "channel": "fontSize", "value": "PARENT_ID.fontSize" },
-        { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
-        { "name": "align", "channel": "align", "value": "PARENT_ID.align" },
-        { "name": "baseline", "channel": "baseline", "value": "PARENT_ID.baseline" },
-        { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
-    ]
-}
-*/
-
 import { generateConfigurationAnchors } from "../interactions/Drag";
+
 export class Text extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;
     public baseConfig: any;
-    constructor(config: any = {}) {
-        super({ ...config })
+    constructor(config: any = {}) { 
+        super({ config }, configurations)
 
         this.baseConfig = config;
         if (!config.text) {
             this.baseConfig.text = { 'expr': "'Text!'" }
         }
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+        this.configurations = configurations;
 
         // Set up the main schema from configurations
         this.schema = {};
 
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key as keyof typeof schema];
@@ -141,18 +103,20 @@ export class Text extends BaseComponent {
         const nodeId = inputContext.nodeId || this.id;
 
 
+        console.log('TEXTinputContext', inputContext)
+
         // Base text signal
         const signal = {
             name: this.id,
             value: textBaseContext
         };
 
-        // Build constraint map
+        // // Build constraint map
         const constraintMap: Record<string, any> = {};
-        Object.keys(this.configurations.position.schema).forEach(channel => {
-            const key = `position_${channel}`;
-            constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-        });
+        // Object.keys(this.configurations.position.schema).forEach(channel => {
+        //     const key = `position_${channel}`;
+        //     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+        // });
 
         const configs = JSON.parse(JSON.stringify(this.configurations))
         // Generate all signals from configurations
@@ -161,11 +125,13 @@ export class Text extends BaseComponent {
                 let transforms = config.transforms || [];
 
                 // Build constraint map from inputContext
-                const constraintMap: Record<string, any> = {};
+                // const constraintMap: Record<string, any> = {};
                 Object.keys(config.schema).forEach(channel => {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
+
+                console.log("TEXTCONSTRAINTMAP", constraintMap,inputContext)
 
                 // Create a transform for each item in the constraint map
                 for (const channel in constraintMap) {
@@ -193,6 +159,42 @@ export class Text extends BaseComponent {
                     constraintMap
                 );
             });
+            
+
+            const internalSignals = [...this.anchors.keys()]
+        .filter(key => key.endsWith('_internal'))
+        .map(key => {
+            //no need to get constraints as constraints would have had it be already
+            // get the transform 
+            const configId = key.split('_')[0];
+            const config = this.configurations.find(config => config.id === configId);
+
+            const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+
+
+                console.log('TezxtSKe:',key,key.split('_'), this.configurations,config, key.split('_').filter(name=>name !== config.id).join('_'))
+
+            const internalId = key.split('_').filter(name=>name !== config.id).join('_')
+
+            const outputName = nodeId + '_' + internalId;
+
+
+            return compatibleTransforms.map(transform => generateSignal({
+                id: nodeId,
+                transform: transform,
+                output: outputName,
+                constraints: []
+            }))
+        }
+
+        ).flat();
+
+
+        console.log('textinternalSignals', internalSignals, 'outputSignals', outputSignals)
+
+
+
+
 
         // Check if there's a signal with name ending with 'position_text'
         const hasPositionTextSignal = outputSignals.some(signal => 
@@ -209,25 +211,23 @@ export class Text extends BaseComponent {
         }
 
 
+        const allSignals = [...outputSignals, ...internalSignals];
+        console.log("ALLSIGNALS", allSignals)
 
-        const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
+        const data = calculateValueFor('data', inputContext, allSignals, configurations);
+        const text = calculateValueFor('text', inputContext, allSignals, configurations);
+        const x = calculateValueFor('x', inputContext, allSignals, configurations);
+        const y = calculateValueFor('y', inputContext, allSignals, configurations);
 
-                const config = this.configurations[key.split('_')[0]];
-                const compatibleTransforms = config.transforms.filter((transform: any) => transform.channel === key.split('_')[1])
-                return compatibleTransforms.map((transform: any) => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: constraints
-                }))
-            }
+        console.log("TEXT CALCULATEd", data, text, x, y)
 
-            ).flat();
+        
 
-        let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
+
+
+       
+        // const data = constructValueFromContext('data', inputContext, this.id, configurations);
+        // let dataAccessor = inputContext?.position_data?.[0] ? { 'name': inputContext?.position_data?.[0] } : { "values": [{}] };
 
         return {
             params: [
@@ -238,7 +238,7 @@ export class Text extends BaseComponent {
                 ...outputSignals,
                 ...internalSignals
             ],
-            "data": dataAccessor,
+            "data": data,
             name: `${this.id}_position_markName`,
 
             mark: {
@@ -249,13 +249,13 @@ export class Text extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": getEncodingValue('x', constraintMap, this.id),
+                    "value": x,
                 },
                 "y": {
-                    "value": getEncodingValue('y', constraintMap, this.id),
+                    "value": y,
                 },
                 "text": {
-                    "value": getEncodingValue('text', constraintMap, this.id),
+                    "value": text,
                 }
 
             }

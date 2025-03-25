@@ -1,10 +1,10 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext } from '../../binding/binding';
+import { CompilationContext } from '../../binding/binding';
 import { SchemaType, SchemaValue } from "../../types/schema";
-import { generateSignalsFromTransforms, generateSignal } from "../utils";
-import { createRangeAccessor } from "../../utils/anchorProxy";
+import { generateSignalsFromTransforms, generateSignal, createRangeAccessor } from "../utils";
+import { constructValueFromContext } from "../../utils/contextHelpers";
 
 const configurations = [{
     'id': 'point',
@@ -24,12 +24,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "PARENT_ID.x" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID.y" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
     }
     ]
 }];
@@ -63,11 +63,10 @@ export class Click extends BaseComponent {
     constructor(config: any = {}) {
         super(config);
         
-        this.configurations = {};
+        this.configurations = configurations;
         this.schema = {};
         
         configurations.forEach(config => {
-            this.configurations[config.id] = config;
             const schema = config.schema;
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -82,8 +81,11 @@ export class Click extends BaseComponent {
         });
     }
 
-    compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
+        
+
+        const {value:markName,signals:markNameSignals,data:markNameData} = constructValueFromContext(this.id + '_markName', inputContext, this.id, configurations);
         
         // Base click signal
         const signal = {

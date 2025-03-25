@@ -42,10 +42,10 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" }, // treat x like a scalar
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" }, // treat x like a scalar
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y"}, //data set y value will be each y value.
     ]
 },{
     'id': 'x',
@@ -68,11 +68,11 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x.start" },
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x.start" },
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" }, // treat x like a scalar
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" }, // treat x like a scalar
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y"}, //data set y value will be each y value.
     ]
 },{
     'id': 'y',
@@ -89,10 +89,10 @@ const configurations = [{
         }
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" },
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" },
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
     ]
 }];
 
@@ -109,17 +109,14 @@ export class Line extends BaseComponent {
         super({ ...config })
 
        
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+        this.configurations = configurations;
 
         // Set up the main schema from configurations
         this.schema = {};
        
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
+            // this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -189,7 +186,8 @@ export class Line extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
-                const config = this.configurations[key.split('_')[0]];
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
@@ -218,16 +216,16 @@ export class Line extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": { "expr": `${this.id}_position_x_start` },
+                    "value": { "expr": `${this.id}_position_start_x` },
                 },
                 "y": {
-                    "value": { "expr": `${this.id}_position_y_start` },
+                    "value": { "expr": `${this.id}_position_start_y` },
                 },
                 "x2": {
-                    "value": { "expr": `${this.id}_position_x_stop` },
+                    "value": { "expr": `${this.id}_position_stop_x` },
                 },
                 "y2": {
-                    "value": { "expr": `${this.id}_position_y_stop` },
+                    "value": { "expr": `${this.id}_position_stop_y` },
                 },
                 "size": {"value": {"expr": 5}},// rule width
                 "color": {"value": {"expr": "'firebrick'"}},

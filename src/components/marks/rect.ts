@@ -45,10 +45,10 @@ const configurations = [{
         },
     },
     "transforms": [
-        { "name": "x_start", "channel": "x", "value": "PARENT_ID.start.x" }, // treat x like a scalar
-        { "name": "x_stop", "channel": "x", "value": "PARENT_ID.stop.x" }, // treat x like a scalar
-        { "name": "y_start", "channel": "y", "value": "PARENT_ID.start.y" },
-        { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y"}, //data set y value will be each y value.
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" }, // treat x like a scalar
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" }, // treat x like a scalar
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y"}, //data set y value will be each y value.
     ]
 }];
 
@@ -56,15 +56,12 @@ export class Rect extends BaseComponent {
     public styles: any;
 
     constructor(config={}){
-        super({...config})
+        super({...config},configurations)
 
         this.styles = config;
 
       
-        this.configurations = {};
-        configurations.forEach(cfg => {
-            this.configurations[cfg.id] = cfg;
-        });
+        
 
         // Set up the main schema from configurations
         this.schema = {};
@@ -75,7 +72,6 @@ export class Rect extends BaseComponent {
         // });
 
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -123,6 +119,7 @@ export class Rect extends BaseComponent {
             });
 
 
+
             const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
@@ -130,7 +127,8 @@ export class Rect extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
-                const config = this.configurations[key.split('_')[0]];
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
@@ -175,40 +173,23 @@ export class Rect extends BaseComponent {
                 "fill":this.styles.fill,
                 "strokeOpacity":this.styles.strokeOpacity,
                 "strokeDash":this.styles.strokeDash,
-                // x: { 
-                //     expr:  `${this.id}_x_start`
-                // },
-                // x2: {
-                //     expr:   `${this.id}_x_stop`
-                // },
-                // y: {
-                //     expr:  `${this.id}_y_start`
-                // },
-                // y2: {
-                //     expr:  `${this.id}_y_stop`
-                // },
-                // color: {
-                //     expr: inputContext.color || rectBaseContext.color
-                // },
-                // stroke: {
-                //     expr: inputContext.stroke || rectBaseContext.stroke
-                // }
+        
             },
             "encoding":{
                 "x":{
-                    "value":{"expr":`${this.id}_position_x_start`},
+                    "value":{"expr":`${this.id}_position_start_x`},
                     //"type":"quantitative"
                 },
                 "x2":{
-                    "value":{"expr":`${this.id}_position_x_stop`},
+                    "value":{"expr":`${this.id}_position_stop_x`},
                     //"type":"quantitative"
                 },
                 "y":{
-                    "value":{"expr":`${this.id}_position_y_start`},
+                    "value":{"expr":`${this.id}_position_start_y`},
                     //"type":"quantitative"
                 },
                 "y2":{
-                    "value":{"expr":`${this.id}_position_y_stop`},
+                    "value":{"expr":`${this.id}_position_stop_y`},
                     //"type":"quantitative"
                 }
             }

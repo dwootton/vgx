@@ -2,7 +2,7 @@ import { BaseComponent } from "components/base";
 
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 
-import { BindingEdge, GraphManager } from "./GraphManager";
+import { GraphManager } from "./GraphManager";
 import {SpecCompiler} from "./SpecCompiler";
 
 
@@ -21,6 +21,7 @@ interface Binding {
     targetAnchor: string;
 }
 import { ProcessedGraph } from "./SpecCompiler";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 export class BindingManager {
     private static instance: BindingManager;
     private graphManager: GraphManager;
@@ -61,14 +62,13 @@ export class BindingManager {
         return component;
     }
 
-public addComponent(component: BaseComponent): void {
+    public addComponent(component: BaseComponent): void {
         this.components.set(component.id, component);
     }
 
-    public removeComponent(componentId: string): void {
-        this.components.delete(componentId);
+    public removeComponent(id: string): void {
+        this.components.delete(id);
     }
-
 
 
     // Bindings 
@@ -95,7 +95,17 @@ public addComponent(component: BaseComponent): void {
         if (this.bindings.some(binding => binding.sourceId === sourceId && binding.targetId === targetId && binding.sourceAnchor === sourceAnchor && binding.targetAnchor === targetAnchor)) {
             return;
         }
-        this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
+
+        
+       
+
+        if(isAnchorTypeCompatible(sourceAnchor, targetAnchor) || (sourceAnchor =='_all' || targetAnchor =='_all')){
+            console.log('ADDING BINDING:', sourceId, targetId, sourceAnchor, targetAnchor)  
+            this.bindings.push({ sourceId, targetId, sourceAnchor, targetAnchor });
+
+        } else {
+            console.warn('Incompatible binding', sourceId, targetId, sourceAnchor, targetAnchor);
+        }
     };
 
     public removeBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {

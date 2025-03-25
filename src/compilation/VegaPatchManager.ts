@@ -10,12 +10,14 @@ export class VegaPatchManager {
 
 
 
-        this.modifiedElements = extractModifiedObjects(spec);
         
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
         const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
+
+        this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
+
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)
         unreferencedRemoved.params = newParams

@@ -78,7 +78,7 @@ const configurations = [{
     ]
 }
 */
-
+console.log('in circlcsdjkf')
 import { generateConfigurationAnchors } from "../interactions/Drag";
 export class Circle extends BaseComponent {
     public schema: Record<string, SchemaType>;

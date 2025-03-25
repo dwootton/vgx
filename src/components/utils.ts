@@ -433,6 +433,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
         if (Array.isArray(values) && values.length > 0) {
             console.log('valuesdslkjfaskl', values[0],  compileConstraint(values[0]))
             // Return the first value from the array
+            //TODO ensure no parentId
             return compileConstraint(values[0]);
         }
     }

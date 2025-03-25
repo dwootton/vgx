@@ -1,7 +1,7 @@
 import { CombinedDrag, dragBaseContext, generateConfigurationAnchors } from "../Drag";
 import { Rect } from "../../marks/rect";
 import { BaseComponent } from "../../base";
-import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
+import { calculateValueFor, extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
@@ -180,13 +180,13 @@ export class Brush extends BaseComponent {
         // const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
 
 
-        const {value:x1,signals:x1Signals,data:x1Data} = constructValueFromContext('x1', inputContext, this.id, configurations)
-        const {value:x2,signals:x2Signals,data:x2Data} = constructValueFromContext('x2', inputContext, this.id, configurations)
 
-        const {value:y1,signals:y1Signals,data:y1Data} = constructValueFromContext('y1', inputContext, this.id, configurations)
-        const {value:y2,signals:y2Signals,data:y2Data} = constructValueFromContext('y2', inputContext, this.id, configurations)
+        // const {value:x1,signals:x1Signals,data:x1Data} = constructValueFromContext('x1', inputContext, this.id, configurations)
+        // const {value:x2,signals:x2Signals,data:x2Data} = constructValueFromContext('x2', inputContext, this.id, configurations)
 
-        console.log('x1',x1,x1Signals,x1Data);
+        // const {value:y1,signals:y1Signals,data:y1Data} = constructValueFromContext('y1', inputContext, this.id, configurations)
+        // const {value:y2,signals:y2Signals,data:y2Data} = constructValueFromContext('y2', inputContext, this.id, configurations)
+
         // need to figure out how to get reasonable 
 
         const outputSignals = Object.values(this.configurations)
@@ -213,8 +213,16 @@ export class Brush extends BaseComponent {
 
             console.log('generated signals', outputSignals);
 
-        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x1},{"signal":x2}],"update":`[${x1},${x2}]`}]},
-                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y1},{"signal":y2}],"update":`[${y1},${y2}]`}]}]
+        const x1 = calculateValueFor('x1', inputContext, outputSignals, configurations);
+        const x2 = calculateValueFor('x2', inputContext, outputSignals, configurations);
+        const y1 = calculateValueFor('y1', inputContext, outputSignals, configurations);
+        const y2 = calculateValueFor('y2', inputContext, outputSignals, configurations);
+
+        console.log('x1dsadas',x1,x2,y1,y2)
+
+
+        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x1.expr},{"signal":x2.expr}],"update":`[${x1.expr},${x2.expr}]`}]},
+                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y1.expr},{"signal":y2.expr}],"update":`[${y1.expr},${y2.expr}]`}]}]
 
         
         // const additionalSignals = [...x1Signals, ...x2Signals, ...y1Signals, ...y2Signals] // should be empty

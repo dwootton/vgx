@@ -21,6 +21,33 @@ export type Edge = AnchorEdge | VirtualBindingEdge;
 type AnchorId = string;
 type Constraint = string;
 
+// Extract other nodes from merged node IDs
+// For merged nodes like 'merged_node_2_node_3_node_1', extract [node_2, node_3] if current node is node_1
+const extractOtherNodesFromMergedId = (mergedId: string, currentNodeId: string): string[] => {
+    // Check if this is a merged node ID
+    if (!mergedId.startsWith('merged_')) {
+        return [];
+    }
+
+    // Split the merged ID into parts
+    const parts = mergedId.split('_');
+
+    // Remove 'merged' prefix
+    parts.shift();
+
+    // Filter out the current node ID and return the remaining node IDs
+    return parts.filter(part => {
+        // Handle case where the node ID might be multi-part (e.g., "node_1")
+        return !currentNodeId.endsWith(part) && !currentNodeId.includes(`${part}_`);
+    }).map(part => {
+        // If the part is just a number, prepend "node_" to it
+        if (/^\d+$/.test(part)) {
+            return `node_${part}`;
+        }
+        return part;
+    });
+};
+
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
     if (schema.container === 'Absolute') {
         return `${value.value}`;
@@ -124,7 +151,6 @@ export class SpecCompiler {
         let edges = [...previousEdges]
         const implicitEdges = []
 
-        console.log('buildImplicitContextEdgesfor:', node, previousEdges, nodes)
         // Skip if this is a merged node
         if (node.type === 'merged') {
             return [];
@@ -133,54 +159,15 @@ export class SpecCompiler {
         // 1. Find all parent nodes (nodes that have edges targeting the current node)
         const parentNodes = nodes.filter(n =>
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
-        );
+        ).flatMap(n => {
+            // if the node is a merged nodes, extract what other nodes were originally part of it
+            // TODO: other ndoes might have been children.... this is a hack
+            if (n.type === 'merged') {
+                return extractOtherNodesFromMergedId(n.id, node.id).map(id => nodes.find(n => n.id === id));
+            }
+            return [n];
+        }).filter(n => n !== undefined);
 
-        // Extract other nodes from merged node IDs
-        // For merged nodes like 'merged_node_2_node_3_node_1', extract [node_2, node_3] if current node is node_1
-        const extractOtherNodesFromMergedId = (mergedId: string, currentNodeId: string): string[] => {
-            // Check if this is a merged node ID
-            if (!mergedId.startsWith('merged_')) {
-                return [];
-            }
-            
-            // Split the merged ID into parts
-            const parts = mergedId.split('_');
-            
-            // Remove 'merged' prefix
-            parts.shift();
-            
-            // Filter out the current node ID and return the remaining node IDs
-            return parts.filter(part => {
-                // Handle case where the node ID might be multi-part (e.g., "node_1")
-                return !currentNodeId.endsWith(part) && !currentNodeId.includes(`${part}_`);
-            }).map(part => {
-                // If the part is just a number, prepend "node_" to it
-                if (/^\d+$/.test(part)) {
-                    return `node_${part}`;
-                }
-                return part;
-            });
-        };
-        
-        // Add merged nodes to parent nodes if they contain the current node
-        nodes.forEach(potentialMergedNode => {
-            if (potentialMergedNode.type === 'merged' && potentialMergedNode.id.includes(node.id)) {
-                const otherNodeIds = extractOtherNodesFromMergedId(potentialMergedNode.id, node.id);
-                
-                // Find the actual node objects for these IDs
-                const otherNodes = nodes.filter(n => otherNodeIds.includes(n.id));
-                
-                // Add these nodes to parent nodes if they're not already there
-                otherNodes.forEach(otherNode => {
-                    if (!parentNodes.some(pn => pn.id === otherNode.id)) {
-                        parentNodes.push(otherNode);
-                    }
-                });
-            }
-        });
-        if (node.id === 'node_1') {
-            console.log('parentNodes for node_1:', parentNodes);
-        } 
         if (parentNodes.length === 0) return [];
 
         // Get the current component
@@ -235,7 +222,6 @@ export class SpecCompiler {
                         parentSchema.container === childSchema.container &&
                         parentSchema.valueType === childSchema.valueType) {
                         priorityValue += 100;
-                        console.log(`Increased priority for ${targetAnchorType} to ${priorityValue} due to schema match`);
                     }
 
                     // Update highest priority anchor for this channel
@@ -248,11 +234,6 @@ export class SpecCompiler {
                     }
                 }
             });
-
-            console.log('highestAnchors for ', childComponent.id)
-            if (childComponent.id === 'node_1') {
-                console.log('highestAnchors for node_1:', highestAnchors);
-            }
 
 
             // Create new implicit binding edges for each anchor within the chiuld component based on the 
@@ -339,11 +320,8 @@ export class SpecCompiler {
                     if (!edgeExists) {
                         implicitEdges.push(implicitEdge);
                     }
-                    // implicitEdges.push(implicitEdge)
                 }
             }
-
-
         }
         return implicitEdges;
     }
@@ -438,7 +416,7 @@ export class SpecCompiler {
             }
             const allEdges = [...edges, ...implicitEdges];
 
-            console.log('alledge for ', node.id, allEdges.filter(edge=>edge.target.nodeId === node.id),allNodes)
+            console.log('alledge for ', node.id, allEdges.filter(edge => edge.target.nodeId === node.id), allNodes)
             const constraints = this.buildNodeConstraints(node, allEdges, allNodes);
 
 

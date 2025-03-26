@@ -91,6 +91,16 @@ export class BindingManager {
     }
 
     public addBinding(sourceId: string, targetId: string, sourceAnchor: string, targetAnchor: string): void {
+        // Check if any input values contain "FAKEPROXY"
+        if (sourceId.includes("FAKEPROXY") || targetId.includes("FAKEPROXY") || 
+            sourceAnchor.includes("FAKEPROXY") || targetAnchor.includes("FAKEPROXY")) {
+            console.log("FAKEPROXY detected in binding:", {
+                sourceId,
+                targetId,
+                sourceAnchor,
+                targetAnchor
+            });
+        }
         // check if the binding already exists
         if (this.bindings.some(binding => binding.sourceId === sourceId && binding.targetId === targetId && binding.sourceAnchor === sourceAnchor && binding.targetAnchor === targetAnchor)) {
             return;

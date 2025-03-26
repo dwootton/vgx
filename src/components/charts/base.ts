@@ -133,10 +133,10 @@ const configurations = [
         "container": "Range",
         "valueType": "Numeric"
       },
-      "y": {
-        "container": "Range",
-        "valueType": "Numeric"
-      },
+      // "y": {
+      //   "container": "Range",
+      //   "valueType": "Numeric"
+      // },
       // "color": {
       //   "container": "Scalar",
       //   "valueType": "Numeric"

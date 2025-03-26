@@ -63,8 +63,16 @@ export abstract class BaseComponent {
 
     // Early return if not a valid component, for now no support for anchor proxies
     if (!isComponent(childComponent)) {
-        console.warn('Cannot elaborate binding for AnchorProxy', bindingItem);
-        return;
+      console.log('what is this', bindingItem.value.toComponent)
+      console.warn('Cannot elaborate binding for AnchorProxy', bindingItem);
+      return;
+    }
+
+
+    if (childComponent.isLazy) {
+      this.bindingManager.addBinding(this.id, childComponent.id, bindingProperty, '_all');
+      return;
+      // console.log('LAZYCHIDLANCHORSTHRU')
     }
 
 
@@ -72,59 +80,97 @@ export abstract class BaseComponent {
     // Find default configuration for this component
     const defaultParentConfig = this.configurations.find(config => config.default);
 
+
     if (!defaultParentConfig) {
-        console.warn('No default config found for', bindingProperty, this.id, childComponent.id);
-        return;
+      console.warn('No default config found for', bindingProperty, this.id, childComponent.id);
+      return;
+    }
+
+    let childDefaultConfig = childComponent.configurations?.find(config => config.default);
+    // If no parent config found, check if there's a default config with the same key
+    // if (!parentConfig && defaultParentConfig) {
+    //   // Create a fake config with only the requested accessor
+    //   parentConfig = {
+    //     id: accessor,
+    //     default: true,
+    //     schema: {},
+    //     transforms: []
+    //   };
+
+    //   console.log('AZYCHIDcreating fake config', accessor, defaultParentConfig.schema)
+    //   // Check if the accessor exists in the default config's schema
+    //   if (defaultParentConfig.schema[accessor]) {
+    //     // Copy just this schema entry to our fake config
+    //     console.log('AZYCHIDcopying schema', defaultParentConfig.schema[accessor])
+    //     parentConfig.schema[accessor] = defaultParentConfig.schema[accessor];
+    //   } else {
+    //     console.warn('Accessor not found in default config schema:', accessor);
+    //   }
+
+    //   if(!childDefaultConfig){
+    //     console.log('setting child default config', parentConfig)
+    //     childDefaultConfig = parentConfig
+    //   }
+    // }
+
+   
+
+    if (!childDefaultConfig) {
+
+      console.warn('No default config found for', bindingProperty, this.id, childComponent.id);
+      return;
     }
 
     // Get parent configuration
     const accessor = bindingProperty === '_all' ? defaultParentConfig.id : bindingProperty;
-    const parentConfig = this.configurations.find(config => accessor === config.id);
+    let parentConfig = this.configurations.find(config => accessor === config.id);
+
+   
+
+
     if (!parentConfig) {
 
-        console.warn('No parent config found for', bindingProperty, this.id, childComponent.id);
-        return;
+      console.warn('No parent config found for', bindingProperty, this.id, childComponent.id);
+      return;
     }
 
 
     // Create parent anchors
     const parentAnchors = Object.keys(parentConfig.schema).map(schemaKey => ({
-        id: {
-            componentId: this.id,
-            anchorId: `${parentConfig.id}_${schemaKey}`
-        },
-        anchorSchema: parentConfig.schema[schemaKey]
+      id: {
+        componentId: this.id,
+        anchorId: `${parentConfig.id}_${schemaKey}`
+      },
+      anchorSchema: parentConfig.schema[schemaKey]
     }));
 
 
-    // Process child anchors
-    const childDefaultConfig = childComponent.configurations.find(config => config.default);
     const childAnchors = Object.values(childComponent.getAnchors())
-        .filter(anchor => anchor.id.anchorId.includes(childDefaultConfig.id));
+      .filter(anchor => anchor.id.anchorId.includes(childDefaultConfig.id));
 
 
 
     // Create bindings
     parentAnchors.forEach(parentAnchor => {
-        childAnchors.forEach(childAnchor => {
-            this.bindingManager.addBinding(this.id, childComponent.id, parentAnchor.id.anchorId, childAnchor.id.anchorId);
+      childAnchors.forEach(childAnchor => {
+        this.bindingManager.addBinding(this.id, childComponent.id, parentAnchor.id.anchorId, childAnchor.id.anchorId);
 
-            const isChartAnchor = (anchorId: string): boolean => {
-              // console.log('isChartAnchor',  this)
-              // Check if this component is a BaseChart instance
-              console.log('about to check if chart', this, this.isChart)
-              if (this.isChart) {
-                console.log('isChartAnchor', anchorId, anchorId.includes('plot'), this)
-                // For BaseChart instances, consider plot anchors as chart anchors
-                return true;
-              }
-              console.log('isChartAnchorNOT', anchorId, anchorId.includes('plot'), this)
-              return false;
-            }
-            if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
-                this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);
-            }
-        });
+        const isChartAnchor = (anchorId: string): boolean => {
+          // console.log('isChartAnchor',  this)
+          // Check if this component is a BaseChart instance
+          console.log('about to check if chart', this, this.isChart)
+          if (this.isChart) {
+            console.log('isChartAnchor', anchorId, anchorId.includes('plot'), this)
+            // For BaseChart instances, consider plot anchors as chart anchors
+            return true;
+          }
+          console.log('isChartAnchorNOT', anchorId, anchorId.includes('plot'), this)
+          return false;
+        }
+        if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
+          this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);
+        }
+      });
     });
   }
 

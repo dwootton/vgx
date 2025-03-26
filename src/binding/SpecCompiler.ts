@@ -1,6 +1,6 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
-import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
+import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue, AnchorType } from "../types/anchors";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { extractConstraintsForMergedComponent } from "./mergedComponent";
@@ -130,8 +130,8 @@ export class SpecCompiler {
         if (parentNodes.length === 0) return [];
         
         // Get the current component
-        const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return [];
+        const childComponent = this.getBindingManager().getComponent(node.id);
+        if (!childComponent) return [];
         
         // Map to store the highest value anchor for each channel type
         const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
@@ -147,40 +147,72 @@ export class SpecCompiler {
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
             // Process each anchor
-            parentAnchors.forEach(anchor => {
-                const componentId = anchor.id.componentId;
-                const anchorType = extractAnchorType(anchor.id.anchorId);
+            parentAnchors.forEach(parentAnchor => {
+                const componentId = parentAnchor.id.componentId;
+                const anchorType = extractAnchorType(parentAnchor.id.anchorId);
                 if (!anchorType) return;
                 
                 // Get the anchor's configuration prefix if it exists
-                const anchorPrefix = anchor.id.anchorId.split('_')[0];
+                const anchorPrefix = parentAnchor.id.anchorId.split('_')[0];
                 
-                // Process for all bound configurations, or use empty string if none match
-                const configurationsToProcess = boundConfigurations.length > 0
-                    ? boundConfigurations
-                    : [''];
+                // // Process for all bound configurations, or use empty string if none match
+                // const configurationsToProcess = boundConfigurations.length > 0
+                //     ? boundConfigurations
+                //     : [''];
 
+                const configurationsToProcess = childComponent.configurations.map(config => config.id)
+                console.log('configurationsToProcess', configurationsToProcess)
                 
                 // TODO: try to find out why markname is not propogating implicitly
                 for (const configuration of configurationsToProcess) {
                     const configurationAnchorType = configuration ? `${configuration}_${anchorType}` : anchorType;
                     
+                    if(!configurationAnchorType || AnchorType.OTHER == anchorType) continue;
                     // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
                     const match = componentId.match(/node_(\d+)/);
-                    const value = match ? parseInt(match[1], 10) : 0;
+                    let value = match ? parseInt(match[1], 10) : 0;
                     
+                    // Log the schema of both anchors for debugging
+                    console.log('Anchor schemas for implicit edge consideration:');
+                    console.log('Parent anchor:', parentAnchor.id.anchorId, 'from component:', componentId);
+                    console.log('Parent anchor schema:', parentAnchor.anchorSchema[parentAnchor.id.anchorId], configurationAnchorType);
                     
+                    let targetAnchor = null;
+                    try{
+                        targetAnchor = childComponent.getAnchor(configurationAnchorType)
+                        console.log('targetAnchor', targetAnchor)
+                    } catch {
+                        continue;
+                    }
+
+                    // Check if both anchors have the same schema type
+                    const parentSchema = parentAnchor.anchorSchema[parentAnchor.id.anchorId];
+                    const childSchema = targetAnchor.anchorSchema[configurationAnchorType];
+
+                    console.log('ALLparentSchema',parentAnchor.id.componentId +"_"+parentAnchor.id.anchorId, parentSchema, 'childSchema', childComponent.id +"_"+configurationAnchorType, childSchema)
+                    
+                    if (parentSchema && childSchema && parentSchema.container === childSchema.container && parentSchema.valueType === childSchema.valueType) {
+                        // If schema types match, bump up the value by 10
+                        value += 10;
+                        console.log(`Bumped value for ${configurationAnchorType} from ${value - 10} to ${value} due to matching schema types`);
+                    }
+                  
                     // Update highest anchor for this channel if this one is higher
                     if (!highestAnchors[configurationAnchorType] || value > highestAnchors[configurationAnchorType].value) {
                         highestAnchors[configurationAnchorType] = {
                             nodeId: parentNode.id,
-                            anchorId: anchor.id.anchorId,
+                            anchorId: parentAnchor.id.anchorId,
                             value
                         };
                     }
                 }
             })
         }
+        // Print highestAnchors if node.id is node_1
+        if (node.id === 'node_1') {
+            console.log('highestAnchors for node_1:', highestAnchors);
+        }
+        console.log('highestAnchors2', parentNodes,highestAnchors, node.id, childComponent.configurations, childComponent)
         // issue here is that implicit anchors match the first anchor vlaue (default), but
         // sometimes implicit anchors should match the items that other things are bound to. 
         // this suggests, we also need to have something around output context, or at least a sense
@@ -188,12 +220,14 @@ export class SpecCompiler {
         // 3. Create implicit edges from highest parent anchors to this node
         for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
             // Find compatible target anchor on current node
-            let targetAnchors = component.getAnchors()
+            let pretargetAnchors = childComponent.getAnchors()
                 .filter(anchor => {
                     const targetChannel = extractAnchorType(anchor.id.anchorId);
                     return targetChannel && isAnchorTypeCompatible(channel, targetChannel);
                 })
-                .filter(anchor=>{
+
+                console.log('compatible anchors', pretargetAnchors, "for:", channel, "from:", anchorInfo.nodeId, anchorInfo.anchorId)
+                let targetAnchors = [...pretargetAnchors].filter(anchor=>{
                     // implicit edges should only be used to transfer values from their parents NOT to constrain. 
                     // Get the channel from the current anchor
                     const targetChannel = extractAnchorType(anchor.id.anchorId);
@@ -214,11 +248,13 @@ export class SpecCompiler {
                     const sourceSchema = sourceAnchor.anchorSchema[anchorInfo.anchorId];
                     if (!sourceSchema) return false;
 
+                    console.log('matching', anchor.id.anchorId, sourceSchema, targetSchema)
 
                     // Check if the containers match
                     return sourceSchema.container === targetSchema.container;
                 })
             
+            console.log('targetAnchors',childComponent, targetAnchors)
             if (targetAnchors.length === 0) continue;
             // Deduplicate target anchors based on anchorId
             const uniqueTargetAnchors = [];
@@ -231,6 +267,8 @@ export class SpecCompiler {
                     uniqueTargetAnchors.push(anchor);
                 }
             }
+
+            console.log('uniqueTargetAnchors', uniqueTargetAnchors,  'vs:',targetAnchors)
             
             // Replace the original array with the deduplicated one
             targetAnchors = uniqueTargetAnchors;
@@ -264,11 +302,13 @@ export class SpecCompiler {
                 
                 // Only add the edge if it doesn't already exist
                 if (!edgeExists) {
+                    console.log('adding implicit edge', implicitEdge)
                     implicitEdges.push(implicitEdge);
                 }
                 // implicitEdges.push(implicitEdge)
             }
         }
+        console.log('allimplicitEdges', implicitEdges, " between:", parentNodes, "and", node.id)
         return implicitEdges;
     }
         

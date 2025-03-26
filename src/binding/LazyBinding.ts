@@ -11,6 +11,7 @@ export class LazyComponent {
     id: string;
     componentType: string;
     operations: LazyOperation[];
+    isLazy: boolean = true;
 
     constructor(componentType: string, operations: LazyOperation[] = []) {
         this.id = `FAKEPROXY_${fakeProxyCounter++}`;
@@ -21,6 +22,7 @@ export class LazyComponent {
     bind(parentComponent: BaseComponent, propertyName: string): void {
         const bindingManager = BindingManager.getInstance();
 
+        console.log('bindinglz', parentComponent.id, this.id, propertyName)
         // Create temporary binding to the fake proxy
         bindingManager.addBinding(
             parentComponent.id,
@@ -46,14 +48,21 @@ export class LazyBindingRegistry {
     static resolve(componentType: string, realComponent: BaseComponent): void {
         const pending = this.pendingBindings.get(componentType) || [];
 
+        console.log('resolving lazy bindings', pending)
+
         if (pending.length == 0) {
             return;
         }
-        // Process each pending lazy component
+
+        // Process each pending lazy c
+        // omponent
         pending.forEach(lazyComponent => {
             // Find all bindings to the fake proxy
             const bindings = this.bindingManager.getBindingsForComponent(lazyComponent.id, 'target');
 
+
+
+            console.log('lazybindings', bindings, lazyComponent.id, this.bindingManager.getBindings(), realComponent.id, realComponent)
             // Rewrite each binding to point to the real component
             bindings.forEach(binding => {
 

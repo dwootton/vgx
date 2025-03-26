@@ -17,11 +17,11 @@ const configurations = [{
     "schema": {
        
         "data": { 
-            container: 'Scalar',
+            container: 'Absolute',
             valueType: "Data"
           },
           "text": { 
-            container: 'Scalar',
+            container: 'Absolute',
             valueType: "Categorical"
           }
        
@@ -67,6 +67,7 @@ class DataTransformer extends BaseComponent {
   
   compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
+    console.log('data transformer compilation inputContext', inputContext)
     const transforms = this.compileToTransforms();
     
     const compilation = {
@@ -83,6 +84,8 @@ class DataTransformer extends BaseComponent {
         }
       ]
     };
+
+    console.log('data transformer compilation', compilation)
 
     return compilation;
   }

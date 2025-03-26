@@ -37,11 +37,11 @@ const configurations = [{
         },
         "text": {
             "container": "Scalar",
-            "valueType": "Categorical",
+            "valueType": "Absolute",
             // "interactive": true
         },
         "data": {
-            "container": "Data",
+            "container": "Absolute",
             "valueType": "Data",
             // "interactive": true
         },

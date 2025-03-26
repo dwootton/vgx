@@ -143,6 +143,8 @@ export class Brush extends BaseComponent {
     constructor(config: any = {},) {
         super(config,configurations);
         this._data = new DataAccessor(this);
+        console.log('brush constructor', this._data)
+
         this.accessors = [];
         configurations.forEach(config => {
             const schema = config.schema
@@ -167,6 +169,7 @@ export class Brush extends BaseComponent {
     
         // Getter for data accessor
     get data(): DataAccessor {
+        console.log('getting data accessor', this.id)
         const accessor= new DataAccessor(this);
         this.accessors.push(accessor);
         return accessor.filter(`vlSelectionTest(${this.id}_store, datum)`)

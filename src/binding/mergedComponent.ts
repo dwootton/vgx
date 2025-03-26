@@ -143,8 +143,11 @@ export function extractConstraintsForMergedComponent(
     
     parentAnchors.forEach(anchorFromParent => {
         const parentId = anchorFromParent.anchor.id.componentId;
+
+        console.log('targetId', anchorFromParent.targetId)
         const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
 
+        console.log('parentSignalName', parentSignalName)
         if(!mergedConstraints[parentSignalName]){
             mergedConstraints[parentSignalName] = [];
         }

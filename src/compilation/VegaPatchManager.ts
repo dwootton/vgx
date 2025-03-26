@@ -11,10 +11,13 @@ export class VegaPatchManager {
 
 
         
+        console.log('unreferencedNotRemoved', spec)
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
-        const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
-        const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
+        // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
+        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('unreferencedRemoved', unreferencedRemoved)
+
 
         this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
 

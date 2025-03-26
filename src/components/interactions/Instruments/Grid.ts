@@ -9,6 +9,7 @@ export class Grid {
         
         const lines2 = new DraggableLine(config);
 
+        console.log('grid', lines, lines2)
 
         return [lines,lines2];
     }

@@ -253,10 +253,11 @@ function rewireMultiNodeConnections(
         // Get the anchor for this component that uses this channel
         const anchorId = component.getAnchors().find(anchor => allEdgeAnchorIdsInCycle.includes(anchor.id.anchorId))?.id.anchorId as string;
 
+        console.log('anchorId from cycle', anchorId)
 
         const channel = extractAnchorType(anchorId)
 
-
+        console.log('channel', channel)
         if (!anchorId || !channel) {
             console.warn(`No anchor found for channel in component ${nodeId}`);
             return;
@@ -270,6 +271,7 @@ function rewireMultiNodeConnections(
 
         const internalAnchorId = `${anchorId}_internal`;
 
+        console.log('internalAnchorId', internalAnchorId)
 
         // Add connections to and from merged node
         // Component internal -> merged
@@ -312,6 +314,7 @@ export function resolveCycleMulti(
     let cycles = detectCyclesByChannel(processedGraph.edges);
     cycles = cycles.filter(cycle => !(cycle.nodes.length === 1));
 
+    console.log('HERES THE CYCLES', cycles,processedGraph.edges)
 
     cycles.forEach(cycle => {
         const { nodes, edges } = cycle;
@@ -355,6 +358,9 @@ export function resolveCycleMulti(
         processedGraph.edges = filterOutCycleEdges(rewiredEdges, cycle);
     });
 
+
+    console.log('more cycles?', detectCyclesByChannel(processedGraph.edges))
+    console.log('HERES THE PROCESSED GRAPH', processedGraph.edges)
 
 
     return processedGraph;
@@ -597,6 +603,7 @@ function createInternalAnchor(component: BaseComponent, anchorId: string): void 
 
     // Clone the anchor
     const clonedAnchor = cloneAnchor(originalAnchor);
+    console.log('originalAnchor', internalAnchorId, clonedAnchor)
 
     // Modify the compile function to return internal signal
     const originalResult = originalAnchor.compile();
@@ -608,6 +615,7 @@ function createInternalAnchor(component: BaseComponent, anchorId: string): void 
                 'VGX_SIGNAL_NAME',
                 `${originalAnchor.id.componentId}`
             );
+            console.log('updatedValue', updatedValue)
             return { value: `${updatedValue}_internal` };
         }
         return originalResult;

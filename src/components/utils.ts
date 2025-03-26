@@ -391,7 +391,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
   }
 
 
-  export function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[], configuration: any[]) {
+  export function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[]) {
     // find all of the compatible signals for this key
 
     const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));

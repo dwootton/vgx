@@ -4,7 +4,7 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal, calculateValueFor } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
 
 const lineBaseContext = {
@@ -47,25 +47,21 @@ const configurations = [{
         { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
         { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y"}, //data set y value will be each y value.
     ]
-},{
+},
+{
     'id': 'x',
-    "default": true,
     "schema": {
         "x": {
             "container": "Scalar",
             "valueType": "Numeric",
             // "interactive": true
         },
-        "y": {
-            "container": "Range",
-            "valueType": "Numeric",
-            // "interactive": true
-        },
-        "markName": {
-            "container": "Scalar",
-            "valueType": "Categorical",
-            // "interactive": true
-        }
+      
+        // "markName": {
+        //     "container": "Scalar",
+        //     "valueType": "Categorical",
+        //     // "interactive": true
+        // }
     },
     "transforms": [
         { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x.start" },
@@ -94,7 +90,8 @@ const configurations = [{
         { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
         { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
     ]
-}];
+}
+];
 
 
 
@@ -106,10 +103,9 @@ export class Line extends BaseComponent {
     public configurations: Record<string, any>;
 
     constructor(config: any = {}) {
-        super({ ...config })
+        super({ ...config }, configurations)
 
        
-        this.configurations = configurations;
 
         // Set up the main schema from configurations
         this.schema = {};
@@ -175,6 +171,8 @@ export class Line extends BaseComponent {
             
             let outputSignals = (generatedSignals)
 
+            
+
 
 
 
@@ -186,6 +184,7 @@ export class Line extends BaseComponent {
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
                
+                console.log('internal keys', key)
                 const configId = key.split('_')[0];
                 const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
@@ -198,6 +197,13 @@ export class Line extends BaseComponent {
             }
              
             ).flat();
+
+            const x1 = calculateValueFor('x1',inputContext, outputSignals)
+            const y1 = calculateValueFor('y1',inputContext, outputSignals)
+            const x2 = calculateValueFor('x2',inputContext, outputSignals)
+            const y2 = calculateValueFor('y2',inputContext, outputSignals)
+
+            console.log('linevalues', x1, y1, x2, y2)
        
         return {
             params: [
@@ -216,16 +222,16 @@ export class Line extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": { "expr": `${this.id}_position_start_x` },
+                    "value": x1,
                 },
                 "y": {
-                    "value": { "expr": `${this.id}_position_start_y` },
+                    "value": y1,
                 },
                 "x2": {
-                    "value": { "expr": `${this.id}_position_stop_x` },
+                    "value": x2,
                 },
                 "y2": {
-                    "value": { "expr": `${this.id}_position_stop_y` },
+                    "value": y2,
                 },
                 "size": {"value": {"expr": 5}},// rule width
                 "color": {"value": {"expr": "'firebrick'"}},

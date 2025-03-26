@@ -138,6 +138,7 @@ let generateCompiledValue = (id: string, channel: string, configurationId: strin
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
         super(config, configurations);
+        console.log('combineddrag', this.configurations)
         
         this.configurations.forEach(config => {
             // this.configurations[config.id] = config
@@ -222,15 +223,18 @@ export class CombinedDrag extends BaseComponent {
         const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
+                console.log('internal keysdar', key)
                 const configId = key.split('_')[0];
                 const config = this.configurations.find(config => config.id === configId);
 
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
 
+                console.log('internal keysdar2', key)
                 const internalId = key.split('_').filter(name=>name !== config.id).join('_')
 
-                const outputName = nodeId + '_' + internalId
+                const outputName = nodeId + '_' + key;//internalId
 
+                console.log('internal keysdar3', outputName)
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
                     transform: transform,

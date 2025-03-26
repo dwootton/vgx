@@ -99,7 +99,8 @@ export class SpecCompiler {
 
         const elaboratedGraph = this.graphManager.buildCompilationGraph(fromComponentId);
 
-        const compiledSpecs = this.compileBindingGraph(fromComponentId, elaboratedGraph);
+        console.log('elaboratedGraph', elaboratedGraph)
+        const compiledSpecs = this.compileBindingGraph(elaboratedGraph);
 
         const mergedSpec = mergeSpecs(compiledSpecs, fromComponentId);
 
@@ -285,7 +286,7 @@ export class SpecCompiler {
      * @param bindingGraph The processed binding graph with cycles resolved
      * @returns Array of compiled Vega-Lite specifications
      */
-    private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+    private compileBindingGraph( bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
         
@@ -361,6 +362,7 @@ export class SpecCompiler {
             if (!component) return null;
             
             const parentAnchors = this.getParentAnchors(nodeId, allNodes, edges);
+            console.log('parentAnchors', parentAnchors)
             const mergedConstraints = extractConstraintsForMergedComponent(
                 parentAnchors, 
                 constraintsByNode, 
@@ -422,7 +424,8 @@ export class SpecCompiler {
                 if (!parentComponent) return null;
                 
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                return anchor ? { anchor, targetId: edge.target.anchorId } : null;
+                console.log('aAALLnchor', anchor, 'sourceanchorId',edge.source.anchorId)
+                return anchor ? { anchor, targetId: anchor.id.anchorId } : null;
             })
             .filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== null);
     }

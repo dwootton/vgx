@@ -126,7 +126,6 @@ export class SpecCompiler {
         const parentNodes = nodes.filter(n => 
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
         );
-
         
         if (parentNodes.length === 0) return [];
         
@@ -144,14 +143,7 @@ export class SpecCompiler {
             
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
             if (!parentComponent) continue;
-            
-            // // Find default configuration for parent
-            // const defaultConfigKey = Object.keys(parentComponent.configurations || {})
-            //     .find(cfg => parentComponent.configurations[cfg]?.default);
-
-            
-            // if (!defaultConfigKey) continue;
-            
+          
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
             // Process each anchor
@@ -169,6 +161,7 @@ export class SpecCompiler {
                     : [''];
 
                 
+                // TODO: try to find out why markname is not propogating implicitly
                 for (const configuration of configurationsToProcess) {
                     const configurationAnchorType = configuration ? `${configuration}_${anchorType}` : anchorType;
                     
@@ -214,12 +207,14 @@ export class SpecCompiler {
                     const sourceComponent = this.getBindingManager().getComponent(anchorInfo.nodeId);
                     if (!sourceComponent) return false;
                     
+
                     const sourceAnchor = sourceComponent.getAnchor(anchorInfo.anchorId);
                     if (!sourceAnchor) return false;
                     
                     const sourceSchema = sourceAnchor.anchorSchema[anchorInfo.anchorId];
                     if (!sourceSchema) return false;
-                    
+
+
                     // Check if the containers match
                     return sourceSchema.container === targetSchema.container;
                 })
@@ -339,8 +334,21 @@ export class SpecCompiler {
             const boundConfigurations = [...new Set(childEdges.map(edge => {
                 return edge.source.anchorId.split('_')[0];
             }))];
+            // Check if the component has a default configuration
+            if (component) {
+                // Find the default configuration
+                const defaultConfig = component.configurations.find(config => config.default);
+                if (defaultConfig && defaultConfig.id) {
+                    // If the default configuration exists and is not already in boundConfigurations, add it
+                    if (!boundConfigurations.includes(defaultConfig.id)) {
+                        boundConfigurations.push(defaultConfig.id);
+                    }
+                }
+            }
+
             const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes,boundConfigurations);
 
+            console.log('implicitEdges', implicitEdges)
             const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
             
 
@@ -362,7 +370,6 @@ export class SpecCompiler {
             if (!component) return null;
             
             const parentAnchors = this.getParentAnchors(nodeId, allNodes, edges);
-            console.log('parentAnchors', parentAnchors)
             const mergedConstraints = extractConstraintsForMergedComponent(
                 parentAnchors, 
                 constraintsByNode, 
@@ -424,7 +431,6 @@ export class SpecCompiler {
                 if (!parentComponent) return null;
                 
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                console.log('aAALLnchor', anchor, 'sourceanchorId',edge.source.anchorId)
                 return anchor ? { anchor, targetId: anchor.id.anchorId } : null;
             })
             .filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== null);

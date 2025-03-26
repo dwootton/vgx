@@ -36,7 +36,6 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
         nodeToUsedAnchorsMap.get(edge.source.nodeId)?.add(edge.source.anchorId);
     });
 
-    console.log('nodeToUsedAnchorsMap', nodeToUsedAnchorsMap)
 
     // Process each component
     components.forEach(component => {
@@ -59,8 +58,6 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
                 return isAnchorTypeCompatible(sourceAnchorType, targetAnchorType) && edge.target.nodeId === component.id
             });
 
-            //TODO: also include the default if any value is added.
-            console.log('compatibleEdgesSIBLING', compatibleEdges, usedAnchors)
             // Create new edges for each compatible edge
             compatibleEdges.forEach(edge => {
                 const newEdge: BindingEdge = {
@@ -74,6 +71,12 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
             });
         });
 
+
+
+
+        // FOR PASSING FROM SIBLINGS TO THE DEFAULT, EVEN IF DEFAULT IS NOT A SOURCE
+        // THIS IS NECESSARY TO ENSURE THAT THE DEFAULT MAY BE USED DURING NODE COMPILATION
+
         // For each component, check incoming edges targeting non-default anchors
         const incomingEdges = edges.filter(edge => edge.target.nodeId === component.id);
 
@@ -81,7 +84,6 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
         const configDefaultMap = new Map<string, boolean>();
         const defaultConfigId = component.configurations.find(config => config.default)?.id
 
-        console.log('configDefaultMap', configDefaultMap, incomingEdges)
         // Process each incoming edge
         incomingEdges.forEach(edge => {
             // Extract configuration ID from the target anchor
@@ -90,14 +92,10 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
 
             const configId = targetAnchorParts[0];
             const channelName = targetAnchorParts.slice(1).join('_');
-            console.log('configIdINCOMING', configId, channelName, edge,configDefaultMap.get(configId))
 
             // Skip if this is already targeting a default configuration
             if (configDefaultMap.get(configId)) return;
 
-
-
-            console.log('defaultConfigId', defaultConfigId)
             if (!defaultConfigId) return; // Skip if no default configuration exists
 
             // Create a new target anchor ID using the default configuration
@@ -124,9 +122,7 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
                 existingEdge.target.anchorId === newEdge.target.anchorId
             );
 
-            console.log('isDuplicate', isDuplicate, newEdge)
             if (!isDuplicate) {
-                console.log('adding default edge', newEdge)
                 expandedEdges.push(newEdge);
             }
         });
@@ -151,10 +147,8 @@ export class GraphManager {
 
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
 
+        const siblingExpandedEdges = expandConstraintsToSiblingNodes(prunedEdges, Array.from(this.bindingManager.getComponents().values()));
 
-        const siblingExpandedEdges = expandConstraintsToSiblingNodes(prunedEdges, this.bindingManager.getComponents());
-
-        console.log('prunedEdges', prunedEdges, 'siblingExpandedEdges', siblingExpandedEdges)
         bindingGraph.edges = siblingExpandedEdges;
 
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
@@ -163,7 +157,7 @@ export class GraphManager {
 
     public generateBindingGraph(startComponentId: string): BindingGraph {
         let nodes: BindingNode[] = [];
-        let edges: BindingEdge[] = [];
+        let edges: BindingEdge[] = [];  
         const visited = new Set<string>();
 
         const addNode = (component: BaseComponent) => {

@@ -152,29 +152,25 @@ export class Text extends BaseComponent {
             
 
             const internalSignals = [...this.anchors.keys()]
-        .filter(key => key.endsWith('_internal'))
-        .map(key => {
-            //no need to get constraints as constraints would have had it be already
-            // get the transform 
-            const configId = key.split('_')[0];
-            const config = this.configurations.find(config => config.id === configId);
+            .filter(key => key.endsWith('_internal'))
+            .map(key => {
+                //no need to get constraints as constraints would have had it be already
+                // get the transform 
+                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
+               
+                const configId = key.split('_')[0];
+                const config = this.configurations.find(config => config.id === configId);
+                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
+                return compatibleTransforms.map(transform => generateSignal({
+                    id: nodeId,
+                    transform: transform,
+                    output: nodeId + '_' + key,
+                    constraints: constraints
+                }))
+            }
+            ).flat();
 
-            const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-
-            const internalId = key.split('_').filter(name=>name !== config.id).join('_')
-
-            const outputName = nodeId + '_' + internalId;
-
-
-            return compatibleTransforms.map(transform => generateSignal({
-                id: nodeId,
-                transform: transform,
-                output: outputName,
-                constraints: []
-            }))
-        }
-
-        ).flat();
+            console.log('text internal signals', internalSignals)
 
 
         // Check if there's a signal with name ending with 'position_text'
@@ -194,10 +190,10 @@ export class Text extends BaseComponent {
 
         const allSignals = [...outputSignals, ...internalSignals];
 
-        const data = calculateValueFor('data', inputContext, allSignals, configurations);
-        const text = calculateValueFor('text', inputContext, allSignals, configurations);
-        const x = calculateValueFor('x', inputContext, allSignals, configurations);
-        const y = calculateValueFor('y', inputContext, allSignals, configurations);
+        const data = calculateValueFor('data', inputContext, allSignals);
+        const text = calculateValueFor('text', inputContext, allSignals);
+        const x = calculateValueFor('x', inputContext, allSignals);
+        const y = calculateValueFor('y', inputContext, allSignals);
 
 
         return {

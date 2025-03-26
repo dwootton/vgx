@@ -36,7 +36,7 @@ const configurations = [{
             // "interactive": true
         },
         "markName": {
-            "container": "Scalar",
+            "container": "Absolute",
             "valueType": "Categorical",
             // "interactive": true
         }
@@ -56,6 +56,11 @@ const configurations = [{
             "valueType": "Numeric",
             // "interactive": true
         },
+        // "markName": {
+        //     "container": "Scalar",
+        //     "valueType": "Absolute",
+        //     // "interactive": true
+        // }
       
         // "markName": {
         //     "container": "Scalar",
@@ -195,7 +200,6 @@ export class Line extends BaseComponent {
                     constraints: constraints
                 }))
             }
-             
             ).flat();
 
             const x1 = calculateValueFor('x1',inputContext, outputSignals)

@@ -8,10 +8,8 @@ export class VegaPatchManager {
     constructor(spec: TopLevelSpec) {
         this.spec = spec;
 
+        console.log('preunreferencedRemoved', spec)
 
-
-        
-        console.log('unreferencedNotRemoved', spec)
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);

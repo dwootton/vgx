@@ -58,7 +58,6 @@ export abstract class BaseComponent {
     const { value: childComponent, bindingProperty } = bindingItem;
 
 
-    console.log('elaborating bindings', bindingItem, this.configurations)
     // Early return if not a valid component, for now no support for anchor proxies
     if (!isComponent(childComponent)) {
         console.warn('Cannot elaborate binding for AnchorProxy', bindingItem);
@@ -77,7 +76,6 @@ export abstract class BaseComponent {
 
     // Get parent configuration
     const accessor = bindingProperty === '_all' ? defaultParentConfig.id : bindingProperty;
-    console.log('accessor', accessor, this.configurations)
     const parentConfig = this.configurations.find(config => accessor === config.id);
     if (!parentConfig) {
 
@@ -85,7 +83,6 @@ export abstract class BaseComponent {
         return;
     }
 
-    console.log('parentConfig', parentConfig)
 
     // Create parent anchors
     const parentAnchors = Object.keys(parentConfig.schema).map(schemaKey => ({
@@ -102,7 +99,6 @@ export abstract class BaseComponent {
     const childAnchors = Object.values(childComponent.getAnchors())
         .filter(anchor => anchor.id.anchorId.includes(childDefaultConfig.id));
 
-        console.log('parentAnchors', parentAnchors,'childAnchors',childAnchors)
 
 
     // Create bindings
@@ -122,13 +118,8 @@ export abstract class BaseComponent {
 
   private addParameterBindings(bindings: { value: BaseComponent | AnchorProxy, key: string }[]) {
 
-    console.log('adding parameter bindings', bindings)
     bindings.forEach(binding => {
-
-
       const bindingProperty = extractBindingProperty(binding.key);
-      console.log('bindingProperty', bindingProperty,binding, this)
-
 
       if (binding.isLazy) {
         this.bindingManager.addBinding(this.id, binding.id, bindingProperty, '_all');
@@ -136,8 +127,6 @@ export abstract class BaseComponent {
       }
 
       const bindingItem = { value: binding.value, bindingProperty: bindingProperty };
-
-
       this.elaborateBindings(bindingItem)
     })
   }

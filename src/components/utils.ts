@@ -369,7 +369,9 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     // Use the deduplicated constraints for merging
      compatibleConstraints = uniqueConstraints;
 
+     console.log('compatibleConstraints', compatibleConstraints, transform.value, id, output)
     let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
+    console.log('mergedExpression compatibleConstraints', mergedExpression)
 
     mergedExpression    = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
@@ -396,7 +398,10 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
 
     const compatibleSignals = signals.filter(signal => areNamesCompatible(key, generateAnchorId(signal.name)));
 
+    console.log('compatibleSignalsOut', compatibleSignals,signals,key)
     if(compatibleSignals.length > 0){
+        //TODO smart find
+        console.log('compatibleSignals return', compatibleSignals)
         return {'expr':compatibleSignals[0].name};
     }
 
@@ -410,6 +415,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
         const firstCompatibleKey = compatibleContextKeys[0];
         const values = inputContext[firstCompatibleKey];
         if (Array.isArray(values) && values.length > 0) {
+            console.log('compatibleSignalsKey', firstCompatibleKey, values)
             //TODO ensure no parentId
             return compileConstraint(values[0]);
         }

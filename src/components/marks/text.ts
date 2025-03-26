@@ -67,7 +67,7 @@ export class Text extends BaseComponent {
     public schema: Record<string, SchemaType>;
     public configurations: Record<string, any>;
     public baseConfig: any;
-    constructor(config: any = {}) { 
+    constructor(config: any = {}) {
         super({ config }, configurations)
 
         this.baseConfig = config;
@@ -109,10 +109,9 @@ export class Text extends BaseComponent {
 
         // // Build constraint map
         const constraintMap: Record<string, any> = {};
-     
-        const configs = JSON.parse(JSON.stringify(this.configurations))
+
         // Generate all signals from configurations
-        const outputSignals = Object.values(configs)
+        const outputSignals = this.configurations
             .flatMap(config => {
                 let transforms = config.transforms || [];
 
@@ -122,24 +121,20 @@ export class Text extends BaseComponent {
                     const key = `${config.id}_${channel}`;
                     constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
                 });
+                console.log('constraintMap', constraintMap)
 
-                // Create a transform for each item in the constraint map
-                for (const channel in constraintMap) {
-                    if (constraintMap[channel] && constraintMap[channel].length > 0 && !transforms.some(t => t.channel === channel)) {
-                        // Use the first constraint value as the transform value
-                        const firstConstraint = constraintMap[channel][0];
-                        transforms.push({
-                            'name': channel,
-                            'channel': channel,
-                            'value': firstConstraint
-                        });
-                    }
-                }
-
-               
-
+                // If
+                // for (const channel in constraintMap) {
+                //     if (constraintMap[channel] && constraintMap[channel].length > 0 && !transforms.some(t => t.channel === channel)) {
+                //         // Use the first constraint value as the transform value
+                //         console.warn('No transform for text compilation with channel', channel)
+                //         continue;
+                   
+                //     }
+                // }
 
                 const signalPrefix = this.id + '_' + config.id;
+                console.log('generating signals for', signalPrefix, transforms,constraintMap)
 
                 // Generate signals for this configuration
                 return generateSignalsFromTransforms(
@@ -148,16 +143,16 @@ export class Text extends BaseComponent {
                     signalPrefix,
                     constraintMap
                 );
-            });
-            
+            }).filter(signal => signal !== undefined);
 
-            const internalSignals = [...this.anchors.keys()]
+        console.log('TextoutputSignals', outputSignals)
+        const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
                 //no need to get constraints as constraints would have had it be already
                 // get the transform 
                 const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
-               
+
                 const configId = key.split('_')[0];
                 const config = this.configurations.find(config => config.id === configId);
                 const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
@@ -170,15 +165,14 @@ export class Text extends BaseComponent {
             }
             ).flat();
 
-            console.log('text internal signals', internalSignals)
 
 
         // Check if there's a signal with name ending with 'position_text'
-        const hasPositionTextSignal = outputSignals.some(signal => 
+        const hasPositionTextSignal = outputSignals.some(signal =>
             signal.name && signal.name.endsWith('_position_text')
         );
 
-        
+
         // If no position_text signal exists, add one
         if (!hasPositionTextSignal) {
             outputSignals.push({
@@ -192,10 +186,12 @@ export class Text extends BaseComponent {
 
         const data = calculateValueFor('data', inputContext, allSignals);
         const text = calculateValueFor('text', inputContext, allSignals);
+        // ISSUE: these are returning a value (not a signal)
         const x = calculateValueFor('x', inputContext, allSignals);
         const y = calculateValueFor('y', inputContext, allSignals);
 
 
+        console.log('textcalculated', x,y,data,text)
         return {
             params: [
                 {

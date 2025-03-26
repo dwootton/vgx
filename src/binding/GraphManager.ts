@@ -141,13 +141,18 @@ export class GraphManager {
     public buildCompilationGraph(fromComponentId: string): BindingGraph {
         // specific binding graph for this tree
         let bindingGraph = this.generateBindingGraph(fromComponentId);
+        console.log('nodes,edges', bindingGraph.nodes,bindingGraph.edges)
 
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
+        console.log('expandedEdges', expandedEdges,bindingGraph)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
 
+        console.log('expandedEdges pruned', prunedEdges)
+
         const siblingExpandedEdges = expandConstraintsToSiblingNodes(prunedEdges, Array.from(this.bindingManager.getComponents().values()));
+        console.log('expandedEdges sibling', siblingExpandedEdges)
 
         bindingGraph.edges = siblingExpandedEdges;
 

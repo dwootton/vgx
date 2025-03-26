@@ -95,14 +95,14 @@ const configurations = [
     ]
   },
   {
-    "id": 'hortizontal',
+    "id": 'y',
     "schema": {
       "x": {
         "container": "Range",
         "valueType": "Numeric"
       },
       "y": {
-        "container": "Scalar",
+        "container": "Range",
         "valueType": "Numeric"
       },
       // "color": {
@@ -127,10 +127,10 @@ const configurations = [
     ]
   },
   {
-    "id": 'vertical',
+    "id": 'x',
     "schema": {
       "x": {
-        "container": "Scalar",
+        "container": "Range",
         "valueType": "Numeric"
       },
       "y": {
@@ -171,11 +171,14 @@ export class BaseChart extends BaseComponent {
   public size: any;
   public shape: any;
   public opacity: any;
+  public isChart = true;
+  // public isChart: boolean;
 
   public channelConfigs: SplitConfig;
 
   constructor(config: ChartConfig) {
-    super({ ...config }, configurations);
+    // this.isChart = true;
+    super({ ...config }, configurations, true);
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;
@@ -355,6 +358,14 @@ export class BaseChart extends BaseComponent {
       { "name": this.id + "_plot_start_y", "expr": "range('y')[1]" },
       //@ts-ignore
       { "name": this.id + "_plot_stop_y", "expr": "range('y')[0]" },
+      //@ts-ignore
+      { "name": this.id + "_x_start_x", "expr": "range('x')[0]" },
+      //@ts-ignore
+      { "name": this.id + "_x_stop_x", "expr": "range('x')[1]" },
+      //@ts-ignore
+      { "name": this.id + "_x_start_y", "expr": "range('y')[1]" },
+      //@ts-ignore
+      { "name": this.id + "_x_stop_y", "expr": "range('y')[0]" },
     ]
 
 

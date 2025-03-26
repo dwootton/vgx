@@ -10,6 +10,8 @@ import { CompilationContext } from '../binding/binding';
 // import { generateComponentSignalName } from './marks/circle';
 
 import { LazyBindingRegistry, LazyComponent } from '../binding/LazyBinding';
+import type { BaseChart } from './charts/base';
+
 
 export type BindingTarget = BaseComponent | AnchorProxy;
 export interface Component {
@@ -25,14 +27,15 @@ export abstract class BaseComponent {
   public configurations: Record<string, SchemaType>[] = [];
 
   public id: string;
+  public isChart: boolean;
   public bindingManager: BindingManager;
 
 
 
 
-  constructor(config: any, configurations: Record<string, any>[] = []) {
+  constructor(config: any, configurations: Record<string, any>[] = [], isChart: boolean = false) {
     this.id = generateId();
-
+    this.isChart = isChart;
     this.bindingManager = BindingManager.getInstance();
     this.bindingManager.addComponent(this);
 
@@ -106,8 +109,17 @@ export abstract class BaseComponent {
         childAnchors.forEach(childAnchor => {
             this.bindingManager.addBinding(this.id, childComponent.id, parentAnchor.id.anchorId, childAnchor.id.anchorId);
 
-            function isChartAnchor(anchorId: string): boolean {
-              return anchorId.includes('plot');
+            const isChartAnchor = (anchorId: string): boolean => {
+              // console.log('isChartAnchor',  this)
+              // Check if this component is a BaseChart instance
+              console.log('about to check if chart', this, this.isChart)
+              if (this.isChart) {
+                console.log('isChartAnchor', anchorId, anchorId.includes('plot'), this)
+                // For BaseChart instances, consider plot anchors as chart anchors
+                return true;
+              }
+              console.log('isChartAnchorNOT', anchorId, anchorId.includes('plot'), this)
+              return false;
             }
             if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
                 this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);

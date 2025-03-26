@@ -9,7 +9,19 @@ import { BindingManager } from "../../../binding/BindingManager";
 import { extractComponentBindings } from "../../../binding/utils";
 import { constructValueFromContext } from "../../../utils/contextHelpers";
 import { Constraint } from "../../../binding/constraints";
-
+const brushBaseContext = {
+    "start":{
+        "x": 0,
+        "y": 0
+    },
+    "stop":{
+        "x": 1000,
+        "y": 1000
+    },
+   
+    "color": "'firebrick'",
+    "stroke": "'white'"
+}
 
 export class BrushConstructor {
     id: string;
@@ -29,6 +41,7 @@ export class BrushConstructor {
 
         const drag = new CombinedDrag({ bind: [...allBindings,{ span: [new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}),brush ]},] });
 
+        
         const dragProxy = new Proxy(drag, {
             get(target, prop, receiver) {
                 // If accessing 'data' property, redirect to brush.data
@@ -48,6 +61,8 @@ export class BrushConstructor {
 
         bindingManager.removeComponent(drag.id);
         bindingManager.addComponent(dragProxy);
+
+        brush.drag = dragProxy;
         
         // Return the proxy instead of the original drag object
         return dragProxy;
@@ -159,7 +174,7 @@ export class Brush extends BaseComponent {
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const selection = {
-            "name": this.id,
+            "name": this.id+"_selection",
             "select": {
                 "type": "interval",
                 "mark": {
@@ -170,8 +185,36 @@ export class Brush extends BaseComponent {
             }
         }
 
+        const brushBaseSignal = {
+            "name":this.id,
+            "value":brushBaseContext
+        }
 
-        console.log("BRUSH CONTEXT", inputContext,configurations);
+        
+
+
+        const outputSignals = Object.values(this.configurations)
+            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
+            .flatMap(config => {
+                // Build constraint map from inputContext
+                const constraintMap = {};
+                Object.keys(config.schema).forEach(channel => { 
+                        const key = `${config.id}_${channel}`;
+                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
+                });
+
+                const signalPrefix = this.id + '_' + config.id;
+                
+                return generateSignalsFromTransforms(
+                    config.transforms,
+                    this.id,
+                    signalPrefix,
+                    constraintMap
+                );
+            }).flat();
+
+
+        console.log("BRUSH CONTEXT", inputContext, configurations, outputSignals);
         // const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
         // const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
 
@@ -211,10 +254,10 @@ export class Brush extends BaseComponent {
         //     });
 
 
-        const x1 = calculateValueFor('x1', inputContext, [], configurations);
-        const x2 = calculateValueFor('x2', inputContext, [], configurations);
-        const y1 = calculateValueFor('y1', inputContext, [], configurations);
-        const y2 = calculateValueFor('y2', inputContext, [], configurations);
+        const x1 = calculateValueFor('x1', inputContext, outputSignals);
+        const x2 = calculateValueFor('x2', inputContext, outputSignals);
+        const y1 = calculateValueFor('y1', inputContext, outputSignals);
+        const y2 = calculateValueFor('y2', inputContext, outputSignals);
 
 
 
@@ -226,7 +269,7 @@ export class Brush extends BaseComponent {
 
         
         return {
-            params: [selection, ...selectionModifications]
+            params: [selection,...outputSignals,brushBaseSignal, ...selectionModifications]
         }
     }
 }

@@ -27,6 +27,7 @@ export interface BindingGraph {
 function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseComponent[]): BindingEdge[] {
     const expandedEdges: BindingEdge[] = [];
 
+
     // Create a map of component ID to its anchors used as sources
     const nodeToUsedAnchorsMap = new Map<string, Set<string>>();
     edges.forEach(edge => {
@@ -39,6 +40,7 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
 
     // Process each component
     components.forEach(component => {
+
         // FOR PASSING BETWEEN SIBLING
         const usedAnchors = nodeToUsedAnchorsMap.get(component.id) || new Set();
 
@@ -48,8 +50,8 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
 
         // Find compatible edges for each anchor
         componentAnchors.forEach(anchorId => {
-            // Skip if this anchor is already used as a source
-            if (usedAnchors.has(anchorId)) return;
+            // If anchor is not used as a source, skip it (no need to add constraints to it)
+            if (!usedAnchors.has(anchorId)) return;
 
             // Find compatible edges from existing edges
             const compatibleEdges = edges.filter(edge => {
@@ -70,7 +72,6 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
                 expandedEdges.push(newEdge);
             });
         });
-
 
 
 
@@ -141,22 +142,21 @@ export class GraphManager {
     public buildCompilationGraph(fromComponentId: string): BindingGraph {
         // specific binding graph for this tree
         let bindingGraph = this.generateBindingGraph(fromComponentId);
-        console.log('nodes,edges', bindingGraph.nodes,bindingGraph.edges)
+        console.log('bindingGraph', JSON.parse(JSON.stringify(bindingGraph)))
 
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        console.log('expandedEdges', expandedEdges,bindingGraph)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
 
-        console.log('expandedEdges pruned', prunedEdges)
 
         const siblingExpandedEdges = expandConstraintsToSiblingNodes(prunedEdges, Array.from(this.bindingManager.getComponents().values()));
-        console.log('expandedEdges sibling', siblingExpandedEdges)
 
+        console.log('comparing siblingExpandedEdges', siblingExpandedEdges, prunedEdges)
         bindingGraph.edges = siblingExpandedEdges;
 
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
+
         return elaboratedGraph;
     }
 

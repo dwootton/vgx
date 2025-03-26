@@ -10,7 +10,7 @@ import { constructValueFromContext } from "../../utils/contextHelpers";
 
 
 export const dragSpanBaseContext = { "x": { "start": 1, "stop": 100 }, "y": { "start": 1, "stop": 100 } };
-export const dragBaseContext = { "x": 0, "y": 0 , start: {x:0,y:0}, stop: {x:0,y:0}};
+export const dragBaseContext = { "x": 0, "y": 0 , start: {x:0,y:0}, stop: {x:1000,y:1000}};
 
 
 const configurations = [{
@@ -197,8 +197,9 @@ export class CombinedDrag extends BaseComponent {
         // I need configuration to know what the default signal is for each of the values 
 
 
-        const rawMarkName = calculateValueFor('markName', inputContext, outputSignals, configurations);
+        const rawMarkName = calculateValueFor('markName', inputContext, outputSignals);
 
+        console.log('rawMarkName', rawMarkName)
         const markName = rawMarkName ? rawMarkName+"_marks" : '';
         
 

@@ -97,10 +97,10 @@ const configurations = [
   {
     "id": 'y',
     "schema": {
-      "x": {
-        "container": "Range",
-        "valueType": "Numeric"
-      },
+      // "x": {
+      //   "container": "Range",
+      //   "valueType": "Numeric"
+      // },
       "y": {
         "container": "Range",
         "valueType": "Numeric"
@@ -119,7 +119,7 @@ const configurations = [
       // }
     },
     "transforms": [
-      { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+      // { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
       { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
       // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
       // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
@@ -152,7 +152,7 @@ const configurations = [
     },
     "transforms": [
       { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
-      { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+      // { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
       // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
       // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
       // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }

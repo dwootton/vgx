@@ -155,18 +155,13 @@ export abstract class BaseComponent {
       childAnchors.forEach(childAnchor => {
         this.bindingManager.addBinding(this.id, childComponent.id, parentAnchor.id.anchorId, childAnchor.id.anchorId);
 
-        const isChartAnchor = (anchorId: string): boolean => {
-          // console.log('isChartAnchor',  this)
-          // Check if this component is a BaseChart instance
-          console.log('about to check if chart', this, this.isChart)
+        const isChartAnchor = (): boolean => {
           if (this.isChart) {
-            console.log('isChartAnchor', anchorId, anchorId.includes('plot'), this)
-            // For BaseChart instances, consider plot anchors as chart anchors
             return true;
           }
-          console.log('isChartAnchorNOT', anchorId, anchorId.includes('plot'), this)
           return false;
         }
+
         if (childAnchor.anchorSchema[childAnchor.id.anchorId].interactive && !isChartAnchor(parentAnchor.id.anchorId)) {
           this.bindingManager.addBinding(childComponent.id, this.id, childAnchor.id.anchorId, parentAnchor.id.anchorId);
         }

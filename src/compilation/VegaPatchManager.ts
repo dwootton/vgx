@@ -10,6 +10,53 @@ export class VegaPatchManager {
 
         console.log('preunreferencedRemoved', spec)
 
+        
+
+        const createBaseSignals = (params: any[]) => {
+            const baseSignals: any[] = [];
+            
+            // Find all params that might reference base_ signals
+            const paramsStr = JSON.stringify(params);
+            console.log('paramsStr', paramsStr)
+            const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
+            const uniqueBaseSignals = [...new Set(baseMatches)];
+            
+            // Create base signals for each unique match
+            uniqueBaseSignals.forEach(baseSignalName => {
+                // Find the original param if it exists
+                console.log('baseSignalName', baseSignalName)
+                const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
+                
+                // Create a new base signal with minimal properties
+                const baseSignal: any = {
+                    name: baseSignalName,
+                    value: originalParam?.value || null
+                };
+                
+                baseSignals.push(baseSignal);
+            });
+            
+            return baseSignals;
+        }
+
+        const baseSignals = createBaseSignals(spec.params || []);
+        // Add base signals to spec.params if they have values
+        if (baseSignals.length > 0) {
+            // Initialize params array if it doesn't exist
+            if (!spec.params) {
+                spec.params = [];
+            }
+            
+            // Add each base signal with a value to the params
+            baseSignals.forEach(baseSignal => {
+                if (baseSignal.value !== null && baseSignal.value !== undefined) {
+                    spec.params.push(baseSignal);
+                }
+            });
+        }
+
+
+        console.log('baseSignals', baseSignals)
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);

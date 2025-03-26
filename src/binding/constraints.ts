@@ -39,6 +39,10 @@ export interface Constraint {
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
+  if(constraint.isImplicit){
+    return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
+    // return `${targetSignal || constraint.triggerReference}`;
+  }
     // // current hack for categorical values
     // if(constraint.constraintValueType === "Categorical"){
     //     return `${targetSignal || constraint.triggerReference}`;

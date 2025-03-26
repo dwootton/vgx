@@ -257,10 +257,14 @@ export class Brush extends BaseComponent {
         //     });
 
 
+        console.log('calcuaitng brush, inputContext', inputContext, outputSignals)
         const x1 = calculateValueFor('x1', inputContext, outputSignals);
         const x2 = calculateValueFor('x2', inputContext, outputSignals);
         const y1 = calculateValueFor('y1', inputContext, outputSignals);
         const y2 = calculateValueFor('y2', inputContext, outputSignals);
+
+        console.log('BRUSH CALCULATED x1', x1, 'x2', x2, 'y1', y1, 'y2', y2)
+        
 
 
 

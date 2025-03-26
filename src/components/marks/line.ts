@@ -140,6 +140,7 @@ export class Line extends BaseComponent {
         const nodeId = inputContext.nodeId || this.id;
 
 
+        
 
         // // TODO handle missing key/anchors
         // const outputSignals = Object.keys(this.schema).map(key =>

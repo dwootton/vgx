@@ -31,15 +31,27 @@ interface ValueResolutionContext {
 }
 
 function resolveValue(key: string, inputContext: CompilationContext, signals: any[]): ValueResolutionContext {
-    const dataContext = analyzeDataContext(inputContext);
+    const dataReferences = analyzeDataContext(inputContext);
     const value = findCompatibleValue(key, inputContext, signals);
     const anchorCategory = determineAnchorCategory(key);
 
-    console.log('resolveValue', key, value, dataContext, signals)
+    const isDataContext = Array.from(dataReferences).some(reference => {
+        console.log('LOOKATreference', reference, value,value?.includes(reference))
+        if(value?.includes(reference)){
+            return true;
+        }
+        return false;
+    })
+
+    if(isDataContext){
+        console.log('LOOKATDATAvalue', value, dataReferences,isDataContext, signals)
+    }
+
+    console.log('dasdasdasds', key, value, dataReferences,isDataContext, signals)
     return {
         key,
         value,
-        isDataContext: false,//dataContext.hasDataConstraints,
+        isDataContext: isDataContext,
         anchorCategory
     };
 }
@@ -49,14 +61,13 @@ interface SignalContext {
     usedInData?: boolean;
 }
 
-interface DataContext {
-    hasDataConstraints: boolean;
-    dataNodes: Set<string>;
-}
+type DataContext = Set<string>;
 
 function analyzeDataContext(inputContext: CompilationContext): DataContext {
     const dataNodes = new Set<string>();
+    const dataReferences = new Set<string>();
     
+    // First pass: identify all data nodes
     Object.entries(inputContext).forEach(([_, constraints]) => {
         if (!Array.isArray(constraints)) return;
         
@@ -68,10 +79,22 @@ function analyzeDataContext(inputContext: CompilationContext): DataContext {
         });
     });
 
-    return {
-        hasDataConstraints: dataNodes.size > 0,
-        dataNodes
-    };
+    // Second pass: find references connected to data nodes
+    Object.entries(inputContext).forEach(([key, constraints]) => {
+        if (!Array.isArray(constraints)) return;
+        
+        constraints.forEach(constraint => {
+            if (constraint?.triggerReference) {
+                const referenceNodeId = constraint.triggerReference.split('_').slice(0, 2).join('_');
+                // If this reference connects to a data node, mark it
+                if (dataNodes.has(referenceNodeId)) {
+                    dataReferences.add(key);
+                }
+            }
+        });
+    });
+
+    return dataReferences
 }
 
 function findCompatibleValue(
@@ -84,6 +107,7 @@ function findCompatibleValue(
         areNamesCompatible(key, generateAnchorId(signal.name))
     );
     if (compatibleSignal) {
+        console.log('LOOKATcompatibleSignal', compatibleSignal, inputContext, signals)
         return compatibleSignal.name;
     }
 
@@ -98,6 +122,7 @@ function findCompatibleValue(
             // Take the first valid constraint
             const constraint = constraints.find(c => c && (c.value || c.triggerReference));
             if (constraint) {
+                console.log('LOOKATconstraint', constraint, inputContext, constraints)
                 return compileConstraint(constraint);
             }
         }
@@ -129,11 +154,15 @@ function compileSignalReference(
 function formatValue({ value, isDataContext, anchorCategory, key }: ValueResolutionContext): any {
     // Don't wrap data values in datum[]
     if (anchorCategory === 'data') {
+        if(value === 'data'){
+            return {'values': [{'value': 'sampledatamark'}]}
+        }
         return { name: value };
     }
 
     // For encodings, wrap in datum[] if in data context
-    if (anchorCategory === 'encoding') {
+    if (anchorCategory === 'encoding' || anchorCategory === 'text') {
+        console.log('LOOKATvalue', value, isDataContext)
         const exprValue = isDataContext ? `datum[${value}]` : value;
         return { expr: exprValue };
     }
@@ -143,11 +172,11 @@ function formatValue({ value, isDataContext, anchorCategory, key }: ValueResolut
         return value;
     }
 
-    // text follows encoding rules
-    if (anchorCategory === 'text') {
-        const exprValue = isDataContext ? `datum[${value}]` : value;
-        return { expr: exprValue };
-    }
+    // // text follows encoding rules
+    // if (anchorCategory === 'text') {
+    //     const exprValue = isDataContext ? `datum[${value}]` : value;
+    //     return { expr: exprValue };
+    // }
 
     return null;
 }

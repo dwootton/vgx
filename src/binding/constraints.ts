@@ -40,6 +40,7 @@ export interface Constraint {
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
   if(constraint.isImplicit){
+    console.log('compileConstraint Implicit', constraint, targetSignal, compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`))
     return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
     // return `${targetSignal || constraint.triggerReference}`;
   }
@@ -48,6 +49,7 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
     //     return `${targetSignal || constraint.triggerReference}`;
     // }
     if(constraint.constraintValueType === "Categorical"){
+        console.log('compileConstraint Categorical', constraint, targetSignal)
         return `${ constraint.triggerReference}`;
     } else if(constraint.constraintValueType === "Data"){
         return `${targetSignal || constraint.triggerReference}`;
@@ -79,24 +81,6 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
 }
 
 /**
- * Converts a constraint to a Vega-Lite update rule
- */
-export function constraintToUpdateRule(constraint: Constraint, targetSignal?: string): any {
-  // If we have a source signal, this becomes an event-based update
-  if (constraint.triggerReference) {
-    return {
-      events: { signal: constraint.triggerReference },
-      update: compileConstraint(constraint, targetSignal)
-    };
-  }
-  
-  // Otherwise, it's a simple initialization
-  return {
-    update: compileConstraint(constraint, targetSignal)
-  };
-}
-
-/**
  * Creates a constraint from a schema and value
  */
 export function createConstraintFromSchema(
@@ -108,7 +92,8 @@ export function createConstraintFromSchema(
 
     if(schema.valueType === "Categorical"){
         return {
-            type: ConstraintType.SCALAR,
+            type: ConstraintType.ABSOLUTE,
+            // value: value.value,
             triggerReference,
             isImplicit,
             constraintValueType: schema.valueType

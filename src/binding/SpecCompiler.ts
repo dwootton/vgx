@@ -170,14 +170,14 @@ export class SpecCompiler {
 
         if (parentNodes.length === 0) return [];
 
-        // Get the current component
+        //2. Get the current component
         const childComponent = this.getBindingManager().getComponent(node.id);
         if (!childComponent) return [];
 
         // Map to store the highest value anchor for each channel type
         const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
 
-        // 2. For each parent, find default configuration and compatible anchors
+        // 3. For each parent of the child component, find their default configuration and compatible anchors
         for (const parentNode of parentNodes) {
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
@@ -236,7 +236,7 @@ export class SpecCompiler {
             });
 
 
-            // Create new implicit binding edges for each anchor within the chiuld component based on the 
+            // 4. Create new implicit binding edges for each anchor within the chiuld component based on the 
             // highest priority anchors found in the parent nodes (schema matched)
             for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
                 // Find compatible target anchor on current node
@@ -400,6 +400,8 @@ export class SpecCompiler {
                 }
             }
 
+            console.log('allEdges before implict', edges, childEdges)
+
             let implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes);
 
             console.log('all implicitEdges', implicitEdges)
@@ -414,11 +416,37 @@ export class SpecCompiler {
                 // Provide a fallback empty array if implicitEdges is undefined
                 implicitEdges = [];
             }
+
+            // Log edges with source nodeId 'node_4' and anchorId 'transform_text'
+            const node4TextEdges = edges.filter(edge =>
+                edge.source.nodeId === 'node_4' &&
+                edge.source.anchorId === 'transform_text'
+            );
+
+            if (node4TextEdges.length > 0) {
+                console.log('Found edges with source node_4 and transform_text:', node4TextEdges);
+            }
+
             const allEdges = [...edges, ...implicitEdges];
+
+            // Log implicit edges with source nodeId 'node_4' and anchorId 'transform_text'
+            const node4TextImplicitEdges = implicitEdges.filter(edge =>
+                edge.source.nodeId === 'node_4' &&
+                edge.source.anchorId === 'transform_text'
+            );
+
+            if (node4TextImplicitEdges.length > 0) {
+
+                console.log('Found edges implicit with source node_4 and transform_text:', node4TextImplicitEdges, allEdges);
+            }
 
             console.log('alledge for ', node.id, allEdges.filter(edge => edge.target.nodeId === node.id), allNodes)
             const constraints = this.buildNodeConstraints(node, allEdges, allNodes);
 
+            if (node4TextImplicitEdges.length > 0) {
+
+                console.log('Found edges constraints:', constraints);
+            }
 
             // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
@@ -553,6 +581,7 @@ export class SpecCompiler {
         // Find all edges where this node is the target
         const incomingEdges = edges.filter(edge => edge.target.nodeId === node.id);
 
+        console.log('allincomingEdges', incomingEdges)
         incomingEdges.forEach(edge => {
             const sourceNode = allNodes.find(n => n.id === edge.source.nodeId);
             if (!sourceNode) return;
@@ -582,10 +611,24 @@ export class SpecCompiler {
                 edge.implicit
             );
 
+            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
+
+                console.log('2sdscfs:', constraint, JSON.parse(JSON.stringify(constraints)), constraints[targetAnchorId], targetAnchorId);
+                console.log('creating new', JSON.parse(JSON.stringify(constraints)), targetAnchorId, !constraints[targetAnchorId])
+            }
+
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
+            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
+
+                console.log('2sdscfsbefore:', constraint, JSON.parse(JSON.stringify(constraints)));
+            }
+
+            console.log('Adding constraint for', targetAnchorId, ':', constraint);
             constraints[targetAnchorId].push(constraint);
+            console.log('Adding constraint for Current constraints for', targetAnchorId, ':', constraints[targetAnchorId]);
+    
         });
 
 

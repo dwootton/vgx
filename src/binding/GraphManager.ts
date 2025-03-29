@@ -147,7 +147,7 @@ export class GraphManager {
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        console.log('expandedEdges', expandedEdges)
+        console.log('ALLexpandedEdges', expandedEdges)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
 
         console.log('expandedEdgesprunedEdges', prunedEdges)

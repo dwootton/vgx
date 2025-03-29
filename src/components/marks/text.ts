@@ -58,6 +58,22 @@ const configurations = [{
         { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
         { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
+},{
+    'id': 'text',
+    "default": true,
+    "schema": {
+        "text": {
+            "container": "Absolute",
+            "valueType": "Categorical",
+            // "interactive": true
+        },
+        
+
+
+    },
+    "transforms": [
+        { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
+    ]
 }];
 
 

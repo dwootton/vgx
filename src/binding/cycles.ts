@@ -22,6 +22,7 @@ export function expandEdges(edges: BindingEdge[]): BindingEdge[] {
         return allEdges
     })
 
+    console.log('expandedEdges', expanded)
     return expanded.filter(e => e.source.anchorId !== '_all' || e.target.anchorId !== '_all');;
 }
 
@@ -36,17 +37,17 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
         if (anchorId === '_all') {
 
-    
+
             console.log('expandAnchorsFromEdge', anchorId, component)
             const defaultConfigId = component.configurations.find((config: any) => config.default).id;
             // if no default config, return all anchors
             // Debug information for node_4
-    if (component.id === 'node_4') {
-        console.log('Debug info for node_4:');
-        console.log('Debug info for node_4Source anchors:', allAnchors);
-        console.log('Debug info for node_4AnchorId:', anchorId  );
-        console.log('Debug info for node_4default:', defaultConfigId);
-    }
+            if (component.id === 'node_4') {
+                console.log('Debug info for node_4:');
+                console.log('Debug info for node_4Source anchors:', allAnchors);
+                console.log('Debug info for node_4AnchorId:', anchorId);
+                console.log('Debug info for node_4default:', defaultConfigId);
+            }
             if (!defaultConfigId) {
                 return allAnchors
             }
@@ -55,12 +56,13 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         }
 
         // If anchorId matches any configuration id
-        if (component.configurations[anchorId]) {
+        if (component.configurations.find((config: any) => config.id === anchorId)) {
             // Return all anchors that include this configuration id
             return allAnchors.filter(a => a.includes(anchorId));
         }
 
 
+        console.log('returning anchorId', anchorId, component.configurations)
         return [anchorId]
     }
 

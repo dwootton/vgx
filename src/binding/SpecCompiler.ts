@@ -10,7 +10,7 @@ import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
 import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
 import { BaseComponent } from "components/base";
-import { calculateValueForItem, getAllExpressions, mapSchemaToExpressions, mapSchemaToSignals, resolveSchemaValues } from "../components/resolveValue";
+import { calculateValueForComponent} from "../components/resolveValue";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -475,26 +475,26 @@ export class SpecCompiler {
         return [...outputSignals, ...internalSignals];
     }
 
-    private buildSchemaValues(
-        component: BaseComponent,
-        edges: BindingEdge[]
-    ): Record<string, BindingEdge[]> {
-        const schemaValues: Record<string, BindingEdge[]> = {};
+    // private buildSchemaValues(
+    //     component: BaseComponent,
+    //     edges: BindingEdge[]
+    // ): Record<string, BindingEdge[]> {
+    //     const schemaValues: Record<string, BindingEdge[]> = {};
         
-        // Get all schema keys from base configuration
-        const baseConfig = component.configurations.find(config => config.default);
-        if (baseConfig) {
-            Object.keys(baseConfig.schema).forEach(schemaKey => {
-                // Find all edges that target this schema key
-                schemaValues[schemaKey] = edges.filter(edge => {
-                    const targetKey = edge.target.anchorId.split('_').pop();
-                    return targetKey === schemaKey;
-                });
-            });
-        }
+    //     // Get all schema keys from base configuration
+    //     const baseConfig = component.configurations.find(config => config.default);
+    //     if (baseConfig) {
+    //         Object.keys(baseConfig.schema).forEach(schemaKey => {
+    //             // Find all edges that target this schema key
+    //             schemaValues[schemaKey] = edges.filter(edge => {
+    //                 const targetKey = edge.target.anchorId.split('_').pop();
+    //                 return targetKey === schemaKey;
+    //             });
+    //         });
+    //     }
 
-        return schemaValues;
-    }
+    //     return schemaValues;
+    // }
 
     private compileRegularNodes(
         regularNodes: BindingNode[],
@@ -523,29 +523,16 @@ export class SpecCompiler {
             const allSignals = this.generateComponentSignals(component, node.id, constraints);
 
             // Build schema values mapping
-            const schemaValues = this.buildSchemaValues(component, allEdges);
+            // const schemaValues = this.buildSchemaValues(component, allEdges);
 
             // Create compile context
             const compileContext: CompileContext = {
                 VGX_SIGNALS: allSignals,
-                schemaValues,
+                // schemaValues,
                 constraints
             };
 
-            const baseSchema = component.configurations.find(config => config.default)?.schema;
-             // Map schema keys to their relevant signals//TODO delete
-            const schemaSignals = mapSchemaToSignals(
-                component,
-                allSignals,
-                edges,
-            );
-
-
-            const context = calculateValueForItem(component, allSignals, constraints);
-
-
-            //TOODO delete all this 
-            // const expressions = mapSchemaToExpressions(schemaSignals, baseSchema);
+            const context = calculateValueForComponent(component, allSignals, constraints);
 
             return component.compileComponent({...{'VGX_CONTEXT':context,VGX_SIGNALS:allSignals,}, ...compileContext.constraints});
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);

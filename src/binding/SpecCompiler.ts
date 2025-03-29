@@ -533,7 +533,7 @@ export class SpecCompiler {
             };
 
             const baseSchema = component.configurations.find(config => config.default)?.schema;
-             // Map schema keys to their relevant signals
+             // Map schema keys to their relevant signals//TODO delete
             const schemaSignals = mapSchemaToSignals(
                 component,
                 allSignals,
@@ -542,19 +542,12 @@ export class SpecCompiler {
 
 
             const context = calculateValueForItem(component, allSignals, constraints);
-            console.log('REALvalue', context, component)
 
 
-
-            const expressions = getAllExpressions(schemaSignals, baseSchema, constraints);
+            //TOODO delete all this 
             // const expressions = mapSchemaToExpressions(schemaSignals, baseSchema);
 
-
-            const resolvedValues = resolveSchemaValues(schemaValues, baseSchema, allSignals);
-
-            // console.log('compileContext', resolvedValues)
-
-            return component.compileComponent({...{'VGX_CONTEXt':context}, ...compileContext.constraints});
+            return component.compileComponent({...{'VGX_CONTEXT':context,VGX_SIGNALS:allSignals,}, ...compileContext.constraints});
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }
 

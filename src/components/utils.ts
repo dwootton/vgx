@@ -309,7 +309,6 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     if (constraints.some(constraint => constraint.type === ConstraintType.ABSOLUTE)) {
         let constraint = constraints.find(constraint => constraint.type === ConstraintType.ABSOLUTE);
         if (constraint) {
-            console.log('12312', constraint)
             return constraint.triggerReference || constraint.value as string;
         }
     }
@@ -324,10 +323,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     // have explicit constraints overrule implicit constraints
     if (sortedConstraints.length !== 1) {
         sortedConstraints = sortedConstraints.filter(constraint => !constraint.isImplicit);
-    } else {
-        if (sortedConstraints[0].isImplicit) {
-        }
-    }
+    } 
 
 
 
@@ -335,17 +331,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
     // Nest constraints
     let result = "VGX_TRANSFORM_VALUE";
     for (const constraint of sortedConstraints) {
-        // Special case for text transform
-        if (transformValue === "BASE_NODE_ID.text") {
-            // console.log('compileddsfsad', sortedConstraints[0], compileConstraintWithTransform(sortedConstraints[0]))
-            console.log('resultTEXT', result, constraint)
-        }
-
-
         result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
-
-
-
     }
 
     // Replace final placeholder with actual transform value

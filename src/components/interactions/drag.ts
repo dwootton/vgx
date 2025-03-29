@@ -139,7 +139,6 @@ let generateCompiledValue = (id: string, channel: string, configurationId: strin
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
         super(config, configurations);
-        console.log('combineddrag', this.configurations)
         
         this.configurations.forEach(config => {
             // this.configurations[config.id] = config
@@ -164,45 +163,8 @@ export class CombinedDrag extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-
-        // I want to generate all of of the signals for the configuration
-        // I want to constrain any of the signals that are compoatible with a constraint from inputContext
-        // then, for any of the signals that are constrained, I want to find the appropriate signals for constructing a value.
-        // then, using the rleevant signals + relevant inputContext (other than the constrained signals intput):
-        // then, using this relevant context I want to merge these signals into a single value that returns either a value, or a expr for use. 
-        const nodeId = inputContext.nodeId || this.id;
-
-        // Generate all signals
-        const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-            .flatMap(config => {
-                // Build constraint map from inputContext
-                const constraintMap = {};
-                Object.keys(config.schema).forEach(channel => {
-                    const key = `${config.id}_${channel}`;
-                    constraintMap[channel] = inputContext[key] || [];
-                });
-
-                const signalPrefix = this.id + '_' + config.id
-
-                return generateSignalsFromTransforms(
-                    config.transforms,
-                    nodeId,
-                    signalPrefix,
-                    constraintMap
-                );
-            });
-
-
-        // output signals + inputContext into 
-        // I need configuration to know what the default signal is for each of the values 
-
-
-        const rawMarkName = calculateValueFor('markName', inputContext, outputSignals);
-
-        console.log('rawMarkName', rawMarkName)
-        const markName = rawMarkName ? rawMarkName+"_marks" : '';
-        
+        const allSignals = inputContext.VGX_SIGNALS
+        const {markName} = inputContext.VGX_CONTEXT
 
         const signal = {
             name: this.id, // base signal
@@ -217,39 +179,13 @@ export class CombinedDrag extends BaseComponent {
                         { type: "pointerup", source: "window", }
                     ]
                 },
-                update: `merge(${nodeId}, {'x': x(), 'y': y(),  'stop': {'x': x(), 'y': y()}})`
+                update: `merge(${this.id}, {'x': x(), 'y': y(),  'stop': {'x': x(), 'y': y()}})`
             }]
         };
 
-        // Additional signals can be added here and will be av  ilable in input contexts
-        const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                const configId = key.split('_')[0];
-                const config = this.configurations.find(config => config.id === configId);
-
-                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-
-                const internalId = key.split('_').filter(name=>name !== config.id).join('_')
-
-                const outputName = nodeId + '_' + key;//internalId
-
-                return compatibleTransforms.map(transform => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: outputName,
-                    constraints: []
-                }))
-            }
-
-            ).flat();
-
-
-
-
-        const allSignals = [...outputSignals, ...internalSignals];
+       
         return {
-            params: [signal, ...outputSignals, ...internalSignals]
+            params: [signal, ...allSignals]
         }
     }
 }

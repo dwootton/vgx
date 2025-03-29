@@ -81,65 +81,25 @@ export class Click extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
         
-
-        const {value:markName,signals:markNameSignals,data:markNameData} = constructValueFromContext(this.id + '_markName', inputContext, this.id, configurations);
+        const allSignals = inputContext.VGX_SIGNALS
+        const {markName}= inputContext.VGX_CONTEXT
         
-        // Base click signal
+        // // Base click signal
         const signal = {
             name: this.id,
             value: clickBaseContext,
             on: [{
                 events: { 
                     type: 'click', 
-                    markname: inputContext.markName 
+                    markname: markName 
                 },
                 update: `{'x': x(), 'y': y(), 'clicked': true}`
             }]
         };
 
-        // Generate all signals from configurations
-        const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms))
-            .flatMap(config => {
-                // Build constraint map from inputContext
-                const constraintMap = {};
-                Object.keys(config.schema).forEach(channel => {
-                    const key = `${config.id}_${channel}`;
-                    constraintMap[channel] = inputContext[key] || [];
-                });
-
-                const signalPrefix = this.id + '_' + config.id;
-                
-                // Generate signals for this configuration
-                return generateSignalsFromTransforms(
-                    config.transforms,
-                    nodeId,
-                    signalPrefix,
-                    constraintMap
-                );
-            });
-
-        // Handle internal signals
-        const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                const config = this.configurations[key.split('_')[0]];
-                const compatibleTransforms = config.transforms.filter(transform => 
-                    transform.channel === key.split('_')[1]
-                );
-
-                return compatibleTransforms.map(transform => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: ["VGX_SIGNAL_NAME"]
-                }));
-            }).flat();
-
         return {
-            params: [signal, ...outputSignals, ...internalSignals]
+            params: [signal, ...allSignals]
         };
     }
 }

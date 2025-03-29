@@ -40,7 +40,6 @@ export interface Constraint {
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
   if(constraint.isImplicit){
-    console.log('compileConstraint Implicit', constraint, targetSignal, compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`))
     return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
     // return `${targetSignal || constraint.triggerReference}`;
   }
@@ -49,7 +48,6 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
     //     return `${targetSignal || constraint.triggerReference}`;
     // }
     if(constraint.constraintValueType === "Categorical"){
-        console.log('compileConstraint Categorical', constraint, targetSignal)
         return `${ constraint.triggerReference}`;
     } else if(constraint.constraintValueType === "Data"){
         return `${targetSignal || constraint.triggerReference}`;

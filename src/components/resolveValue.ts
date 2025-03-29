@@ -36,18 +36,13 @@ function resolveValue(key: string, inputContext: CompilationContext, signals: an
     const anchorCategory = determineAnchorCategory(key);
 
     const isDataContext = Array.from(dataReferences).some(reference => {
-        console.log('LOOKATreference', reference, value,value?.includes(reference))
         if(value?.includes(reference)){
             return true;
         }
         return false;
     })
 
-    if(isDataContext){
-        console.log('LOOKATDATAvalue', value, dataReferences,isDataContext, signals)
-    }
 
-    console.log('dasdasdasds', key, value, dataReferences,isDataContext, signals)
     return {
         key,
         value,
@@ -107,7 +102,6 @@ function findCompatibleValue(
         areNamesCompatible(key, generateAnchorId(signal.name))
     );
     if (compatibleSignal) {
-        console.log('LOOKATcompatibleSignal', compatibleSignal, inputContext, signals)
         return compatibleSignal.name;
     }
 
@@ -122,7 +116,6 @@ function findCompatibleValue(
             // Take the first valid constraint
             const constraint = constraints.find(c => c && (c.value || c.triggerReference));
             if (constraint) {
-                console.log('LOOKATconstraint', constraint, inputContext, constraints)
                 return compileConstraint(constraint);
             }
         }
@@ -150,7 +143,7 @@ function compileSignalReference(
     const isUsedInData = dataContext.dataNodes.has(signal.name.split('_').slice(0, 2).join('_'));
     return isUsedInData ? `datum[${signal.name}]` : signal.name;
 }
-
+// FORMAT VALUE
 function formatValue({ value, isDataContext, anchorCategory, key }: ValueResolutionContext): any {
     // Don't wrap data values in datum[]
     if (anchorCategory === 'data') {
@@ -162,14 +155,13 @@ function formatValue({ value, isDataContext, anchorCategory, key }: ValueResolut
 
     // For encodings, wrap in datum[] if in data context
     if (anchorCategory === 'encoding' || anchorCategory === 'text') {
-        console.log('LOOKATvalue', value, isDataContext)
         const exprValue = isDataContext ? `datum[${value}]` : value;
         return { expr: exprValue };
     }
 
-    // markName is always a direct string
+    // markName is always a direct string, if no markname then null well allow targeting canvas
     if (anchorCategory === 'markName') {
-        return value;
+        return value ? value+"_marks" : null;
     }
 
     // // text follows encoding rules

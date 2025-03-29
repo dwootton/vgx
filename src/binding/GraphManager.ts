@@ -147,14 +147,11 @@ export class GraphManager {
         // expand any _all anchors to individual anchors
         const expandedEdges = expandEdges(bindingGraph.edges);
 
-        console.log('ALLexpandedEdges', expandedEdges)
         const prunedEdges = pruneEdges(bindingGraph.nodes, expandedEdges, fromComponentId);
 
-        console.log('expandedEdgesprunedEdges', prunedEdges)
 
         const siblingExpandedEdges = expandConstraintsToSiblingNodes(prunedEdges, Array.from(this.bindingManager.getComponents().values()));
 
-        console.log('comparing siblingExpandedEdges', siblingExpandedEdges, prunedEdges)
         bindingGraph.edges = siblingExpandedEdges;
 
         const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);

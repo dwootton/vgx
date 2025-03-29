@@ -88,25 +88,12 @@ const configurations = [{
         },
     },
     "transforms": [
-    //     {
-    //     "name": "x",
-    //     "channel": "x",
-    //     "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
-    // },
-    // {
-    //     "name": "y",
-    //     "channel": "y",
-    //     "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
-    // } 
-    //BROKEN, but not used for signals rn
+   
     { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
     { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
     { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
     { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
-    // { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID_x[0]" },
-    // { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID_x[1]" },
-    // { "name": "start_y", "channel": "y", "value": "50" },
-    // { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
+   
     ]
 },
 {// STIL BROKEN
@@ -162,12 +149,8 @@ export class Brush extends BaseComponent {
         });
 
         this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
-
-
     }
 
-    
-        // Getter for data accessor
     get data(): DataAccessor {
         console.log('getting data accessor', this.id)
         const accessor= new DataAccessor(this);
@@ -193,91 +176,16 @@ export class Brush extends BaseComponent {
             "value":brushBaseContext
         }
 
-        
+        const allSignals = inputContext.VGX_SIGNALS
 
+        const {x,y} = inputContext.VGX_CONTEXT
 
-        const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-            .flatMap(config => {
-                // Build constraint map from inputContext
-                const constraintMap = {};
-                Object.keys(config.schema).forEach(channel => { 
-                        const key = `${config.id}_${channel}`;
-                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-                });
-
-                const signalPrefix = this.id + '_' + config.id;
-                
-                return generateSignalsFromTransforms(
-                    config.transforms,
-                    this.id,
-                    signalPrefix,
-                    constraintMap
-                );
-            }).flat();
-
-
-
-
-        // const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
-        // const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
-
-        // const yNodeStart = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('start')))[0]
-        // const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
-
-
-
-        // const {value:x1,signals:x1Signals,data:x1Data} = constructValueFromContext('x1', inputContext, this.id, configurations)
-        // const {value:x2,signals:x2Signals,data:x2Data} = constructValueFromContext('x2', inputContext, this.id, configurations)
-
-        // const {value:y1,signals:y1Signals,data:y1Data} = constructValueFromContext('y1', inputContext, this.id, configurations)
-        // const {value:y2,signals:y2Signals,data:y2Data} = constructValueFromContext('y2', inputContext, this.id, configurations)
-
-        // need to figure out how to get reasonable 
-
-        // const outputSignals = Object.values(this.configurations)
-        //     .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-        //     .flatMap(config => {
-        //         // Build constraint map from inputContext
-        //         const constraintMap = {};
-        //         Object.keys(config.schema).forEach(channel => {
-        //             const key = `${config.id}_${channel}`;
-        //             console.log
-        //             constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-        //         });
-
-        //         const signalPrefix = this.id + '_' + config.id;
-
-        //         // Generate signals for this configuration
-        //         return generateSignalsFromTransforms(
-        //             config.transforms,
-        //             this.id,
-        //             signalPrefix,
-        //             constraintMap
-        //         );
-        //     });
-
-
-        console.log('calcuaitng brush, inputContext', inputContext, outputSignals)
-        const x1 = calculateValueFor('x1', inputContext, outputSignals);
-        const x2 = calculateValueFor('x2', inputContext, outputSignals);
-        const y1 = calculateValueFor('y1', inputContext, outputSignals);
-        const y2 = calculateValueFor('y2', inputContext, outputSignals);
-
-        console.log('BRUSH CALCULATED x1', x1, 'x2', x2, 'y1', y1, 'y2', y2)
-        
-
-
-
-        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x1.expr},{"signal":x2.expr}],"update":`[${x1.expr},${x2.expr}]`}]},
-                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y1.expr},{"signal":y2.expr}],"update":`[${y1.expr},${y2.expr}]`}]}]
-
-        
-        // const additionalSignals = [...x1Signals, ...x2Signals, ...y1Signals, ...y2Signals] // should be empty
+        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x.start.expr},{"signal":x.stop.expr}],"update":`[${x.start.expr},${x.stop.expr}]`}]},
+                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y.start.expr},{"signal":y.stop.expr}],"update":`[${y.start.expr},${y.stop.expr}]`}]}]
 
         
         return {
-            params: [selection,...outputSignals,brushBaseSignal, ...selectionModifications]
+            params: [selection,...allSignals,brushBaseSignal, ...selectionModifications]
         }
     }
 }

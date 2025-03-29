@@ -118,109 +118,13 @@ export class Text extends BaseComponent {
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
-
-        console.log('LOOKATinputContextINTEXT', inputContext)
 
 
-        const signal = {
-            name: this.id,
-            value: textBaseContext
-        };
+        const allSignals = inputContext.VGX_SIGNALS
+    
 
-        // // Build constraint map
-        const constraintMap: Record<string, any> = {};
-
-        // Generate all signals from configurations
-        const outputSignals = this.configurations
-            .flatMap(config => {
-                let transforms = config.transforms || [];
-
-                // Build constraint map from inputContext
-                // const constraintMap: Record<string, any> = {};
-                Object.keys(config.schema).forEach(channel => {
-                    const key = `${config.id}_${channel}`;
-                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-                });
-                console.log('constraintMap', constraintMap)
-
-                // If
-                // for (const channel in constraintMap) {
-                //     if (constraintMap[channel] && constraintMap[channel].length > 0 && !transforms.some(t => t.channel === channel)) {
-                //         // Use the first constraint value as the transform value
-                //         console.warn('No transform for text compilation with channel', channel)
-                //         continue;
-                   
-                //     }
-                // }
-
-                const signalPrefix = this.id + '_' + config.id;
-                console.log('generating signals for', signalPrefix, transforms,constraintMap)
-
-                // Generate signals for this configuration
-                return generateSignalsFromTransforms(
-                    transforms,
-                    nodeId,
-                    signalPrefix,
-                    constraintMap
-                );
-            }).filter(signal => signal !== undefined);
-
-        const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                //no need to get constraints as constraints would have had it be already
-                // get the transform 
-                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
-
-                const configId = key.split('_')[0];
-                const config = this.configurations.find(config => config.id === configId);
-                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-                return compatibleTransforms.map(transform => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: constraints
-                }))
-            }
-            ).flat();
-
-
-
-        // Check if there's a signal with name ending with 'position_text'
-        const hasPositionTextSignal = outputSignals.some(signal =>
-            signal.name && signal.name.endsWith('_position_text')
-        );
-
-
-        // If no position_text signal exists, add one
-        if (!hasPositionTextSignal) {
-            outputSignals.push({
-                "name": `${this.id}_position_text`,
-                "value": "SAMPLEtext"
-            });
-        }
-
-
-        const allSignals = [...outputSignals, ...internalSignals];
-
-
-        let {x,y,data,text} =  inputContext.VGX_CONTEXt
-        // const rawDataName = calculateValueFor('data', inputContext, allSignals);
-        // let data = typeof rawDataName === 'string' ? {'name': rawDataName} : rawDataName;
-
-        if(data.name === 'data'){
-            data = {'values': [{'text': 'Hello'}]}
-        }
-        // const text = calculateValueFor('text', inputContext, allSignals);
-        // console.log('LOOKATtext', text)
-        // // const textExpr = {'expr': text}
-        // // ISSUE: these are returning a value (not a signal)
-        // const x = calculateValueFor('x', inputContext, allSignals);
-        // // const xExpr = {'expr': x}
-        // const y = calculateValueFor('y', inputContext, allSignals);
-        // // const yExpr = {'expr': y}
-
+        let {x,y,data,text} =  inputContext.VGX_CONTEXT
+      
 
         console.log('textcalculated', x,y,data,text)
         return {
@@ -229,8 +133,7 @@ export class Text extends BaseComponent {
                     "name": this.id,
                     "value": textBaseContext,
                 },
-                ...outputSignals,
-                ...internalSignals
+                ...allSignals,
             ],
             "data": data,
             name: `${this.id}_position_markName`,

@@ -22,7 +22,6 @@ export class LazyComponent {
     bind(parentComponent: BaseComponent, propertyName: string): void {
         const bindingManager = BindingManager.getInstance();
 
-        console.log('bindinglz', parentComponent.id, this.id, propertyName)
         // Create temporary binding to the fake proxy
         bindingManager.addBinding(
             parentComponent.id,
@@ -48,7 +47,6 @@ export class LazyBindingRegistry {
     static resolve(componentType: string, realComponent: BaseComponent): void {
         const pending = this.pendingBindings.get(componentType) || [];
 
-        console.log('resolving lazy bindings', pending)
 
         if (pending.length == 0) {
             return;
@@ -62,7 +60,6 @@ export class LazyBindingRegistry {
 
 
 
-            console.log('lazybindings', bindings, lazyComponent.id, this.bindingManager.getBindings(), realComponent.id, realComponent)
             // Rewrite each binding to point to the real component
             bindings.forEach(binding => {
 

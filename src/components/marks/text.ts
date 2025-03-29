@@ -36,15 +36,15 @@ const configurations = [{
             // "interactive": true
         },
         "text": {
-            "container": "Scalar",
-            "valueType": "Absolute",
-            // "interactive": true
-        },
-        "data": {
             "container": "Absolute",
-            "valueType": "Data",
+            "valueType": "Categorical",
             // "interactive": true
         },
+    "data": {
+        "container": "Absolute",
+        "valueType": "Data",
+        // "interactive": true
+    },
         "markName": {
             "container": "Absolute",
             "valueType": "Categorical",
@@ -184,7 +184,9 @@ export class Text extends BaseComponent {
 
         const allSignals = [...outputSignals, ...internalSignals];
 
-        const data = calculateValueFor('data', inputContext, allSignals);
+
+        const rawDataName = calculateValueFor('data', inputContext, allSignals);
+        const data = typeof rawDataName === 'string' ? {'name': rawDataName} : rawDataName;
         const text = calculateValueFor('text', inputContext, allSignals);
         // ISSUE: these are returning a value (not a signal)
         const x = calculateValueFor('x', inputContext, allSignals);

@@ -10,7 +10,7 @@ type DataOperation = {
   params: any;
 };
 
-
+// TODO: figure out why data is not being passed as an anchor (or if it is.. )
 const configurations = [{
     'id': 'transform',
     "default": true,
@@ -97,7 +97,7 @@ class DataTransformer extends BaseComponent {
     // Start with the selection filter
     transforms.push({
       type: "filter",
-      expr: `vlSelectionTest("${(this.sourceSelectionName)}_store", datum)`
+      expr: `vlSelectionTest("${(this.sourceSelectionName)}_selection_store", datum)`
     });
     
     // Process operations

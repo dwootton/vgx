@@ -17,14 +17,12 @@ export class VegaPatchManager {
             
             // Find all params that might reference base_ signals
             const paramsStr = JSON.stringify(params);
-            console.log('paramsStr', paramsStr)
             const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
             const uniqueBaseSignals = [...new Set(baseMatches)];
             
             // Create base signals for each unique match
             uniqueBaseSignals.forEach(baseSignalName => {
                 // Find the original param if it exists
-                console.log('baseSignalName', baseSignalName)
                 const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
                 
                 // Create a new base signal with minimal properties
@@ -79,6 +77,7 @@ export class VegaPatchManager {
                 unreferencedRemoved.datasets[dataset.name] = []
             })
         }
+        // console.log
 
         this.spec = unreferencedRemoved;
 
@@ -86,21 +85,30 @@ export class VegaPatchManager {
     }
 
     public compile(){
-        console.log('compile vl', this.spec)
+        console.log('compile vl2', this.spec)
         const vegaCompilation = vl.compile(this.spec);
 
+        console.log('post compilation', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 
+
+        console.log('matchingModifiedData', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 
          // Update data elements that match modified elements
          if (vegaCompilation.spec.data && this.modifiedElements.data && Array.isArray(this.modifiedElements.data) && this.modifiedElements.data.length > 0) {
+                            // console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
+
             vegaCompilation.spec.data = vegaCompilation.spec.data.map(dataElement => {
                 const matchingModifiedData = this.modifiedElements.data.find(
                     modifiedData => modifiedData.name === dataElement.name
                 );
                 
+                console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
+
+               
                 if (matchingModifiedData) {
                     return matchingModifiedData ;
                 }
+                console.log('matchingModifiedData', matchingModifiedData)
                 
                 return dataElement;
             });

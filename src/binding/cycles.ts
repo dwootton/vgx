@@ -36,14 +36,22 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
 
         if (anchorId === '_all') {
 
-            const defaultConfig = Object.keys(component.configurations).find(configId => component.configurations[configId].default);
+    
+            console.log('expandAnchorsFromEdge', anchorId, component)
+            const defaultConfigId = component.configurations.find((config: any) => config.default).id;
             // if no default config, return all anchors
-            if (!defaultConfig) {
+            // Debug information for node_4
+    if (component.id === 'node_4') {
+        console.log('Debug info for node_4:');
+        console.log('Debug info for node_4Source anchors:', allAnchors);
+        console.log('Debug info for node_4AnchorId:', anchorId  );
+        console.log('Debug info for node_4default:', defaultConfigId);
+    }
+            if (!defaultConfigId) {
                 return allAnchors
             }
 
-            // return just the default anchors 
-            return allAnchors.filter(a => a.includes(defaultConfig))
+            return allAnchors.filter(a => a.includes(defaultConfigId))
         }
 
         // If anchorId matches any configuration id
@@ -52,13 +60,10 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             return allAnchors.filter(a => a.includes(anchorId));
         }
 
-        // if(allAnchors.includes(anchorId)){
-        //     return [anchorId]
-        // }
-
 
         return [anchorId]
     }
+
 
     const expandedEdges = sourceAnchors.flatMap(sourceAnchor =>
         targetAnchors
@@ -68,6 +73,8 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
                 target: { nodeId: edge.target.nodeId, anchorId: targetAnchor }
             }))
     );
+
+    console.log('expandedEdges', expandedEdges)
 
     return expandedEdges;
 }

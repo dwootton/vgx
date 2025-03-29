@@ -1,10 +1,11 @@
 import { BaseComponent } from "../base";
 import { Field, isContinuousFieldOrDatumDef } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { compilationContext } from '../../binding/binding';
+import { CompilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
+import { calculateValueFor } from "../resolveValue";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal, calculateValueFor } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
 
 const lineBaseContext = {

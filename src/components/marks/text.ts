@@ -4,8 +4,10 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { compilationContext } from '../../binding/binding';
 import { AnchorProxy, AnchorIdentifer, SchemaType } from "../../types/anchors";
 
-import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal, calculateValueFor } from "../utils";
+import { generateSignalFromAnchor, createRangeAccessor, generateCompiledValue, generateSignalsFromTransforms, generateSignal } from "../utils";
 import { extractSignalNames } from "../../binding/mergedComponent";
+import { calculateValueFor } from "../resolveValue";
+
 import { getEncodingValue } from '../../utils/encodingHelpers';
 import { constructValueFromContext } from "../../utils/contextHelpers";
 
@@ -204,9 +206,12 @@ export class Text extends BaseComponent {
         const rawDataName = calculateValueFor('data', inputContext, allSignals);
         const data = typeof rawDataName === 'string' ? {'name': rawDataName} : rawDataName;
         const text = calculateValueFor('text', inputContext, allSignals);
+        const textExpr = {'expr': text}
         // ISSUE: these are returning a value (not a signal)
         const x = calculateValueFor('x', inputContext, allSignals);
+        const xExpr = {'expr': x}
         const y = calculateValueFor('y', inputContext, allSignals);
+        const yExpr = {'expr': y}
 
 
         console.log('textcalculated', x,y,data,text)
@@ -229,15 +234,9 @@ export class Text extends BaseComponent {
                 "color": "firebrick",
             },
             "encoding": {
-                "x": {
-                    "value": x,
-                },
-                "y": {
-                    "value": y,
-                },
-                "text": {
-                    "value": text,
-                }
+                "x": xExpr,
+                "y": yExpr,
+                "text": textExpr
 
             }
         }

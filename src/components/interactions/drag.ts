@@ -1,8 +1,9 @@
 import { BaseComponent } from "../base";
 import { Field } from "vega-lite/build/src/channeldef";
 import { UnitSpec } from "vega-lite/build/src/spec";
-import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal, generateAnchorId, calculateValueFor } from "../utils";
+import { generateCompiledValue, generateSignalFromAnchor, createRangeAccessor, generateSignalsFromTransforms, generateSignal, generateAnchorId } from "../utils";
 import { AnchorSchema, SchemaType, SchemaValue } from "../../types/anchors";
+import { calculateValueFor } from "../resolveValue";
 
 // context: a mapping of property names to constraint expressions
 import { CompilationContext } from "../../binding/binding";

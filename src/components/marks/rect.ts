@@ -28,6 +28,11 @@ const configurations = [{
     'id': 'position',
     "default": true,
     "schema": {
+        "data": {
+            "container": "Absolute",
+            "valueType": "Data",
+            // "interactive": true
+        },
         "x": {
             "container": "Range",
             "valueType": "Numeric",
@@ -94,51 +99,9 @@ export class Rect extends BaseComponent {
     
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
-        const nodeId = inputContext.nodeId || this.id;
-
-        // Generate all signals from configurations
-        const outputSignals = Object.values(this.configurations)
-            .filter(config => Array.isArray(config.transforms)) // Make sure transforms exist
-            .flatMap(config => {
-                // Build constraint map from inputContext
-                const constraintMap = {};
-                Object.keys(config.schema).forEach(channel => {
-                    const key = `${config.id}_${channel}`;
-                    constraintMap[channel] = inputContext[key] || inputContext[channel] || [];
-                });
-
-                const signalPrefix = this.id + '_' + config.id;
-
-                // Generate signals for this configuration
-                return generateSignalsFromTransforms(
-                    config.transforms,
-                    nodeId,
-                    signalPrefix,
-                    constraintMap
-                );
-            });
-
-
-
-            const internalSignals = [...this.anchors.keys()]
-            .filter(key => key.endsWith('_internal'))
-            .map(key => {
-                //no need to get constraints as constraints would have had it be already
-                // get the transform 
-                const constraints = inputContext[key] || ["VGX_SIGNAL_NAME"];
-               
-                const configId = key.split('_')[0];
-                const config = this.configurations.find(config => config.id === configId);
-                const compatibleTransforms = config.transforms.filter(transform => transform.channel === key.split('_')[1])
-                return compatibleTransforms.map(transform => generateSignal({
-                    id: nodeId,
-                    transform: transform,
-                    output: nodeId + '_' + key,
-                    constraints: constraints
-                }))
-            }
-             
-            ).flat();
+        const {x,y,data} = inputContext.VGX_CONTEXT
+        const allSignals = inputContext.VGX_SIGNALS
+            
         return {
             params: [
                 {
@@ -146,25 +109,10 @@ export class Rect extends BaseComponent {
                     "value":rectBaseContext,
                     // "expr":`{'x':{'start':${outputSignals[0].name},'stop':${outputSignals[1].name}},y:{'start':${outputSignals[2].name},'stop':${outputSignals[3].name}}}`
                 },
-                ...outputSignals,...internalSignals
-            //     {
-            //     "name":this.id,
-            //     //@ts-ignore
-            //     "expr":`{'x':{'start':${inputContext.x.start},'stop':${inputContext.x.stop}},'y':{'start':${inputContext.y.start},'stop':${inputContext.y.stop}}}`
-            // }
-            //     {
-            //     // name: generateComponentSignalName(inputContext.nodeId),
-            //     // //@ts-ignore, this is acceptable because params can take expr strings
-            //     // expr: `{
-            //     //     x1: ${inputContext.x1.fieldValue},
-            //     //     x2: ${inputContext.x2.fieldValue},
-                  
-            //     // }`
-            //     //  y1: ${inputContext.y1.fieldValue},
-            //     //y2: ${inputContext.y2.fieldValue}
-            // }
+                ...allSignals
+          
         ],
-            data: inputContext.data || rectBaseContext.data,
+            data: data
             mark: {
                 type: "rect",
                 "stroke":this.styles.stroke,
@@ -176,22 +124,10 @@ export class Rect extends BaseComponent {
         
             },
             "encoding":{
-                "x":{
-                    "value":{"expr":`${this.id}_position_start_x`},
-                    //"type":"quantitative"
-                },
-                "x2":{
-                    "value":{"expr":`${this.id}_position_stop_x`},
-                    //"type":"quantitative"
-                },
-                "y":{
-                    "value":{"expr":`${this.id}_position_start_y`},
-                    //"type":"quantitative"
-                },
-                "y2":{
-                    "value":{"expr":`${this.id}_position_stop_y`},
-                    //"type":"quantitative"
-                }
+                "x":{"value":x.start},
+                "y":{"value":y.start},
+                "x2":{"value":x.stop},
+                "y2":{"value":y.stop},
             }
         }
     }

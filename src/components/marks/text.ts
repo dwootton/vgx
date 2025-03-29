@@ -118,15 +118,10 @@ export class Text extends BaseComponent {
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
-
-
         const allSignals = inputContext.VGX_SIGNALS
     
-
         let {x,y,data,text} =  inputContext.VGX_CONTEXT
-      
 
-        console.log('textcalculated', x,y,data,text)
         return {
             params: [
                 {

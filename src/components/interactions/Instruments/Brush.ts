@@ -1,7 +1,8 @@
 import { CombinedDrag, dragBaseContext, generateConfigurationAnchors } from "../Drag";
 import { Rect } from "../../marks/rect";
 import { BaseComponent } from "../../base";
-import { calculateValueFor, extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
+import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
+import { calculateValueFor } from "../../resolveValue";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
@@ -26,8 +27,7 @@ const brushBaseContext = {
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
-        
-        
+    
         
         // Get all components that need to be bound
         const allBindings = extractComponentBindings(config);
@@ -217,7 +217,8 @@ export class Brush extends BaseComponent {
             }).flat();
 
 
-        console.log("BRUSH CONTEXT", inputContext, configurations, outputSignals);
+
+
         // const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
         // const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
 

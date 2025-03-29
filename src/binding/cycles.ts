@@ -62,7 +62,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
         }
 
 
-        console.log('returning anchorId', anchorId, component.configurations)
         return [anchorId]
     }
 

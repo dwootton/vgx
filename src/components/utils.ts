@@ -200,8 +200,6 @@ const compileConstraintWithTransform = (constraint: Constraint): string => {
     if (!constraint) return "VGX_TRANSFORM_VALUE";
 
     const compiled = compileConstraint(constraint);
-    console.log('COMPILED TRANSFORM', compiled, constraint, constraint.triggerReference)
-    console.log('COMPILED TRANSFORM replaced', compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE"))
 
 
     return compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE");
@@ -312,7 +310,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
         let constraint = constraints.find(constraint => constraint.type === ConstraintType.ABSOLUTE);
         if (constraint) {
             console.log('12312', constraint)
-            return constraint.triggerReference as string;
+            return constraint.triggerReference || constraint.value as string;
         }
     }
     if (constraints.length === 0) return transformValue;
@@ -343,6 +341,7 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
             console.log('resultTEXT', result, constraint)
         }
 
+
         result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
 
 
@@ -360,12 +359,8 @@ export const mergeConstraints = (constraints: Constraint[], transformValue: stri
 export function generateSignal(config: SignalConfig): any {
     const { id, transform, output, constraints } = config;
 
-    console.log('generateSignal', config)
-
-
     // Process the transform and generate updates
     let compatibleConstraints = findCompatibleConstraints(transform, constraints);
-
 
     // Deduplicate compatible constraints
     // This ensures we don't apply the same constraint multiple times
@@ -383,29 +378,15 @@ export function generateSignal(config: SignalConfig): any {
     }, [] as Constraint[]);
 
 
-    console.log('uniqueConstraints', uniqueConstraints, compatibleConstraints, output)
-    // Special case for text position output
-    if (output === 'node_0_position_text') {
-        console.log('Processing special case for text position output');
-        console.log('compatibleConstraints21', uniqueConstraints, transform, output, mergeConstraints(uniqueConstraints, transform.value))
-
-    }
-
     // Use the deduplicated constraints for merging
     let mergedExpression = mergeConstraints(uniqueConstraints, transform.value);
     // let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
 
-    console.log('mergedExpression', mergedExpression)
-
-    // Special case for text position output
-    if (output === 'node_0_position_text') {
-        console.log('Processing special case for text position output');
-        console.log('compatibleConstraints21 3', mergedExpression, uniqueConstraints, compatibleConstraints, transform, output)
-
-
+    if(!mergedExpression){
+        console.log('LOOKATmergedExpressionNULL', mergedExpression, uniqueConstraints, compatibleConstraints)
+        return null
     }
 
-    console.log('mergedExpression', mergedExpression, uniqueConstraints, transform.value)
     mergedExpression = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
     // Extract signal names from the merged expression
@@ -424,92 +405,7 @@ export function generateSignal(config: SignalConfig): any {
         on: updates
     };
 }
-interface SignalContext {
-    name: string;
-    usedInData?: boolean;
-}
 
-interface DataContext {
-    hasDataConstraints: boolean;
-    dataNodes: Set<string>;
-}
-
-function analyzeDataContext(inputContext: CompilationContext): DataContext {
-    const dataNodes = new Set<string>();
-    
-    Object.entries(inputContext).forEach(([_, constraints]) => {
-        if (!Array.isArray(constraints)) return;
-        
-        constraints.forEach(constraint => {
-            if (constraint?.type === 'data') {
-                const nodeId = constraint.triggerReference.split('_').slice(0, 2).join('_');
-                dataNodes.add(nodeId);
-            }
-        });
-    });
-
-    return {
-        hasDataConstraints: dataNodes.size > 0,
-        dataNodes
-    };
-}
-
-function compileSignalReference(
-    signal: SignalContext, 
-    dataContext: DataContext, 
-    key: string
-): string {
-    // For data key, return the name directly
-    if (key === 'data') {
-        return signal.name;
-    }
-
-    // For data context, wrap in datum[]
-    const isUsedInData = dataContext.dataNodes.has(signal.name.split('_').slice(0, 2).join('_'));
-    return isUsedInData ? `datum[${signal.name}]` : signal.name;
-}
-
-export function calculateValueFor(key: string, inputContext: CompilationContext, signals: any[]): string | null {
-    const dataContext = analyzeDataContext(inputContext);
-    
-    // Check signals first
-    const compatibleSignals = signals.filter(signal => 
-        areNamesCompatible(key, generateAnchorId(signal.name))
-    );
-
-    if (compatibleSignals.length > 0) {
-        return compileSignalReference(compatibleSignals[0], dataContext, key);
-    }
-
-    // Check context constraints
-    const compatibleContextKeys = Object.keys(inputContext).filter(contextKey =>
-        areNamesCompatible(key, contextKey)
-    );
-
-    if (compatibleContextKeys.length > 0) {
-        const firstCompatibleKey = compatibleContextKeys[0];
-        const constraints = inputContext[firstCompatibleKey];
-        
-        if (Array.isArray(constraints) && constraints.length > 0) {
-            const compiledValue = compileConstraint(constraints[0]);
-            
-            if (key === 'data') {
-                return compiledValue;
-            }
-            
-            return dataContext.hasDataConstraints ? 
-                `datum[${compiledValue}]` : 
-                compiledValue;
-        }
-    }
-
-    // Default for data key
-    if (key === 'data') {
-        return 'data';
-    }
-
-    return null;
-}
 
 /**
  * Generate signals from a collection of transforms

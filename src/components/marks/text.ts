@@ -120,6 +120,9 @@ export class Text extends BaseComponent {
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const nodeId = inputContext.nodeId || this.id;
 
+        console.log('LOOKATinputContextINTEXT', inputContext)
+
+
         const signal = {
             name: this.id,
             value: textBaseContext
@@ -163,7 +166,6 @@ export class Text extends BaseComponent {
                 );
             }).filter(signal => signal !== undefined);
 
-        console.log('TextoutputSignals', outputSignals)
         const internalSignals = [...this.anchors.keys()]
             .filter(key => key.endsWith('_internal'))
             .map(key => {
@@ -203,15 +205,21 @@ export class Text extends BaseComponent {
         const allSignals = [...outputSignals, ...internalSignals];
 
 
-        const rawDataName = calculateValueFor('data', inputContext, allSignals);
-        const data = typeof rawDataName === 'string' ? {'name': rawDataName} : rawDataName;
-        const text = calculateValueFor('text', inputContext, allSignals);
-        const textExpr = {'expr': text}
-        // ISSUE: these are returning a value (not a signal)
-        const x = calculateValueFor('x', inputContext, allSignals);
-        const xExpr = {'expr': x}
-        const y = calculateValueFor('y', inputContext, allSignals);
-        const yExpr = {'expr': y}
+        let {x,y,data,text} =  inputContext.VGX_CONTEXt
+        // const rawDataName = calculateValueFor('data', inputContext, allSignals);
+        // let data = typeof rawDataName === 'string' ? {'name': rawDataName} : rawDataName;
+
+        if(data.name === 'data'){
+            data = {'values': [{'text': 'Hello'}]}
+        }
+        // const text = calculateValueFor('text', inputContext, allSignals);
+        // console.log('LOOKATtext', text)
+        // // const textExpr = {'expr': text}
+        // // ISSUE: these are returning a value (not a signal)
+        // const x = calculateValueFor('x', inputContext, allSignals);
+        // // const xExpr = {'expr': x}
+        // const y = calculateValueFor('y', inputContext, allSignals);
+        // // const yExpr = {'expr': y}
 
 
         console.log('textcalculated', x,y,data,text)
@@ -234,9 +242,9 @@ export class Text extends BaseComponent {
                 "color": "firebrick",
             },
             "encoding": {
-                "x": xExpr,
-                "y": yExpr,
-                "text": textExpr
+                "x": {"value": x},
+                "y": {"value": y},
+                "text": {"value": text}
 
             }
         }

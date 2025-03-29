@@ -8,7 +8,7 @@ import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
-import { mergeConstraints } from "../components/utils";
+import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
 import { BaseComponent } from "components/base";
 
 interface AnchorEdge {
@@ -121,8 +121,12 @@ function generateDataConstraints(schema: SchemaType, value: SchemaValue): string
     return `${value.value}`;
 }
 
+interface CompileContext {
+    VGX_SIGNALS: any[];
+    schemaValues: Record<string, BindingEdge[]>;
+    constraints: Record<string, any[]>;
+}
 
-// The goal of the spec compiler is to take in a binding graph and then compute
 export class SpecCompiler {
     constructor(
         private graphManager: GraphManager,
@@ -368,6 +372,72 @@ export class SpecCompiler {
         return { regularNodes, mergedNodeIds };
     }
 
+    private generateComponentSignals(
+        component: BaseComponent, 
+        nodeId: string, 
+        constraints: Record<string, any[]>
+    ): any[] {
+        // Generate output signals from configurations
+        const outputSignals = Object.values(component.configurations)
+            .filter(config => Array.isArray(config.transforms))
+            .flatMap(config => {
+                const constraintMap = {};
+                Object.keys(config.schema).forEach(channel => {
+                    const key = `${config.id}_${channel}`;
+                    constraintMap[channel] = constraints[key] || [];
+                });
+
+                return generateSignalsFromTransforms(
+                    config.transforms,
+                    nodeId,
+                    component.id + '_' + config.id,
+                    constraintMap
+                );
+            });
+
+        // Generate internal signals
+        const internalSignals = [...component.anchors.keys()]
+            .filter(key => key.endsWith('_internal'))
+            .map(key => {
+                const constraints = constraints[key] || ["VGX_SIGNAL_NAME"];
+                const configId = key.split('_')[0];
+                const config = component.configurations.find(config => config.id === configId);
+                const compatibleTransforms = config.transforms.filter(
+                    transform => transform.channel === key.split('_')[1]
+                );
+                
+                return compatibleTransforms.map(transform => generateSignal({
+                    id: nodeId,
+                    transform: transform,
+                    output: nodeId + '_' + key,
+                    constraints: constraints
+                }));
+            }).flat();
+
+        return [...outputSignals, ...internalSignals];
+    }
+
+    private buildSchemaValues(
+        component: BaseComponent,
+        edges: BindingEdge[]
+    ): Record<string, BindingEdge[]> {
+        const schemaValues: Record<string, BindingEdge[]> = {};
+        
+        // Get all schema keys from base configuration
+        const baseConfig = component.configurations.find(config => config.default);
+        if (baseConfig) {
+            Object.keys(baseConfig.schema).forEach(schemaKey => {
+                // Find all edges that target this schema key
+                schemaValues[schemaKey] = edges.filter(edge => {
+                    const targetKey = edge.target.anchorId.split('_').pop();
+                    return targetKey === schemaKey;
+                });
+            });
+        }
+
+        return schemaValues;
+    }
+
     private compileRegularNodes(
         regularNodes: BindingNode[],
         allNodes: BindingNode[],
@@ -381,77 +451,29 @@ export class SpecCompiler {
                 return null;
             }
 
-
-            const childEdges = edges.filter(edge => edge.source.nodeId === node.id);
-            // Add implicit edges and build constraints
-
-            const boundConfigurations = [...new Set(childEdges.map(edge => {
-                return edge.source.anchorId.split('_')[0];
-            }))];
-            // Check if the component has a default configuration
-            if (component) {
-                // Find the default configuration
-                const defaultConfig = component.configurations.find(config => config.default);
-                if (defaultConfig && defaultConfig.id) {
-                    // If the default configuration exists and is not already in boundConfigurations, add it
-                    if (!boundConfigurations.includes(defaultConfig.id)) {
-                        boundConfigurations.push(defaultConfig.id);
-                    }
-                }
-            }
-
-            console.log('allEdges before implict', edges, childEdges)
-
-            let implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes);
-
-            console.log('all implicitEdges', implicitEdges)
-            // Check if implicitEdges is undefined
-            if (!implicitEdges) {
-                console.error('implicitEdges is undefined', {
-                    node,
-                    edges,
-                    allNodes,
-                    boundConfigurations
-                });
-                // Provide a fallback empty array if implicitEdges is undefined
-                implicitEdges = [];
-            }
-
-            // Log edges with source nodeId 'node_4' and anchorId 'transform_text'
-            const node4TextEdges = edges.filter(edge =>
-                edge.source.nodeId === 'node_4' &&
-                edge.source.anchorId === 'transform_text'
-            );
-
-            if (node4TextEdges.length > 0) {
-                console.log('Found edges with source node_4 and transform_text:', node4TextEdges);
-            }
-
+            // Build implicit edges
+            const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes) || [];
             const allEdges = [...edges, ...implicitEdges];
 
-            // Log implicit edges with source nodeId 'node_4' and anchorId 'transform_text'
-            const node4TextImplicitEdges = implicitEdges.filter(edge =>
-                edge.source.nodeId === 'node_4' &&
-                edge.source.anchorId === 'transform_text'
-            );
-
-            if (node4TextImplicitEdges.length > 0) {
-
-                console.log('Found edges implicit with source node_4 and transform_text:', node4TextImplicitEdges, allEdges);
-            }
-
-            console.log('alledge for ', node.id, allEdges.filter(edge => edge.target.nodeId === node.id), allNodes)
+            // Build constraints
             const constraints = this.buildNodeConstraints(node, allEdges, allNodes);
-
-            if (node4TextImplicitEdges.length > 0) {
-
-                console.log('Found edges constraints:', constraints);
-            }
-
-            // Store constraints for merged nodes
             constraintsByNode[node.id] = constraints;
 
-            return component.compileComponent(constraints);
+            // Generate all signals
+            const allSignals = this.generateComponentSignals(component, node.id, constraints);
+
+            // Build schema values mapping
+            const schemaValues = this.buildSchemaValues(component, allEdges);
+
+            // Create compile context
+            const compileContext: CompileContext = {
+                VGX_SIGNALS: allSignals,
+                schemaValues,
+                constraints
+            };
+            console.log('LOOKATcompileContext', compileContext)
+
+            return component.compileComponent(compileContext.constraints);
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }
 

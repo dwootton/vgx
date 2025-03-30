@@ -121,6 +121,7 @@ export class Rect extends BaseComponent {
                 "fill":this.styles.fill,
                 "strokeOpacity":this.styles.strokeOpacity,
                 "strokeDash":this.styles.strokeDash,
+                // "pointerEvents":false
         
             },
             "encoding":{

@@ -28,7 +28,7 @@ export class GridConstructor {
 
         const lines = new Line({ ...config }); //bind: [...allBindings,{x: new CombinedDrag(config)}]
 
-        const grid = new Grid({ ...config, bind: lines });
+        const grid = new Grid({ ...config, bind: [...allBindings,lines] });
         console.log('grid', grid)
         this.id = grid.id;
 

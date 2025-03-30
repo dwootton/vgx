@@ -21,18 +21,18 @@ const configurations = [{
         "x": {
             "container": "Scalar",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true
         },
         "y": {
             "container": "Scalar",
             "valueType": "Numeric",
-            "interactive": true
+            // "interactive": true
         },
-        "markName": {
-            "container": "Absolute",
-            "valueType": "Categorical",
-            // "restrictions":"input"
-        }
+        // "markName": {
+        //     "container": "Absolute",
+        //     "valueType": "Categorical",
+        //     // "restrictions":"input"
+        // }
     },
     "transforms": [{
         "name": "x",

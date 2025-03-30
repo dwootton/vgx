@@ -189,13 +189,9 @@ export class Line extends BaseComponent {
             name: lineDataName,
             on: triggerValues
         }
-        console.log('OURNEWdataset', triggerValues, x,y,lineData)
 
-        let defaultdata = lineData
 
         if(inputContext.VGX_CONTEXT.data){
-            console.log('in the data',inputContext.VGX_CONTEXT.data)
-            defaultdata = lineData
             lineData.source = inputContext.VGX_CONTEXT.data.name;
             lineData.transform = [{
                 "type":"formula",
@@ -263,12 +259,12 @@ export class Line extends BaseComponent {
                 "y2": {
                     "value": y.stop,
                 },
-                "size": { "value": 5 },
+                "size": { "value": 3 },
                 "color": { "value": "firebrick" },
                 "stroke": { "value": "firebrick" },
 
             },
-            // "triggers": [triggers]
+            "triggers": [triggers]
         }
     }
 }

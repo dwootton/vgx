@@ -10,7 +10,7 @@ import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
 import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
 import { BaseComponent } from "components/base";
-import { calculateValueForComponent} from "../components/resolveValue";
+import { calculateValueForComponent } from "../components/resolveValue";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -372,25 +372,23 @@ export class SpecCompiler {
         return { regularNodes, mergedNodeIds };
     }
 
-    private generateComponentSignals(
-        component: BaseComponent, 
-        nodeId: string, 
-        allConstraints: Record<string, any[]>
-    ): any[] {
 
+    private filterConstraints(
+        allConstraints: Record<string, any[]>
+    ): Record<string, any[]> {
         // Filter out implicit constraints when there are other constraints available
         const filteredConstraints: Record<string, any[]> = {};
-        
+
         for (const [key, constraintArray] of Object.entries(allConstraints)) {
             if (Array.isArray(constraintArray)) {
                 // Check if there are both implicit and non-implicit constraints
                 const hasImplicit = constraintArray.some(constraint => constraint?.isImplicit === true);
                 const hasNonImplicit = constraintArray.some(constraint => constraint && constraint?.isImplicit !== true);
-                
+
                 // If we have both types, filter out the implicit ones
                 if (hasImplicit && hasNonImplicit) {
-                    
-                    filteredConstraints[key] = constraintArray.filter(constraint => 
+
+                    filteredConstraints[key] = constraintArray.filter(constraint =>
                         constraint && constraint?.isImplicit !== true
                     );
                 } else {
@@ -403,37 +401,45 @@ export class SpecCompiler {
                 filteredConstraints[key] = constraintArray;
             }
         }
-        
+
         // De-duplicate constraints that are the same
         for (const [key, constraintArray] of Object.entries(filteredConstraints)) {
             if (Array.isArray(constraintArray) && constraintArray.length > 1) {
                 // Create a map to track unique constraints by their string representation
                 const uniqueConstraints = new Map();
-                
+
                 // Process each constraint
                 constraintArray.forEach(constraint => {
                     if (!constraint) return;
-                    
+
                     // Create a string key representing the constraint's essential properties
                     const constraintKey = JSON.stringify({
                         value: constraint.value,
                         triggerReference: constraint.triggerReference,
                         type: constraint.type
                     });
-                    
+
                     // Only add if we haven't seen this constraint before
                     if (!uniqueConstraints.has(constraintKey)) {
                         uniqueConstraints.set(constraintKey, constraint);
                     }
                 });
-                
+
                 // Replace the original array with de-duplicated constraints
                 filteredConstraints[key] = Array.from(uniqueConstraints.values());
             }
         }
-       
+
         // Use the filtered constraints for signal generation
-        const constraints = filteredConstraints;
+        return filteredConstraints;
+    }
+    private generateComponentSignals(
+        component: BaseComponent,
+        nodeId: string,
+        allConstraints: Record<string, any[]>
+    ): any[] {
+
+        const constraints = this.filterConstraints(allConstraints);
 
         // Generate output signals from configurations
         const outputSignals = Object.values(component.configurations)
@@ -463,7 +469,7 @@ export class SpecCompiler {
                 const compatibleTransforms = config.transforms.filter(
                     transform => transform.channel === key.split('_')[1]
                 );
-                
+
                 return compatibleTransforms.map(transform => generateSignal({
                     id: nodeId,
                     transform: transform,
@@ -474,27 +480,6 @@ export class SpecCompiler {
 
         return [...outputSignals, ...internalSignals];
     }
-
-    // private buildSchemaValues(
-    //     component: BaseComponent,
-    //     edges: BindingEdge[]
-    // ): Record<string, BindingEdge[]> {
-    //     const schemaValues: Record<string, BindingEdge[]> = {};
-        
-    //     // Get all schema keys from base configuration
-    //     const baseConfig = component.configurations.find(config => config.default);
-    //     if (baseConfig) {
-    //         Object.keys(baseConfig.schema).forEach(schemaKey => {
-    //             // Find all edges that target this schema key
-    //             schemaValues[schemaKey] = edges.filter(edge => {
-    //                 const targetKey = edge.target.anchorId.split('_').pop();
-    //                 return targetKey === schemaKey;
-    //             });
-    //         });
-    //     }
-
-    //     return schemaValues;
-    // }
 
     private compileRegularNodes(
         regularNodes: BindingNode[],
@@ -534,7 +519,7 @@ export class SpecCompiler {
 
             const context = calculateValueForComponent(component, allSignals, constraints);
 
-            return component.compileComponent({...{'VGX_CONTEXT':context,VGX_SIGNALS:allSignals,}, ...compileContext.constraints});
+            return component.compileComponent({ ...{ 'VGX_CONTEXT': context, VGX_SIGNALS: allSignals, }, ...compileContext.constraints });
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }
 
@@ -708,7 +693,7 @@ export class SpecCompiler {
             }
 
             constraints[targetAnchorId].push(constraint);
-    
+
         });
 
 

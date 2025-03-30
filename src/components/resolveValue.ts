@@ -165,21 +165,62 @@ function determineAnchorCategory(key: string): keyof AnchorTypeMapping {
     return 'encoding'; // default to encoding type
 }
 
-
-
-export function calculateValueForComponent(component: BaseComponent, signals: any[], constraints: Constraint[]): any {
-    // Get the base schema from the component's configurations
-    const baseSchema = component.configurations.find(config => config.default)?.schema || {};
-    
-    // Create a context object to hold all calculated values
-    const context: Record<string, any> = {};
-    
-    // Process each key in the base schema
-    for (const key of Object.keys(baseSchema)) {
-        const value = calculateValueFor(key, constraints, signals);
-        context[key] = value;
-    }
-
-
-    return context
+interface CompiledValue {
+    expr?: string;
+    start?: { expr: string };
+    stop?: { expr: string };
 }
+
+export function calculateValueForComponent(component: BaseComponent, signals: any[], constraints: Record<string, any[]>): CompiledValue {
+
+    // Get base schema keys from default configuration
+    const baseConfig = component.configurations.find(config => config.default);
+    if (!baseConfig) return {};
+
+    const baseSchema = baseConfig.schema;
+
+
+    const compiledValue: CompiledValue = {};
+    Object.entries(baseSchema).forEach(([key, schema]) => {
+        // Check if this is a range type schema
+        if (schema.container === 'Range') {
+            // For range types, look for start and stop values
+            const startKey = `${key}1`;
+            const stopKey = `${key}2`;
+
+
+            const startValue = formatValue(resolveValue(startKey, constraints, signals));
+            const stopValue = formatValue(resolveValue(stopKey, constraints, signals));
+
+            compiledValue[key as keyof CompiledValue] = {
+                start: startValue || { expr: '' },
+                stop: stopValue || { expr: '' }
+            };
+        } else {
+            // Regular scalar value
+            const value = formatValue(resolveValue(key, constraints, signals));
+            if (value) {
+                compiledValue[key as keyof CompiledValue] = value;
+            }
+        }
+    });
+
+    return compiledValue;
+}
+
+// export function calculateValueForComponent(component: BaseComponent, signals: any[], constraints: Constraint[]): any {
+//     // Get the base schema from the component's configurations
+//     const baseSchema = component.configurations.find(config => config.default)?.schema || {};
+    
+//     // Create a context object to hold all calculated values
+//     const context: Record<string, any> = {};
+    
+//     // Process each key in the base schema
+//     for (const key of Object.keys(baseSchema)) {
+//         const value = calculateValueFor(key, constraints, signals);
+//         context[key] = value;
+//     }
+
+
+//     return context
+// }

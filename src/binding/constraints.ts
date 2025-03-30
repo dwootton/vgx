@@ -54,6 +54,8 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
     }
 
     // else numeric
+
+    console.log('constraint', constraint);
      
   switch (constraint.type) {
     case ConstraintType.ABSOLUTE:
@@ -116,6 +118,7 @@ export function createConstraintFromSchema(
   if (schema.container === 'Range') {
     // Handle range value constraint (min/max)
     const rangeValue = value as RangeValue;
+    console.log('rangeValue', rangeValue);
     return {
       type: ConstraintType.CLAMP,
       triggerReference,

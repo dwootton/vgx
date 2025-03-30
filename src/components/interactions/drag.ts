@@ -115,11 +115,13 @@ const rectSide = {
 
 
 export function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
+    console.log('generateConfigurationAnchors', id, channel, configurationId, schema);
     if (schema.container === 'Scalar') {
         return {
             'value': generateCompiledValue(id, channel, configurationId)
         }
     } else if (schema.container === 'Range') {
+        console.log('generateConfigurationAnchorsRANGE', id, channel, configurationId);
         return createRangeAccessor(id, channel, configurationId);
     } else if (schema.container === 'Data') {
         return {

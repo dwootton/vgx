@@ -252,7 +252,7 @@ export abstract class BaseComponent {
     return createAnchorProxy(this, anchor, anchorId, compileFn);
   }
 
-  abstract compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>>;
+abstract compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>>;
 
   // whenever compile is called, we go to the root and then compile the entire binding tree
   compile(): TopLevelSpec {

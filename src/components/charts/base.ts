@@ -197,6 +197,7 @@ export class BaseChart extends BaseComponent {
 
     const channelConfigs = this.splitChannelConfig(config);
     this.channelConfigs = channelConfigs;
+    this.initializeAnchors();
 
   }
 
@@ -266,8 +267,10 @@ export class BaseChart extends BaseComponent {
 
 
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
-                    const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+                  console.log('generateConfigurationAnchors outside2', this.id, config.id, key, schemaValue)  
+                  const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
 
+                    console.log('generatedAnchorchart', key, config.id,schemaValue,generatedAnchor);
                     return generatedAnchor
                 }));
             }

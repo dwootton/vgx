@@ -40,6 +40,7 @@ export interface Constraint {
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
   if(constraint.isImplicit){
+    console.log('compileConstraint', constraint, targetSignal, constraint.triggerReference);
     return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
     // return `${targetSignal || constraint.triggerReference}`;
   }
@@ -54,6 +55,8 @@ export function compileConstraint(constraint: Constraint, targetSignal?: string)
     }
 
     // else numeric
+
+    console.log('constraint', constraint);
      
   switch (constraint.type) {
     case ConstraintType.ABSOLUTE:
@@ -116,6 +119,7 @@ export function createConstraintFromSchema(
   if (schema.container === 'Range') {
     // Handle range value constraint (min/max)
     const rangeValue = value as RangeValue;
+    console.log('rangeValue', rangeValue);
     return {
       type: ConstraintType.CLAMP,
       triggerReference,

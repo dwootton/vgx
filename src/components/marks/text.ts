@@ -14,7 +14,7 @@ import { constructValueFromContext } from "../../utils/contextHelpers";
 export const textBaseContext = {
     "x": 0,
     "y": 0,
-    "text": "'Text'",
+    "text": "'Tedadxt'",
     "fontSize": 12,
     "color": "'steelblue'",
     "align": "'center'",

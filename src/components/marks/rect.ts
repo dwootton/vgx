@@ -112,7 +112,7 @@ export class Rect extends BaseComponent {
                 ...allSignals
           
         ],
-            data: data
+            data: data,
             mark: {
                 type: "rect",
                 "stroke":this.styles.stroke,

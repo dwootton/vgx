@@ -39,6 +39,7 @@ export class LazyBindingRegistry {
     static register(lazyComponent: LazyComponent): void {
         const componentType = lazyComponent.componentType;
         if (!this.pendingBindings.has(componentType)) {
+            console.log('registering lazy component', componentType);
             this.pendingBindings.set(componentType, []);
         }
         this.pendingBindings.get(componentType)!.push(lazyComponent);

@@ -22,6 +22,7 @@ import { CompilationContext } from "binding/binding";
 
 
 export const createRangeAccessor = (id: string, channel: string, configurationId: string) => {
+    console.log('createRangeAccessor', id, channel, configurationId);
     return {
         'start': `${id}_${configurationId}_start_${channel}`,
         'stop': `${id}_${configurationId}_stop_${channel}`,
@@ -373,6 +374,7 @@ export function generateSignal(config: SignalConfig): any {
         return null
     }
 
+    console.log('mergedExpression', mergedExpression), id;
     mergedExpression = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
     // Extract signal names from the merged expression

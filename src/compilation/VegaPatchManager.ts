@@ -20,19 +20,24 @@ export class VegaPatchManager {
             const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
             const uniqueBaseSignals = [...new Set(baseMatches)];
             
+            console.log('uniqueBaseSignals', uniqueBaseSignals);
             // Create base signals for each unique match
             uniqueBaseSignals.forEach(baseSignalName => {
                 // Find the original param if it exists
                 const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
-                
+                console.log('baseSignalsParam', originalParam);
                 // Create a new base signal with minimal properties
                 const baseSignal: any = {
                     name: baseSignalName,
-                    value: originalParam?.value || null
+                    value: originalParam?.value || null,
+                    // on: originalParam?.on || null,
+                    init: originalParam?.update || null
                 };
+                
                 
                 baseSignals.push(baseSignal);
             });
+            console.log('baseSignals', baseSignals);
             
             return baseSignals;
         }
@@ -40,6 +45,7 @@ export class VegaPatchManager {
         const baseSignals = createBaseSignals(spec.params || []);
         // Add base signals to spec.params if they have values
         if (baseSignals.length > 0) {
+            console.log('creating baseSignals', baseSignals);
             // Initialize params array if it doesn't exist
             if (!spec.params) {
                 spec.params = [];
@@ -47,15 +53,19 @@ export class VegaPatchManager {
             
             // Add each base signal with a value to the params
             baseSignals.forEach(baseSignal => {
-                if (baseSignal.value !== null && baseSignal.value !== undefined) {
+                // if (baseSignal.value !== null && baseSignal.value !== undefined) {
                     spec.params.push(baseSignal);
-                }
+                // }
             });
+            console.log('spec.params', spec.params);
         }
 
 
         console.log('baseSignals', baseSignals)
+        console.log('unreferencedRemoved(undefinedRemoved)', spec)
         const undefinedRemoved = removeUndefinedInSpec(spec);
+
+        console.log('unreferencedRemoved(postundefinedRemoved)', undefinedRemoved)
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
@@ -87,6 +97,7 @@ export class VegaPatchManager {
     public compile(){
         console.log('compile vl2', this.spec)
         const vegaCompilation = vl.compile(this.spec);
+        vegaCompilation.spec.padding = 40;
 
         console.log('post compilation', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 

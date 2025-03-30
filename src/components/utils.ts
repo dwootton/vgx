@@ -374,6 +374,7 @@ export function generateSignal(config: SignalConfig): any {
         return null
     }
 
+    console.log('mergedExpression', mergedExpression), id;
     mergedExpression = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
     // Extract signal names from the merged expression

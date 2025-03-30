@@ -40,6 +40,7 @@ export interface Constraint {
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
   if(constraint.isImplicit){
+    console.log('compileConstraint', constraint, targetSignal, constraint.triggerReference);
     return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
     // return `${targetSignal || constraint.triggerReference}`;
   }

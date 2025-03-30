@@ -141,9 +141,14 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
         // Finally count direct references in the remaining string
         const directRefMatches = (tempString.match(directRefPattern) || []).length;
         // console.log('directRefMatches', paramName, directRefMatches)
+
+      
        
 
         const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
+        if(totalOccurrences < 2){
+            console.log('REMOVING:paramName', paramName, totalOccurrences, singleQuoteMatches, doubleQuoteMatches, directRefMatches)
+        }
         return totalOccurrences >= 2;
     }) || [];
 
@@ -195,6 +200,7 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
         if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') ||
             param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
             ) {
+
          
             // Extract the dimension from the parameter name
             let dimension, startType;
@@ -221,6 +227,12 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
             // Find the corresponding stop parameter
             // const stopParamName = `${nodeId}_span_${dimension}_stop`;
             
+            // Check if the stop parameter exists in the params array
+            const stopParamExists = params.some(p => p.name === stopParamName);
+            if (!stopParamExists) {
+                // Skip this parameter if the corresponding stop parameter doesn't exist
+                continue;
+            }
             // Ensure the param has an 'on' array
             if (!param.on) {
                 param.on = [];

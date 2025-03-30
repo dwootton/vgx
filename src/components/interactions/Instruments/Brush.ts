@@ -96,7 +96,7 @@ const configurations = [{
    
     ]
 },
-{// STIL BROKEN
+{
     'id': 'top',
     "schema": {
         "x": {
@@ -105,7 +105,7 @@ const configurations = [{
             // "interactive": true
         },
         "y": {
-            "container": "Scalar",
+            "container": "Absolute",
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
@@ -119,7 +119,12 @@ const configurations = [{
         "name": "y",
         "channel": "y",
         "value": "BASE_NODE_ID_interval_start_y" // replace the parent id + get the channel value
-    }
+    },
+    // {
+    //     "name": "y",
+    //     "channel": "y",
+    //     "value": "BASE_NODE_ID_interval_stop_y" // replace the parent id + get the channel value
+    // }
     ]
 }]
 

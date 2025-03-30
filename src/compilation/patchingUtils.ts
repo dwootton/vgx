@@ -1,6 +1,9 @@
 import { extractAnchorType } from "../binding/cycles";
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-import { TopLevelParameter } from "vega-lite/build/src/spec/toplevel";
+import { VariableParameter } from "vega-lite/build/src/parameter";
+import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
+type Parameter = VariableParameter | TopLevelSelectionParameter
+
 
 function stripVGXMOD(name: string) {
     return name.replace('VGXMOD_', '')
@@ -15,7 +18,8 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
     const result: ModifiedElements = { data: [], params: [], scales: []};
 
     function extractDatasets(spec: any) {
-        if (spec.data && spec.data.name?.startsWith('VGXMOD_')) {
+        if (spec.data && spec.data?.name?.startsWith('VGXMOD_')) {
+
             const datasets = (Array.isArray(spec.data) ? spec.data : [spec.data]).map(dataset => ({
                 ...dataset,
                 name: stripVGXMOD(dataset.name)
@@ -88,7 +92,6 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
         }
     }
 
-   
 
     extractFromSpec(spec, extractDatasets);
     extractFromSpec(spec, extractParams);
@@ -141,7 +144,6 @@ export function removeUnreferencedParams(spec: TopLevelSpec) {
        
 
         const totalOccurrences = singleQuoteMatches + doubleQuoteMatches + directRefMatches;
-        // console.log('directRefMatches total:', totalOccurrences, 'from:',directRefMatches, singleQuoteMatches, doubleQuoteMatches)
         return totalOccurrences >= 2;
     }) || [];
 
@@ -182,20 +184,23 @@ export function removeUndefinedInSpec(obj: TopLevelSpec): TopLevelSpec {
  a new drag occurs. 
 
 */
-export function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]{
+export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
     for (let i = 0; i < params.length; i++) {
         const param = params[i];
         
         
         // Check if this is a span start parameter for any dimension (x or y)
-        if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start') || 
-            param.name.endsWith('begin_x') || param.name.endsWith('begin_y')) {
+
+        //TOD include param.name.endsWith('begin_x') || param.name.endsWith('begin_y')
+        if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') ||
+            param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
+            ) {
          
             // Extract the dimension from the parameter name
             let dimension, startType;
             
-            if (param.name.endsWith('_x_start') || param.name.endsWith('_y_start')) {
-                dimension = param.name.endsWith('_x_start') ? 'x' : 'y';
+            if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y')) {
+                dimension = param.name.endsWith('_start_x') ? 'x' : 'y';
                 startType = 'start';
             } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
                 dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
@@ -208,11 +213,11 @@ export function fixVegaSpanBug(params: TopLevelParameter[]) :TopLevelParameter[]
             }
 
             const baseName = startType === 'start' ? 
-                param.name.split(`_${dimension}_start`)[0] : 
+                param.name.split(`_start_${dimension}`)[0] : 
                 param.name.split(`_begin_${dimension}`)[0];
             
             // Find the corresponding stop parameter
-            const stopParamName = baseName + (startType === 'start' ? `_${dimension}_stop` : `_point_${dimension}`);
+            const stopParamName = baseName + (startType === 'start' ? `_stop_${dimension}` : `_point_${dimension}`);
             // Find the corresponding stop parameter
             // const stopParamName = `${nodeId}_span_${dimension}_stop`;
             

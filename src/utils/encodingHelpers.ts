@@ -6,7 +6,7 @@ export function getEncodingValue(
     const constraint = constraintMap[channel]?.[0];
     
     // If constraint exists and contains 'datum[', use it directly
-    if (constraint && constraint.includes('datum[')) {
+    if (constraint ) {
         return { expr: constraint };
     }
     

@@ -8,13 +8,63 @@ export class VegaPatchManager {
     constructor(spec: TopLevelSpec) {
         this.spec = spec;
 
-        this.modifiedElements = extractModifiedObjects(spec);
-        //TODO CLENAUP:
-        //TODO stop from removing undefined with data
+        console.log('preunreferencedRemoved', spec)
+
+        
+
+        const createBaseSignals = (params: any[]) => {
+            const baseSignals: any[] = [];
+            
+            // Find all params that might reference base_ signals
+            const paramsStr = JSON.stringify(params);
+            const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
+            const uniqueBaseSignals = [...new Set(baseMatches)];
+            
+            // Create base signals for each unique match
+            uniqueBaseSignals.forEach(baseSignalName => {
+                // Find the original param if it exists
+                const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
+                
+                // Create a new base signal with minimal properties
+                const baseSignal: any = {
+                    name: baseSignalName,
+                    value: originalParam?.value || null
+                };
+                
+                baseSignals.push(baseSignal);
+            });
+            
+            return baseSignals;
+        }
+
+        const baseSignals = createBaseSignals(spec.params || []);
+        // Add base signals to spec.params if they have values
+        if (baseSignals.length > 0) {
+            // Initialize params array if it doesn't exist
+            if (!spec.params) {
+                spec.params = [];
+            }
+            
+            // Add each base signal with a value to the params
+            baseSignals.forEach(baseSignal => {
+                if (baseSignal.value !== null && baseSignal.value !== undefined) {
+                    spec.params.push(baseSignal);
+                }
+            });
+        }
+
+
+        console.log('baseSignals', baseSignals)
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
-        const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
-        const unreferencedRemoved = removeUnreferencedParams(unreferencedRemovedFirst);
+        // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
+        const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('unreferencedRemoved', unreferencedRemoved)
+
+
+        this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
+
+
 
         const newParams = fixVegaSpanBug(unreferencedRemoved.params)
         unreferencedRemoved.params = newParams
@@ -27,6 +77,7 @@ export class VegaPatchManager {
                 unreferencedRemoved.datasets[dataset.name] = []
             })
         }
+        // console.log
 
         this.spec = unreferencedRemoved;
 
@@ -34,20 +85,30 @@ export class VegaPatchManager {
     }
 
     public compile(){
+        console.log('compile vl2', this.spec)
         const vegaCompilation = vl.compile(this.spec);
 
+        console.log('post compilation', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 
+
+        console.log('matchingModifiedData', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 
          // Update data elements that match modified elements
          if (vegaCompilation.spec.data && this.modifiedElements.data && Array.isArray(this.modifiedElements.data) && this.modifiedElements.data.length > 0) {
+                            // console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
+
             vegaCompilation.spec.data = vegaCompilation.spec.data.map(dataElement => {
                 const matchingModifiedData = this.modifiedElements.data.find(
                     modifiedData => modifiedData.name === dataElement.name
                 );
                 
+                console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
+
+               
                 if (matchingModifiedData) {
                     return matchingModifiedData ;
                 }
+                console.log('matchingModifiedData', matchingModifiedData)
                 
                 return dataElement;
             });

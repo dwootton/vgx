@@ -1,5 +1,6 @@
 
-export type compilationContext = any;
+export type CompilationContext = Record<string, Constraint[]>;
+import { Constraint } from "./constraints";
 import { BindingEdge } from "./GraphManager";
 
 export const detectBidirectionalLinks = (edges: BindingEdge[]): Map<string, string> => {

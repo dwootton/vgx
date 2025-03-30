@@ -7,7 +7,7 @@ import { StandardType } from 'vega-lite/build/src/type';
 import { BaseComponent } from '../base';
 import { getMainRangeChannel, PositionChannel } from 'vega-lite/build/src/channel';
 import { AnchorProxy, ChannelType, RangeSchema, NumericScalar, SchemaType, SchemaValue } from '../../types/anchors';
-
+import { generateConfigurationAnchors } from '../interactions/Drag';
 export interface ChartConfig {
   data: any[];
   width?: number;
@@ -59,6 +59,106 @@ type SplitConfig = {
 
 // Define our specific spec type that we know will have encoding
 export type ChartSpec = Partial<UnitSpec<Field>>;
+// Generate configurations for chart channels
+const configurations = [
+  {
+    "id": 'plot',
+    "default": true,
+    "schema": {
+      "x": {
+        "container": "Range",
+        "valueType": "Numeric"
+      },
+      "y": {
+        "container": "Range",
+        "valueType": "Numeric"
+      },
+      // "color": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "size": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "opacity": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // }
+    },
+    "transforms": [
+      { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+      { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+      // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+      // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+      // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
+    ]
+  },
+  {
+    "id": 'y',
+    "schema": {
+      // "x": {
+      //   "container": "Range",
+      //   "valueType": "Numeric"
+      // },
+      "y": {
+        "container": "Range",
+        "valueType": "Numeric"
+      },
+      // "color": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "size": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "opacity": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // }
+    },
+    "transforms": [
+      // { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+      { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+      // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+      // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+      // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
+    ]
+  },
+  {
+    "id": 'x',
+    "schema": {
+      "x": {
+        "container": "Range",
+        "valueType": "Numeric"
+      },
+      // "y": {
+      //   "container": "Range",
+      //   "valueType": "Numeric"
+      // },
+      // "color": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "size": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // },
+      // "opacity": {
+      //   "container": "Scalar",
+      //   "valueType": "Numeric"
+      // }
+    },
+    "transforms": [
+      { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+      // { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+      // { "name": "color", "channel": "color", "value": "BASE_NODE_ID.color" },
+      // { "name": "size", "channel": "size", "value": "BASE_NODE_ID.size" },
+      // { "name": "opacity", "channel": "opacity", "value": "BASE_NODE_ID.opacity" }
+    ]
+  }
+]
 
 export class BaseChart extends BaseComponent {
   protected spec: ChartSpec;
@@ -71,16 +171,18 @@ export class BaseChart extends BaseComponent {
   public size: any;
   public shape: any;
   public opacity: any;
+  public isChart = true;
+  // public isChart: boolean;
 
   public channelConfigs: SplitConfig;
-  public configurations: Record<string, SchemaType>;
 
   constructor(config: ChartConfig) {
-    super({ ...config });
+    // this.isChart = true;
+    super({ ...config }, configurations, true);
     this.width = config.width || 400;
     this.height = config.height || 300;
     this.padding = config.padding || 20;
-    this.configurations = this.generateChartConfigurations();
+   
 
     this.spec = {
       name: this.id,
@@ -97,50 +199,6 @@ export class BaseChart extends BaseComponent {
     this.channelConfigs = channelConfigs;
 
   }
-
-  private generateChartConfigurations() : Record<string, SchemaType> {
-
-
-    // Generate configurations for chart channels
-    const configurations = {
-      'axes': {
-        "default": true,
-        "schema": {
-          "x": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-          },
-          "y": {
-            "container": "Scalar",
-            "valueType": "Numeric"
-          },
-          // "color": {
-          //   "container": "Scalar",
-          //   "valueType": "Numeric"
-          // },
-          // "size": {
-          //   "container": "Scalar",
-          //   "valueType": "Numeric"
-          // },
-          // "opacity": {
-          //   "container": "Scalar",
-          //   "valueType": "Numeric"
-          // }
-        },
-        "transforms": [
-          { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-          { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
-          // { "name": "color", "channel": "color", "value": "PARENT_ID.color" },
-          // { "name": "size", "channel": "size", "value": "PARENT_ID.size" },
-          // { "name": "opacity", "channel": "opacity", "value": "PARENT_ID.opacity" }
-        ]
-      }
-    }
-    return configurations;
-
-  }
-
-
 
   private splitChannelConfig(config: ChartConfig): SplitConfig {
     const result: SplitConfig = {
@@ -198,66 +256,83 @@ export class BaseChart extends BaseComponent {
       throw new Error('Encoding is required for a chart');
     }
 
-    const anchors: { id: string, proxy: AnchorProxy }[] = [];
-
-    Object.entries(this.spec.encoding).forEach(([key, encoding]) => {
-      let scaleName = key;
-
-      // fields like x1, x2 should go to x
-      if (isPositionChannel(key)) {
-        const positionChannel = getMainRangeChannel(key as PositionChannel);
-        scaleName = positionChannel; // used for any reference and inversions 
-      }
+    this.configurations.forEach(config => {
+            // this.configurations[config.id] = config
+            const schema = config.schema
+            for (const key in schema) {
+                const schemaValue = schema[key];
+                const keyName = config.id + '_' + key
+                this.schema[keyName] = schemaValue;
 
 
-      const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) {
-          acc[key] = RangeSchema;
-        } else {
-          // acc[key] = NumericScalar;
-        }
-        return acc;
-      }, {} as Record<string, SchemaType>);
+                this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                    const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+
+                    return generatedAnchor
+                }));
+            }
+
+        }); 
+    // const anchors: { id: string, proxy: AnchorProxy }[] = [];
+
+    // Object.entries(this.spec.encoding).forEach(([key, encoding]) => {
+    //   let scaleName = key;
+
+    //   // fields like x1, x2 should go to x
+    //   if (isPositionChannel(key)) {
+    //     const positionChannel = getMainRangeChannel(key as PositionChannel);
+    //     scaleName = positionChannel; // used for any reference and inversions 
+    //   }
 
 
-
-
-
-      // Scalar
-      const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
-        if (key === scaleName) {
-          // some encoding channels like y have an inverted range, so we must min/max the range
-          acc[key] = {
-            'start': `${this.id}_${key}_start`,
-            'stop': `${this.id}_${key}_stop`,
-          };
-        } else { // this is scalar, numeric
-          // acc[key] = {
-          //   'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
-          // };
-        }
-        return acc;
-      }, {} as Record<string, SchemaValue>);
+    //   const encodingProxy = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+    //     if (key === scaleName) {
+    //       acc[key] = RangeSchema;
+    //     } else {
+    //       // acc[key] = NumericScalar;
+    //     }
+    //     return acc;
+    //   }, {} as Record<string, SchemaType>);
 
 
 
 
 
-      // currently this returns anchors compile with {x,y,etc}.. I think this is actually supposed tobe something like schema constraints, and then we grab 
-      // them lat
-      anchors.push({
-        'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
-          return compiledAnchor[scaleName]
-        })
-      })
-    })
+    //   // Scalar
+    //   const compiledAnchor = Object.entries(this.spec.encoding).reduce((acc, [key]) => {
+    //     if (key === scaleName) {
+    //       // some encoding channels like y have an inverted range, so we must min/max the range
+    //       acc[key] = {
+    //         'start': `${this.id}_start_${key}`,
+    //         'stop': `${this.id}_stop_${key}`,
+    //       };
+    //     } else { // this is scalar, numeric
+    //       // acc[key] = {
+    //       //   'value': `range('${this.id+'_'+scaleName}')[0]`, // min value
+    //       // };
+    //     }
+    //     return acc;
+    //   }, {} as Record<string, SchemaValue>);
 
-    // compile bindFn
 
-    // for each anchor, add it
-    anchors.forEach((anchor) => {
-      this.anchors.set(anchor.id, anchor.proxy);
-    })
+
+
+
+    //   // currently this returns anchors compile with {x,y,etc}.. I think this is actually supposed tobe something like schema constraints, and then we grab 
+    //   // them lat
+    //   anchors.push({
+    //     'id': scaleName, 'proxy': this.createAnchorProxy(encodingProxy, scaleName, () => {
+    //       return compiledAnchor[scaleName]
+    //     })
+    //   })
+    // })
+
+    // // compile bindFn
+
+    // // for each anchor, add it
+    // anchors.forEach((anchor) => {
+    //   this.anchors.set(anchor.id, anchor.proxy);
+    // })
     super.initializeAnchors();
 
   }
@@ -276,14 +351,23 @@ export class BaseChart extends BaseComponent {
     // add params to the spec for range access (TODO, find out why accessing range directly is erroring)
     this.spec.params = [
       //@ts-ignore
-      { "name": this.id + "_x_start", "expr": "range('x')[0]" },
+      { "name": this.id + "_plot_start_x", "expr": "range('x')[0]" },
       //@ts-ignore
-      { "name": this.id + "_x_stop", "expr": "range('x')[1]" },
+      { "name": this.id + "_plot_stop_x", "expr": "range('x')[1]" },
       //@ts-ignore, note : y range is inverted due to svg layout
-      { "name": this.id + "_y_start", "expr": "range('y')[1]" },
+      { "name": this.id + "_plot_start_y", "expr": "range('y')[1]" },
       //@ts-ignore
-      { "name": this.id + "_y_stop", "expr": "range('y')[0]" },
+      { "name": this.id + "_plot_stop_y", "expr": "range('y')[0]" },
+      //@ts-ignore
+      { "name": this.id + "_x_start_x", "expr": "range('x')[0]" },
+      //@ts-ignore
+      { "name": this.id + "_x_stop_x", "expr": "range('x')[1]" },
+      //@ts-ignore
+      { "name": this.id + "_x_start_y", "expr": "range('y')[1]" },
+      //@ts-ignore
+      { "name": this.id + "_x_stop_y", "expr": "range('y')[0]" },
     ]
+
 
 
 

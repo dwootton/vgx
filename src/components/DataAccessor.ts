@@ -3,32 +3,33 @@ import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { generateConfigurationAnchors } from "./interactions/Drag";
 import { LazyOperation } from "../binding/LazyBinding";
+import { CompilationContext } from "../binding/binding";
 
 type DataOperation = {
   type: 'filter' | 'aggregate' | 'groupby' | 'count' | 'percent';
   params: any;
 };
 
-
+// TODO: figure out why data is not being passed as an anchor (or if it is.. )
 const configurations = [{
     'id': 'transform',
     "default": true,
     "schema": {
        
         "data": { 
-            container: 'Data',
-            valueType: "Numeric"
+            container: 'Absolute',
+            valueType: "Data"
           },
           "text": { 
-            container: 'Data',
+            container: 'Absolute',
             valueType: "Categorical"
           }
        
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "PARENT_ID.x" },
-        { "name": "y", "channel": "y", "value": "PARENT_ID.y" },
-        // { "name": "text", "channel": "text", "value": "PARENT_ID.text" }
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x" },
+        { "name": "y", "channel": "y", "value": "BASE_NODE_ID.y" },
+        // { "name": "text", "channel": "text", "value": "BASE_NODE_ID.text" }
     ]
 }];
 // Create a component class for data transformation
@@ -37,14 +38,13 @@ class DataTransformer extends BaseComponent {
   private sourceSelectionName: string;
   
   constructor(sourceComponent: BaseComponent, accessor: DataAccessor) {
-    super({});
+    super({},configurations);
     this.sourceSelectionName = sourceComponent.id;
     this.accessor = accessor
     
     // this.configurations = configurations;
 
     configurations.forEach(config => {
-        this.configurations[config.id] = config
         const schema = config.schema
         for (const key in schema) {
             const schemaValue = schema[key];
@@ -65,11 +65,12 @@ class DataTransformer extends BaseComponent {
   }
   
   
-  compileComponent(inputContext: any): Partial<UnitSpec<Field>> {
+  compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
+    console.log('data transformer compilation inputContext', inputContext)
     const transforms = this.compileToTransforms();
     
-    return {
+    const compilation = {
       "data":{
         name: "VGXMOD_"+this.id +"_transform_data",
         transform: transforms,
@@ -83,6 +84,10 @@ class DataTransformer extends BaseComponent {
         }
       ]
     };
+
+    console.log('data transformer compilation', compilation)
+
+    return compilation;
   }
   
   // Method to compile into VL transforms
@@ -92,7 +97,7 @@ class DataTransformer extends BaseComponent {
     // Start with the selection filter
     transforms.push({
       type: "filter",
-      expr: `vlSelectionTest("${(this.sourceSelectionName)}_store", datum)`
+      expr: `vlSelectionTest("${(this.sourceSelectionName)}_selection_store", datum)`
     });
     
     // Process operations

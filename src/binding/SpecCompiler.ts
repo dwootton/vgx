@@ -1,34 +1,61 @@
 import { BindingEdge, GraphManager, BindingGraph, BindingNode } from "./GraphManager";
 import { BindingManager, VirtualBindingEdge, } from "./BindingManager";
-import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue } from "../types/anchors";
-import { BaseComponent } from "../components/base";
+import { AnchorProxy, SchemaType, SchemaValue, RangeValue, SetValue, ScalarValue, AnchorType } from "../types/anchors";
 import { TopLevelSpec, UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
-import { VariableParameter } from "vega-lite/build/src/parameter";
-import { TopLevelSelectionParameter } from "vega-lite/build/src/selection"
-import { getGenericAnchorTypeFromId } from "../utils/anchorGeneration/rectAnchors";
-import { extractConstraintsForMergedComponent, VGX_MERGED_SIGNAL_NAME } from "./mergedComponent";
-import { resolveCycleMulti, expandEdges, extractAnchorType, isCompatible } from "./cycles";
-import { pruneEdges } from "./prune";
+import { extractConstraintsForMergedComponent } from "./mergedComponent";
+import { extractAnchorType, isAnchorTypeCompatible } from "./cycles";
 import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
-
+import { createConstraintFromSchema } from "./constraints";
+import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
+import { BaseComponent } from "components/base";
+import { calculateValueForComponent } from "../components/resolveValue";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
 }
 
 export type Edge = AnchorEdge | VirtualBindingEdge;
-type Parameter = VariableParameter | TopLevelSelectionParameter
 
 type AnchorId = string;
 type Constraint = string;
 
+// Extract other nodes from merged node IDs
+// For merged nodes like 'merged_node_2_node_3_node_1', extract [node_2, node_3] if current node is node_1
+const extractOtherNodesFromMergedId = (mergedId: string, currentNodeId: string): string[] => {
+    // Check if this is a merged node ID
+    if (!mergedId.startsWith('merged_')) {
+        return [];
+    }
+
+    // Split the merged ID into parts
+    const parts = mergedId.split('_');
+
+    // Remove 'merged' prefix
+    parts.shift();
+
+    // Filter out the current node ID and return the remaining node IDs
+    return parts.filter(part => {
+        // Handle case where the node ID might be multi-part (e.g., "node_1")
+        return !currentNodeId.endsWith(part) && !currentNodeId.includes(`${part}_`);
+    }).map(part => {
+        // If the part is just a number, prepend "node_" to it
+        if (/^\d+$/.test(part)) {
+            return `node_${part}`;
+        }
+        return part;
+    });
+};
+
 function generateScalarConstraints(schema: SchemaType, value: SchemaValue): string {
-    if (schema.container === 'Data'){
+    if (schema.container === 'Absolute') {
+        return `${value.value}`;
+    }
+    if (schema.container === 'Data') {
         return `datum[${value.value}]`;
     }
-    if(schema.valueType === 'Categorical'){
+    if (schema.valueType === 'Categorical') {
 
         return `${value.value}`;
     }
@@ -44,17 +71,30 @@ function generateScalarConstraints(schema: SchemaType, value: SchemaValue): stri
     if (schema.container === 'Scalar') {
         value = value as ScalarValue
         return `clamp(${'VGX_SIGNAL_NAME'},${value.value},${value.value})`
-    } 
+    }
+
     return "";
 }
 
-// 
+function getAnchorSafely(component: BaseComponent, anchorId: string): AnchorProxy | null {
+    try {
+        return component.getAnchor(anchorId);
+    } catch {
+        return null;
+    }
+}
+
 function generateRangeConstraints(schema: SchemaType, value: SchemaValue): string {
-    if(schema.valueType === 'Categorical'){
+    if (schema.container === 'Absolute') {
+        console.
+            return`${value.value}`;
+    }
+
+    if (schema.valueType === 'Categorical') {
         // TODO: fix this
         return `${value.value}`;
     }
-    
+
     if (schema.container === 'Range') {
         //TODO SOMETHING WEIRD IS HAPPIGN HERE WHERE RECT IS GIVING WEIRD UPDATES TO THIS
         value = value as RangeValue
@@ -65,7 +105,7 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
     }
     if (schema.container === 'Set') {
         value = value as SetValue
-        
+
         return `nearest(${'VGX_SIGNAL_NAME'},${value.values})`
     }
     if (schema.container === 'Scalar') {
@@ -78,13 +118,18 @@ function generateRangeConstraints(schema: SchemaType, value: SchemaValue): strin
 }
 
 function generateDataConstraints(schema: SchemaType, value: SchemaValue): string {
-    return `${value.value}`; 
+    return `${value.value}`;
 }
 
-// The goal of the spec compiler is to take in a binding graph and then compute
+interface CompileContext {
+    VGX_SIGNALS: any[];
+    schemaValues: Record<string, BindingEdge[]>;
+    constraints: Record<string, any[]>;
+}
+
 export class SpecCompiler {
     constructor(
-    private graphManager: GraphManager,
+        private graphManager: GraphManager,
         private getBindingManager: () => BindingManager // Getter for BindingManager
     ) { }
 
@@ -93,21 +138,22 @@ export class SpecCompiler {
 
         const elaboratedGraph = this.graphManager.buildCompilationGraph(fromComponentId);
 
-        const compiledSpecs = this.compileBindingGraph(fromComponentId, elaboratedGraph);
+        const compiledSpecs = this.compileBindingGraph(elaboratedGraph);
 
         const mergedSpec = mergeSpecs(compiledSpecs, fromComponentId);
 
 
         const patchManager = new VegaPatchManager(mergedSpec);
 
-        
+
         return patchManager.compile();
-       
+
     }
 
 
-    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[]): BindingEdge[]{
+    private buildImplicitContextEdges(node: BindingNode, previousEdges: BindingEdge[], nodes: BindingNode[],): BindingEdge[] {
         let edges = [...previousEdges]
+        const implicitEdges = []
 
         // Skip if this is a merged node
         if (node.type === 'merged') {
@@ -115,89 +161,175 @@ export class SpecCompiler {
         }
 
         // 1. Find all parent nodes (nodes that have edges targeting the current node)
-        const parentNodes = nodes.filter(n => 
+        const parentNodes = nodes.filter(n =>
             edges.some(edge => edge.source.nodeId === n.id && edge.target.nodeId === node.id)
-        );
+        ).flatMap(n => {
+            // if the node is a merged nodes, extract what other nodes were originally part of it
+            // TODO: other ndoes might have been children.... this is a hack
+            if (n.type === 'merged') {
+                return extractOtherNodesFromMergedId(n.id, node.id).map(id => nodes.find(n => n.id === id));
+            }
+            return [n];
+        }).filter(n => n !== undefined);
 
-        
         if (parentNodes.length === 0) return [];
-        
-        // Get the current component
-        const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return [];
-        
+
+        //2. Get the current component
+        const childComponent = this.getBindingManager().getComponent(node.id);
+        if (!childComponent) return [];
+
         // Map to store the highest value anchor for each channel type
         const highestAnchors: Record<string, { nodeId: string, anchorId: string, value: number }> = {};
-        
-        // 2. For each parent, find default configuration and compatible anchors
+
+        // 3. For each parent of the child component, find their default configuration and compatible anchors
         for (const parentNode of parentNodes) {
             // Skip merged nodes
             if (parentNode.type === 'merged') continue;
-            
+
             const parentComponent = this.getBindingManager().getComponent(parentNode.id);
             if (!parentComponent) continue;
-            
-            // Find default configuration for parent
-            const defaultConfigKey = Object.keys(parentComponent.configurations || {})
-                .find(cfg => parentComponent.configurations[cfg]?.default);
 
-            
-            if (!defaultConfigKey) continue;
-            
             // Get all anchors for this parent
             const parentAnchors = parentComponent.getAnchors();
-            // Process each anchor
-            parentAnchors.forEach(anchor => {
-                const anchorId = anchor.id.anchorId;
-                const channel = extractAnchorType(anchorId);
-                if (!channel) return;
-                
-                // Extract numeric value from anchor ID if present (e.g., "node_5_x" -> 5)
-                const match = anchorId.match(/node_(\d+)_/);
-                const value = match ? parseInt(match[1], 10) : 0;
-                
-                // Update highest anchor for this channel if this one is higher
-                if (!highestAnchors[channel] || value > highestAnchors[channel].value) {
-                    highestAnchors[channel] = {
-                        nodeId: parentNode.id,
-                        anchorId,
-                        value
-                    };
+            // Process each parent anchor to find compatible anchors for the child component
+            parentAnchors.forEach(parentAnchor => {
+                const parentComponentId = parentAnchor.id.componentId;
+                const anchorType = extractAnchorType(parentAnchor.id.anchorId);
+
+                // Skip if no valid anchor type
+                if (!anchorType || anchorType === AnchorType.OTHER) return;
+
+                // Get available configurations from child component
+                const availableConfigurations = childComponent.configurations.map(config => config.id);
+
+                // Try to match with each configuration in the child component
+                for (const configuration of availableConfigurations) {
+                    const targetAnchorType = configuration ? `${configuration}_${anchorType}` : anchorType;
+                    // Use a helper function to safely get the anchor
+                    const targetAnchor = getAnchorSafely(childComponent, targetAnchorType);
+                    if (!targetAnchor) {
+                        // Skip if target anchor doesn't exist
+                        continue;
+                    }
+
+                    // Calculate priority value for this anchor
+                    // Extract numeric value from component ID if present (e.g., "node_5_x" -> 5)
+                    const match = parentComponentId.match(/node_(\d+)/);
+                    let priorityValue = match ? parseInt(match[1], 10) : 0;
+
+                    // Compare schemas between parent and child anchors
+                    const parentSchema = parentAnchor.anchorSchema[parentAnchor.id.anchorId];
+                    const childSchema = targetAnchor.anchorSchema[targetAnchorType];
+
+                    // Increase priority if schemas match
+                    if (parentSchema && childSchema &&
+                        parentSchema.container === childSchema.container &&
+                        parentSchema.valueType === childSchema.valueType) {
+                        priorityValue += 100;
+                    }
+
+                    // Update highest priority anchor for this channel
+                    if (!highestAnchors[targetAnchorType] || priorityValue > highestAnchors[targetAnchorType].value) {
+                        highestAnchors[targetAnchorType] = {
+                            nodeId: parentNode.id,
+                            anchorId: parentAnchor.id.anchorId,
+                            value: priorityValue
+                        };
+                    }
                 }
-            })
-        }
-        // 3. Create implicit edges from highest parent anchors to this node
-        for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
-            // Find compatible target anchor on current node
-            const targetAnchors = component.getAnchors()
-                .filter(anchor => {
+            });
+
+
+            // 4. Create new implicit binding edges for each anchor within the chiuld component based on the 
+            // highest priority anchors found in the parent nodes (schema matched)
+            for (const [channel, anchorInfo] of Object.entries(highestAnchors)) {
+                // Find compatible target anchor on current node
+                let pretargetAnchors = childComponent.getAnchors()
+                    .filter(anchor => {
+                        const targetChannel = extractAnchorType(anchor.id.anchorId);
+                        return targetChannel && isAnchorTypeCompatible(channel, targetChannel);
+                    })
+
+                let targetAnchors = [...pretargetAnchors].filter(anchor => {
+                    // implicit edges should only be used to transfer values from their parents NOT to constrain. 
+                    // Get the channel from the current anchor
                     const targetChannel = extractAnchorType(anchor.id.anchorId);
-                    return targetChannel && isCompatible(channel, targetChannel);
-                });
-            
-            if (targetAnchors.length === 0) continue;
-            
-            // Create implicit edge
-            const implicitEdge: BindingEdge = {
-                source: {
-                    nodeId: anchorInfo.nodeId,
-                    anchorId: anchorInfo.anchorId
-                },
-                target: {
-                    nodeId: node.id,
-                    anchorId: targetAnchors[0].id.anchorId
-                },
-                implicit: true
-            };
-                   
-            // Add to implicit edges
-            edges.push(implicitEdge);
+                    if (!targetChannel) return false;
+
+                    // Get the schema for this anchor
+                    const targetSchema = anchor.anchorSchema[anchor.id.anchorId];
+                    if (!targetSchema) return false;
+
+                    // Get the schema for the source anchor
+                    const sourceComponent = this.getBindingManager().getComponent(anchorInfo.nodeId);
+                    if (!sourceComponent) return false;
+
+
+                    const sourceAnchor = sourceComponent.getAnchor(anchorInfo.anchorId);
+                    if (!sourceAnchor) return false;
+
+                    const sourceSchema = sourceAnchor.anchorSchema[anchorInfo.anchorId];
+                    if (!sourceSchema) return false;
+
+
+                    // Check if the containers match
+                    return sourceSchema.container === targetSchema.container;
+                })
+
+                if (targetAnchors.length === 0) continue;
+                // Deduplicate target anchors based on anchorId
+                const uniqueTargetAnchors = [];
+                const seenAnchorIds = new Set();
+
+                for (const anchor of targetAnchors) {
+                    const anchorId = anchor.id.anchorId;
+                    if (!seenAnchorIds.has(anchorId)) {
+                        seenAnchorIds.add(anchorId);
+                        uniqueTargetAnchors.push(anchor);
+                    }
+                }
+
+
+                // Replace the original array with the deduplicated one
+                targetAnchors = uniqueTargetAnchors;
+
+
+                // Create implicit edges for each compatible target anchor
+                for (const targetAnchor of targetAnchors) {
+
+                    const implicitEdge: BindingEdge = {
+                        source: {
+                            nodeId: anchorInfo.nodeId,
+                            anchorId: anchorInfo.anchorId
+                        },
+                        target: {
+                            nodeId: node.id,
+                            anchorId: targetAnchor.id.anchorId
+                        },
+                        implicit: true
+                    };
+
+
+                    // Add to implicit edges
+                    // Check if this implicit edge already exists in the edges array
+                    const edgeExists = implicitEdges.some(edge =>
+                        edge.source.nodeId === implicitEdge.source.nodeId &&
+                        edge.source.anchorId === implicitEdge.source.anchorId &&
+                        edge.target.nodeId === implicitEdge.target.nodeId &&
+                        edge.target.anchorId === implicitEdge.target.anchorId &&
+                        edge.implicit === true
+                    );
+
+                    // Only add the edge if it doesn't already exist
+                    if (!edgeExists) {
+                        implicitEdges.push(implicitEdge);
+                    }
+                }
+            }
         }
-        
-       
-        return edges;
+        return implicitEdges;
     }
-        
+
     /**
      * Compiles a binding graph into a collection of Vega-Lite specifications.
      * This is the core function that traverses the processed graph and compiles
@@ -207,19 +339,20 @@ export class SpecCompiler {
      * @param bindingGraph The processed binding graph with cycles resolved
      * @returns Array of compiled Vega-Lite specifications
      */
-    private compileBindingGraph(rootId: string, bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
+    private compileBindingGraph(bindingGraph: BindingGraph): Partial<UnitSpec<Field>>[] {
         const { nodes, edges } = bindingGraph;
         const constraintsByNode: Record<string, Record<string, any[]>> = {};
-        
+
         // Separate merged and regular nodes
         const { regularNodes, mergedNodeIds } = this.separateNodeTypes(nodes);
-        
+
         // Process regular nodes
         const regularSpecs = this.compileRegularNodes(regularNodes, nodes, edges, constraintsByNode);
-        
+
         // Process merged nodes
         const mergedSpecs = this.compileMergedNodes(mergedNodeIds, nodes, edges, constraintsByNode);
-        
+
+
         return [...regularSpecs, ...mergedSpecs];
     }
 
@@ -235,8 +368,117 @@ export class SpecCompiler {
             }
             return true;
         });
-        
+
         return { regularNodes, mergedNodeIds };
+    }
+
+
+    private filterConstraints(
+        allConstraints: Record<string, any[]>
+    ): Record<string, any[]> {
+        // Filter out implicit constraints when there are other constraints available
+        const filteredConstraints: Record<string, any[]> = {};
+
+        for (const [key, constraintArray] of Object.entries(allConstraints)) {
+            if (Array.isArray(constraintArray)) {
+                // Check if there are both implicit and non-implicit constraints
+                const hasImplicit = constraintArray.some(constraint => constraint?.isImplicit === true);
+                const hasNonImplicit = constraintArray.some(constraint => constraint && constraint?.isImplicit !== true);
+
+                // If we have both types, filter out the implicit ones
+                if (hasImplicit && hasNonImplicit) {
+
+                    filteredConstraints[key] = constraintArray.filter(constraint =>
+                        constraint && constraint?.isImplicit !== true
+                    );
+                } else {
+
+                    // Otherwise keep all constraints (including just implicit ones)
+                    filteredConstraints[key] = constraintArray;
+                }
+            } else {
+                // If not an array, just pass it through
+                filteredConstraints[key] = constraintArray;
+            }
+        }
+
+        // De-duplicate constraints that are the same
+        for (const [key, constraintArray] of Object.entries(filteredConstraints)) {
+            if (Array.isArray(constraintArray) && constraintArray.length > 1) {
+                // Create a map to track unique constraints by their string representation
+                const uniqueConstraints = new Map();
+
+                // Process each constraint
+                constraintArray.forEach(constraint => {
+                    if (!constraint) return;
+
+                    // Create a string key representing the constraint's essential properties
+                    const constraintKey = JSON.stringify({
+                        value: constraint.value,
+                        triggerReference: constraint.triggerReference,
+                        type: constraint.type
+                    });
+
+                    // Only add if we haven't seen this constraint before
+                    if (!uniqueConstraints.has(constraintKey)) {
+                        uniqueConstraints.set(constraintKey, constraint);
+                    }
+                });
+
+                // Replace the original array with de-duplicated constraints
+                filteredConstraints[key] = Array.from(uniqueConstraints.values());
+            }
+        }
+
+        // Use the filtered constraints for signal generation
+        return filteredConstraints;
+    }
+    private generateComponentSignals(
+        component: BaseComponent,
+        nodeId: string,
+        allConstraints: Record<string, any[]>
+    ): any[] {
+
+        const constraints = this.filterConstraints(allConstraints);
+
+        // Generate output signals from configurations
+        const outputSignals = Object.values(component.configurations)
+            .filter(config => Array.isArray(config.transforms))
+            .flatMap(config => {
+                const constraintMap = {};
+                Object.keys(config.schema).forEach(channel => {
+                    const key = `${config.id}_${channel}`;
+                    constraintMap[channel] = constraints[key] || [];
+                });
+
+                return generateSignalsFromTransforms(
+                    config.transforms,
+                    nodeId,
+                    component.id + '_' + config.id,
+                    constraintMap
+                );
+            });
+
+        // Generate internal signals
+        const internalSignals = [...component.anchors.keys()]
+            .filter(key => key.endsWith('_internal'))
+            .map(key => {
+                let internalConstraints = constraints[key] || ["VGX_SIGNAL_NAME"];
+                const configId = key.split('_')[0];
+                const config = component.configurations.find(config => config.id === configId);
+                const compatibleTransforms = config.transforms.filter(
+                    transform => transform.channel === key.split('_')[1]
+                );
+
+                return compatibleTransforms.map(transform => generateSignal({
+                    id: nodeId,
+                    transform: transform,
+                    output: nodeId + '_' + key,
+                    constraints: internalConstraints
+                }));
+            }).flat();
+
+        return [...outputSignals, ...internalSignals];
     }
 
     private compileRegularNodes(
@@ -251,15 +493,33 @@ export class SpecCompiler {
                 console.warn(`Component ${node.id} not found`);
                 return null;
             }
-            
-            // Add implicit edges and build constraints
-            const implicitEdges = this.buildImplicitContextEdges(node, edges, allNodes);
-            const constraints = this.buildNodeConstraints(node, [...edges, ...implicitEdges], allNodes);
-            
-            // Store constraints for merged nodes
+
+            const componentEdges = edges.filter(edge => edge.target.nodeId === node.id);
+
+            // Build implicit edges
+            const implicitEdges = this.buildImplicitContextEdges(node, componentEdges, allNodes) || [];
+            const allEdges = [...componentEdges, ...implicitEdges];
+
+            // Build constraints
+            const constraints = this.buildNodeConstraints(node, allEdges, allNodes);
             constraintsByNode[node.id] = constraints;
-            
-            return component.compileComponent(constraints);
+
+            // Generate all signals
+            const allSignals = this.generateComponentSignals(component, node.id, constraints);
+
+            // Build schema values mapping
+            // const schemaValues = this.buildSchemaValues(component, allEdges);
+
+            // Create compile context
+            const compileContext: CompileContext = {
+                VGX_SIGNALS: allSignals,
+                // schemaValues,
+                constraints
+            };
+
+            const context = calculateValueForComponent(component, allSignals, constraints);
+
+            return component.compileComponent({ ...{ 'VGX_CONTEXT': context, VGX_SIGNALS: allSignals, }, ...compileContext.constraints });
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }
 
@@ -272,16 +532,50 @@ export class SpecCompiler {
         return Array.from(mergedNodeIds).map(nodeId => {
             const component = this.getBindingManager().getComponent(nodeId);
             if (!component) return null;
-            
+
             const parentAnchors = this.getParentAnchors(nodeId, allNodes, edges);
-            const mergedSignals = extractConstraintsForMergedComponent(
-                parentAnchors, 
-                constraintsByNode, 
+            const mergedConstraints = extractConstraintsForMergedComponent(
+                parentAnchors,
+                constraintsByNode,
                 component
             );
-            
+
+            type Update = {
+                events: { signal: string }[];
+                update: string;
+            }
+            const updates: Update[] = [];
+
+            Object.keys(mergedConstraints).forEach(key => {
+                const parentSignalName = key;
+                const expression = mergeConstraints(mergedConstraints[key], parentSignalName);
+
+                updates.push({
+                    'events': [
+                        {
+                            'signal': parentSignalName
+                        }
+                    ],
+                    'update': expression
+                })
+            })
+
+
+
+
+
+            // const mergedSignals = mergedConstraints.map(constraint => {
+
+            const mergedSignal = {
+                name: nodeId,
+                value: null,
+                on: updates
+            }
+
+
+
             return component.compileComponent({
-                'VGX_MERGED_SIGNAL_NAME': mergedSignals
+                'VGX_MERGED_SIGNAL_NAME': mergedSignal
             });
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
     }
@@ -296,12 +590,12 @@ export class SpecCompiler {
             .map(edge => {
                 const parentNode = allNodes.find(n => n.id === edge.source.nodeId);
                 if (!parentNode) return null;
-                
+
                 const parentComponent = this.getBindingManager().getComponent(parentNode.id);
                 if (!parentComponent) return null;
-                
+
                 const anchor = parentComponent.getAnchor(edge.source.anchorId);
-                return anchor ? { anchor, targetId: edge.target.anchorId } : null;
+                return anchor ? { anchor, targetId: anchor.id.anchorId } : null;
             })
             .filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== null);
     }
@@ -319,6 +613,7 @@ export class SpecCompiler {
 
         const anchorAccessor = anchorProxy.compile();
         // Handle special case for absolute values
+
         if ('absoluteValue' in anchorAccessor) {
             constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
             return;
@@ -337,80 +632,69 @@ export class SpecCompiler {
                 generateRangeConstraints(parentNodeSchema, anchorAccessor)
             );
         } else if (currentNodeSchema.container === "Data") {
-            
-                constraints[targetAnchorId].push(
-                    generateDataConstraints(parentNodeSchema, anchorAccessor)
-                );
-            
+
+            constraints[targetAnchorId].push(
+                generateDataConstraints(parentNodeSchema, anchorAccessor)
+            );
+
         }
     }
 
     /**
      * Build constraint objects from parent nodes
      */
-    private buildNodeConstraints(
-        node: BindingNode,
-        edges: BindingEdge[],
-        allNodes: BindingNode[]
-    ): Record<AnchorId, Constraint[]> {
-        const component = this.getBindingManager().getComponent(node.id);
-        if (!component) return {};
+    private buildNodeConstraints(node: BindingNode, edges: BindingEdge[], allNodes: BindingNode[]): Record<string, Constraint[]> {
+        const constraints: Record<string, Constraint[]> = {};
 
-        // Find parent edges and nodes
-        const parentEdges = edges.filter(edge => edge.target.nodeId === node.id);
-        const constraints: Record<AnchorId, Constraint[]> = {};
+        // Find all edges where this node is the target
+        const incomingEdges = edges.filter(edge => edge.target.nodeId === node.id);
+
+        incomingEdges.forEach(edge => {
+            const sourceNode = allNodes.find(n => n.id === edge.source.nodeId);
+            if (!sourceNode) return;
+
+            const sourceComponent = this.getBindingManager().getComponent(sourceNode.id);
+            if (!sourceComponent) return;
+
+            const anchor = sourceComponent.getAnchor(edge.source.anchorId);
+            if (!anchor) return;
 
 
-        // Process each parent edge
-        for (const parentEdge of parentEdges) {
+            const targetAnchorId = edge.target.anchorId
+            const parentAnchorId = edge.source.anchorId
 
-            const parentNode = allNodes.find(n => n.id === parentEdge.source.nodeId);
-            if(!parentNode) {
-                console.error(`Parent node not found: ${parentEdge.source.nodeId} for target: ${node.id}`);
-                continue;
-            }
-            
-            const parentComponent = this.getBindingManager().getComponent(parentNode.id);
-            if(!parentComponent) {
-                console.error(`Parent component not found: ${parentNode.id} for target: ${node.id}`);
-                continue;
-            }
+            const schema = anchor.anchorSchema[parentAnchorId];
+            const value = anchor.compile();
 
-            const anchorProxy = parentComponent.getAnchor(parentEdge.source.anchorId);
-            if(!anchorProxy) {
-                console.error(`Anchor not found: ${parentEdge.source.anchorId} on component: ${parentNode.id} for target: ${node.id}`);
-                continue;
-            }
-            
-            // Get the schema and value from the parent anchor
-            const targetAnchorId = parentEdge.target.anchorId;
-            const targetAnchorSchema = component.schema[targetAnchorId];
-
-            const cleanTargetId = targetAnchorId.replace('_internal', '');
-
-            const currentNodeSchema = component.schema[cleanTargetId]
-            const parentNodeSchema = anchorProxy.anchorSchema[parentEdge.source.anchorId];
-           
-            // Skip if no schema exists for this channel
-            if (!currentNodeSchema) {
-                console.error(`Schema not found for channel: ${cleanTargetId} on component: ${node.id}`);
-                continue;
+            if (!schema || !value) {
+                console.error('no schema or value', edge, anchor.anchorSchema, value);
+                return;
             }
 
-            // Initialize constraint array if needed
+            const constraint = createConstraintFromSchema(
+                schema,
+                value,
+                `${sourceNode.id}_${edge.source.anchorId}`,
+                edge.implicit
+            );
+
+            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
+
+                console.log('2sdscfs:', constraint, JSON.parse(JSON.stringify(constraints)), constraints[targetAnchorId], targetAnchorId);
+                console.log('creating new', JSON.parse(JSON.stringify(constraints)), targetAnchorId, !constraints[targetAnchorId])
+            }
+
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-        
-            // Add appropriate constraint based on component schema type
-            this.addConstraintForChannel(
-                constraints,
-                targetAnchorId,
-                currentNodeSchema,
-                parentNodeSchema,
-                anchorProxy
-            );
-        }
+            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
+
+                console.log('2sdscfsbefore:', constraint, JSON.parse(JSON.stringify(constraints)));
+            }
+
+            constraints[targetAnchorId].push(constraint);
+
+        });
 
 
 

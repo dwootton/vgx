@@ -1,6 +1,9 @@
-
-
 //Components: 
+
+import { extractAnchorType } from "../binding/cycles";
+import { compileConstraint, Constraint, ConstraintType } from "../binding/constraints";
+import { extractSignalNames } from "../binding/mergedComponent";
+import { CompilationContext } from "binding/binding";
 
 // creates the accessor for the signal backing the range
 // export const createRangeAccessor = (id: string, channel: string) => {
@@ -10,16 +13,23 @@
 //     }
 // }
 
-export const createRangeAccessor = (id: string, channel: string) => {
-        return {
-            'start': `${id}_${channel}_start`,
-            'stop': `${id}_${channel}_stop`,
-        }
+// export const createRangeAccessor = (id: string, channel: string) => {
+//         return {
+//             'start': `${id}_${channel}_start`,
+//             'stop': `${id}_${channel}_stop`,
+//         }
+//     }
+
+
+export const createRangeAccessor = (id: string, channel: string, configurationId: string) => {
+    return {
+        'start': `${id}_${configurationId}_start_${channel}`,
+        'stop': `${id}_${configurationId}_stop_${channel}`,
     }
-    
+}
 
 export function generateCompiledValue(id: string, channel: string) {
-    return  `${id}_${channel}` // min value
+    return `${id}_${channel}` // min value
 }
 
 export function extractAllNodeNames(input: string): string[] {
@@ -71,17 +81,17 @@ export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: 
     let channel = anchorId;
 
     // Check if any constraint is undefined or contains undefined
-    if (constraints.some(constraint => constraint === undefined || constraint.includes('undefined'))) {
+    if (constraints.some(constraint => constraint === undefined)) {
         console.warn(`Skipping signal generation for ${anchorId} due to undefined constraints`);
         return [];
     }
-    
+
     const parentSignal = extractAllNodeNames(parentExtractor)[0];
     const signalName = mergedParent + '_' + channel;
 
     const generateConstraints = (update: string) => {
         return {
-            events: [ extractAllNodeNames(update).map(node => ({
+            events: [extractAllNodeNames(update).map(node => ({
                 signal: node
             }))],
             update: update.replace(/VGX_SIGNAL_NAME/g, signalName)
@@ -109,13 +119,13 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
     let channel = anchorId;
 
     // Check if any constraint is undefined or contains undefined
-    if (constraints.some(constraint => constraint === undefined || constraint.includes('undefined'))) {
+    if (constraints.some(constraint => constraint === undefined)) {
         console.warn(`Skipping signal generation for ${anchorId} due to undefined constraints`);
         return [];
     }
-    
-    const startSignalName = mergedParent + '_' + channel + '_start';
-    const stopSignalName = mergedParent + '_' + channel + '_stop';
+
+    const startSignalName = mergedParent + '_' + '_start' + channel;
+    const stopSignalName = mergedParent + '_' + '_stop' + channel;
 
     const startParentExtractor = signalParent + "." + channel + ".start";
     const stopParentExtractor = signalParent + "." + channel + ".stop";
@@ -174,88 +184,245 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
 interface Transform {
     name?: string;      // Optional name for the generated signal
     channel: string;    // The channel this transform applies to (x, y, etc)
-    value: string;      // Expression to extract value (e.g. "PARENT_ID.x.start")
-  }
-  
-  interface SignalConfig {
+    value: string;      // Expression to extract value (e.g. "BASE_NODE_ID.x.start")
+}
+
+interface SignalConfig {
     id: string;         // Parent/source component ID
     transform: Transform;  // How to extract the value
     output: string;     // Target signal name
-    constraints: string[];  // Constraints to apply
-  }
-  
-  /**
-   * Core function to generate a Vega signal from a configuration
-   */
-  export function generateSignal(config: SignalConfig): any {
-    const { id, transform, output, constraints } = config;
-    
-    // Skip if constraints are invalid
-    if (constraints.some(c => c === undefined || c.includes('undefined'))) {
-      console.warn(`Skipping signal generation for ${transform.channel} due to undefined constraints`);
-      return null;
-    }
-    
-    // Replace PARENT_ID in the transform value with the actual ID
-    const parentExtractor = transform.value.replace(/PARENT_ID/g, id);
-    
-    // Process constraints
-    const processedConstraints = constraints.map(constraint => ({
-      events: extractAllNodeNames(constraint).map(node => ({ signal: node })),// TODO FIX DEPENDENCTS
-      update: constraint.replace(/VGX_SIGNAL_NAME/g, parentExtractor)
-    }));
+    constraints: Constraint[];  // Constraints to apply
+}
 
-    
-    // Build the final update expression
-    const finalUpdate = collapseSignalUpdates(processedConstraints, parentExtractor);
-    // Find dependent nodes
-    const dependentNodes = extractAllNodeNames(finalUpdate)
-      .filter(node => node !== output)
-      .map(node => ({ signal: node }));
-    
-       // ...dependentNodes] TODO FIX DEPENDENCTS
-    const uniqueTriggerEvents = [...new Set(dependentNodes.map(JSON.stringify))].map(JSON.parse);
-    // Return the signal definition
-    return {
-      name: output,
-      value: null,
-      on: [{
-        events: uniqueTriggerEvents,
-        update: finalUpdate
-      }]
+
+// Helper function to compile constraint with transform placeholder
+const compileConstraintWithTransform = (constraint: Constraint): string => {
+    if (!constraint) return "VGX_TRANSFORM_VALUE";
+
+    const compiled = compileConstraint(constraint);
+
+
+    return compiled.replace(constraint.triggerReference || "", "VGX_TRANSFORM_VALUE");
+};
+
+// Find compatible constraints for a transform
+const findCompatibleConstraints = (transform: Transform, allConstraints: Constraint[]): Constraint[] => {
+    if (allConstraints.some(constraint => constraint.type === ConstraintType.ABSOLUTE)) {
+        const absoluteConstraint = allConstraints.find(constraint => constraint.type === ConstraintType.ABSOLUTE) as Constraint;
+        return [absoluteConstraint];
+    }
+    const transformName = transform.name || '';
+
+    return allConstraints.filter(constraint => {
+        if (!constraint) return false;
+
+        const constraintName = constraint.triggerReference || '';
+        const constraintEnding = generateAnchorId(constraintName)//.split('_').pop() || constraintName;
+        return areNamesCompatible(transformName, constraintEnding);
+    });
+};
+
+export const generateAnchorId = (name: string): string => {
+
+
+    if (name.includes('start_')) {
+        return 'start_' + name.split('start_')[1];
+    } else if (name.includes('stop_')) {
+        return 'stop_' + name.split('stop_')[1];
+    } else {
+        return name.split('_').pop() || name;
+    }
+};
+
+export function areNamesCompatible(name1: string, name2: string): boolean {
+
+    const anchorType1 = extractAnchorType(name1);
+    const anchorType2 = extractAnchorType(name2);
+
+    if (anchorType1 === anchorType2) {
+        return schemaCompatibility(name1, name2);
+    }
+
+    return false;
+}
+
+function schemaCompatibility(name1: string, name2: string): boolean {
+
+    if (name1.includes('merged') || name2.includes('merged')) {
+        return true;
+    }
+    // const constraintAnchorType = extractAnchorType(constraintName);
+    // Define name equivalence mappings for semantic relationships
+    const nameEquivalences: Record<string, string[]> = {
+        'x1': ['start_x'],
+        'y1': ['start_y'],
+        'x2': ['stop_x'],
+        'y2': ['stop_y'],
+        'markName': ['markName'],
+        'text': ['text']
     };
-  }
-  
-  /**
-   * Generate signals from a collection of transforms
-   * This simplifies the process of creating multiple related signals
-   */
-  export function generateSignalsFromTransforms(
+
+    // Reverse mapping for lookup in both directions
+    const reverseEquivalences: Record<string, string[]> = {};
+    Object.entries(nameEquivalences).forEach(([key, values]) => {
+        values.forEach(value => {
+            if (!reverseEquivalences[value]) {
+                reverseEquivalences[value] = [];
+            }
+            reverseEquivalences[value].push(key);
+        });
+    });
+
+
+    // Check if both names exist in the equivalence maps but aren't directly equivalent
+    const name1InAnyEquivalence = Object.values(nameEquivalences).some(values => values.includes(name1)) ||
+        Object.keys(nameEquivalences).includes(name1);
+    const name2InAnyEquivalence = Object.values(nameEquivalences).some(values => values.includes(name2)) ||
+        Object.keys(nameEquivalences).includes(name2);
+
+
+    // if both names are in an equvialence map, ensure that they are compatible, else assume they are.
+    if (name1InAnyEquivalence && name2InAnyEquivalence) {
+        // Find all equivalences for name1
+        const name1Equivalences = new Set<string>();
+        if (nameEquivalences[name1]) {
+            nameEquivalences[name1].forEach(val => name1Equivalences.add(val));
+        }
+        if (reverseEquivalences[name1]) {
+            reverseEquivalences[name1].forEach(val => name1Equivalences.add(val));
+        }
+
+
+        if (name1Equivalences.has(name2)) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    return true;
+}
+
+// Merge nested constraints
+export const mergeConstraints = (constraints: Constraint[], transformValue: string): string => {
+    if (constraints.some(constraint => constraint.type === ConstraintType.ABSOLUTE)) {
+        let constraint = constraints.find(constraint => constraint.type === ConstraintType.ABSOLUTE);
+        if (constraint) {
+            return constraint.triggerReference || constraint.value as string;
+        }
+    }
+    if (constraints.length === 0) return transformValue;
+
+    // Sort constraints to establish nesting order
+    let sortedConstraints = [...constraints].sort((a, b) => {
+        // Custom sorting logic if needed
+        return 0; // Default no specific order
+    });
+
+    // have explicit constraints overrule implicit constraints
+    if (sortedConstraints.length !== 1) {
+        sortedConstraints = sortedConstraints.filter(constraint => !constraint.isImplicit);
+    } 
+
+
+
+
+    // Nest constraints
+    let result = "VGX_TRANSFORM_VALUE";
+    for (const constraint of sortedConstraints) {
+        result = compileConstraintWithTransform(constraint).replace("VGX_TRANSFORM_VALUE", result);
+    }
+
+    // Replace final placeholder with actual transform value
+    return result.replace("VGX_TRANSFORM_VALUE", transformValue);
+};
+
+
+/**
+ * Core function to generate a Vega signal from a configuration
+ */
+export function generateSignal(config: SignalConfig): any {
+    const { id, transform, output, constraints } = config;
+
+    // Process the transform and generate updates
+    let compatibleConstraints = findCompatibleConstraints(transform, constraints);
+
+    // Deduplicate compatible constraints
+    // This ensures we don't apply the same constraint multiple times
+    const uniqueConstraints = compatibleConstraints.reduce((unique, constraint, index) => {
+        // Check if this constraint is already in our unique list
+        const isDuplicate = unique.some(existingConstraint =>
+            JSON.stringify(existingConstraint) === JSON.stringify(constraint)
+        );
+
+        if (!isDuplicate) {
+            unique.push(constraint);
+        }
+
+        return unique;
+    }, [] as Constraint[]);
+
+
+    // Use the deduplicated constraints for merging
+    let mergedExpression = mergeConstraints(uniqueConstraints, transform.value);
+    // let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
+
+    if(!mergedExpression){
+        console.log('LOOKATmergedExpressionNULL', mergedExpression, uniqueConstraints, compatibleConstraints)
+        return null
+    }
+
+    mergedExpression = mergedExpression.replace(/BASE_NODE_ID/g, id);
+
+    // Extract signal names from the merged expression
+    const signalNames = extractSignalNames(mergedExpression);
+
+
+    // Create the update object
+    const updates = [{
+        events: signalNames.map(name => ({ signal: name })),
+        update: mergedExpression
+    }];
+    return {
+        name: output,
+        value: null,
+        update: mergedExpression,
+        on: updates
+    };
+}
+
+
+/**
+ * Generate signals from a collection of transforms
+ * This simplifies the process of creating multiple related signals
+ */
+export function generateSignalsFromTransforms(
     transforms: Transform[],
     parentId: string,
     outputPrefix: string,
-    constraints: Record<string, string[]>,
-  ): any[] {
+    constraints: Record<string, Constraint[]>,
+): any[] {
     return transforms
-      .map(transform => {
-        const channel = transform.channel;
-        if(channel ==='data'){
-            return []
-        }
-        const outputName = `${outputPrefix}_${transform.name || channel}`;
-        
-        const signal = generateSignal({
-          id: parentId,
-          transform,
-          output: outputName,
-          constraints: constraints[channel] || [],
-        });
-        return signal
-      })
-      .filter(signal => signal !== null); // Remove any nulls from skipped signals
-  }
+        .map(transform => {
+            const channel = transform.channel;
+            if (channel === 'data') {
+                return []
+            }
+            const outputName = `${outputPrefix}_${transform.name || channel}`;
 
-  
+            const signal = generateSignal({
+                id: parentId,
+                transform,
+                output: outputName,
+                constraints: constraints[channel] || [],
+            });
+            return signal
+        })
+        .filter(signal => signal !== null); // Remove any nulls from skipped signals
+}
+
+
 export const generateSignalFromAnchor = (constraints: string[], anchorId: string, transform: string[], mergedParent: string, schemaType: string): any[] => {
     // For Scalar type
     if (schemaType === 'Scalar') {

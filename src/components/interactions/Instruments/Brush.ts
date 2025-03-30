@@ -2,18 +2,32 @@ import { CombinedDrag, dragBaseContext, generateConfigurationAnchors } from "../
 import { Rect } from "../../marks/rect";
 import { BaseComponent } from "../../base";
 import { extractAllNodeNames, generateSignal, generateSignalsFromTransforms } from "../../utils";
+import { calculateValueFor } from "../../resolveValue";
 import { UnitSpec } from "vega-lite/build/src/spec";
 import { Field } from "vega-lite/build/src/channeldef";
 import { DataAccessor } from "../../DataAccessor";
 import { BindingManager } from "../../../binding/BindingManager";
 import { extractComponentBindings } from "../../../binding/utils";
-
+import { constructValueFromContext } from "../../../utils/contextHelpers";
+import { Constraint } from "../../../binding/constraints";
+const brushBaseContext = {
+    "start":{
+        "x": 0,
+        "y": 0
+    },
+    "stop":{
+        "x": 1000,
+        "y": 1000
+    },
+   
+    "color": "'firebrick'",
+    "stroke": "'white'"
+}
 
 export class BrushConstructor {
     id: string;
     constructor(config: any) {
-        
-        
+    
         
         // Get all components that need to be bound
         const allBindings = extractComponentBindings(config);
@@ -25,8 +39,9 @@ export class BrushConstructor {
 
         this.id = brush.id;
 
-        const drag = new CombinedDrag({ bind: [...allBindings,{ span: new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}) },brush] });
+        const drag = new CombinedDrag({ bind: [...allBindings,{ span: [new Rect({ "strokeDash": [6, 4],'stroke':'firebrick','strokeWidth':2,'strokeOpacity':0.7,'fillOpacity':0.2,'fill':'firebrick'}),brush ]},] });
 
+        
         const dragProxy = new Proxy(drag, {
             get(target, prop, receiver) {
                 // If accessing 'data' property, redirect to brush.data
@@ -46,15 +61,16 @@ export class BrushConstructor {
 
         bindingManager.removeComponent(drag.id);
         bindingManager.addComponent(dragProxy);
+
+        brush.drag = dragProxy;
         
         // Return the proxy instead of the original drag object
         return dragProxy;
 
-        return drag; // pass through to the drag component, but still have parent edges via brush bind.
     }
 }
 
-type CompilationContext = Record<string, string[]>;
+type CompilationContext = Record<string, Constraint[]>;
 
 const configurations = [{
     'id': 'interval',
@@ -72,21 +88,12 @@ const configurations = [{
         },
     },
     "transforms": [
-    //     {
-    //     "name": "x",
-    //     "channel": "x",
-    //     "value": "PARENT_ID.x" // replace the parent id + get the channel value
-    // },
-    // {
-    //     "name": "y",
-    //     "channel": "y",
-    //     "value": "PARENT_ID.y" // replace the parent id + get the channel value
-    // } 
-    //BROKEN, but not used for signals rn
-    { "name": "x_start", "channel": "x", "value": "PARENT_ID_x[0]" },
-    { "name": "x_stop", "channel": "x", "value": "PARENT_ID_x[1]" },
-    { "name": "y_start", "channel": "y", "value": "50" },
-    // { "name": "y_stop", "channel": "y", "value": "PARENT_ID.stop.y" },
+   
+    { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+    { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
+    { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+    { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
+   
     ]
 },
 {// STIL BROKEN
@@ -106,12 +113,12 @@ const configurations = [{
     "transforms": [{
         "name": "x",
         "channel": "x",
-        "value": "(PARENT_ID_interval_x_start+PARENT_ID_interval_x_stop)/2" // replace the parent id + get the channel value
+        "value": "(BASE_NODE_ID_interval_start_x+BASE_NODE_ID_interval_stop_x)/2" // replace the parent id + get the channel value
     },
     {
         "name": "y",
         "channel": "y",
-        "value": "PARENT_ID_interval_y_start" // replace the parent id + get the channel value
+        "value": "BASE_NODE_ID_interval_start_y" // replace the parent id + get the channel value
     }
     ]
 }]
@@ -120,12 +127,13 @@ const configurations = [{
 export class Brush extends BaseComponent {
     _data: DataAccessor;
     accessors: DataAccessor[];
-    constructor(config: any = {}) {
-        super(config);
+    constructor(config: any = {},) {
+        super(config,configurations);
         this._data = new DataAccessor(this);
+        console.log('brush constructor', this._data)
+
         this.accessors = [];
         configurations.forEach(config => {
-            this.configurations[config.id] = config
             const schema = config.schema
             for (const key in schema) {
                 const schemaValue = schema[key];
@@ -141,13 +149,10 @@ export class Brush extends BaseComponent {
         });
 
         this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
-
-
     }
 
-    
-        // Getter for data accessor
     get data(): DataAccessor {
+        console.log('getting data accessor', this.id)
         const accessor= new DataAccessor(this);
         this.accessors.push(accessor);
         return accessor.filter(`vlSelectionTest(${this.id}_store, datum)`)
@@ -155,7 +160,7 @@ export class Brush extends BaseComponent {
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
         const selection = {
-            "name": this.id,
+            "name": this.id+"_selection",
             "select": {
                 "type": "interval",
                 "mark": {
@@ -166,21 +171,21 @@ export class Brush extends BaseComponent {
             }
         }
 
+        const brushBaseSignal = {
+            "name":this.id,
+            "value":brushBaseContext
+        }
 
-        const xNodeStart = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('start')))[0]
-        const xNodeStop = extractAllNodeNames(inputContext['interval_x'].find(constraint => constraint.includes('stop')))[1]
+        const allSignals = inputContext.VGX_SIGNALS
 
-        const yNodeStart = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('start')))[0]
-        const yNodeStop = extractAllNodeNames(inputContext['interval_y'].find(constraint => constraint.includes('stop')))[1]
+        const {x,y} = inputContext.VGX_CONTEXT
 
-
-
-        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":xNodeStart},{"signal":xNodeStop}],"update":`[${xNodeStart},${xNodeStop}]`}]},
-                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":yNodeStart},{"signal":yNodeStop}],"update":`[${yNodeStart},${yNodeStop}]`}]}]
+        const selectionModifications = [{"name":"VGXMOD_"+this.id+"_x","on":[{"events":[{"signal":x.start.expr},{"signal":x.stop.expr}],"update":`[${x.start.expr},${x.stop.expr}]`}]},
+                                        {"name":"VGXMOD_"+this.id+"_y","on":[{"events":[{"signal":y.start.expr},{"signal":y.stop.expr}],"update":`[${y.start.expr},${y.stop.expr}]`}]}]
 
         
         return {
-            params: [selection, ...selectionModifications]
+            params: [selection,...allSignals,brushBaseSignal, ...selectionModifications]
         }
     }
 }

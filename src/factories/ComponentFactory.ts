@@ -43,9 +43,10 @@ export function createComponentFactory<T>(
 
     
     
-      // Otherwise, find the most recent instance of this component type
-      const recentInstance = findMostRecentComponentByType(componentType);
+      // TODO: this is hack to get around having multiple brushes on the same page...
+      const recentInstance = {};//findMostRecentComponentByType(componentType);
       
+      console.log('recentInstance', recentInstance, prop)
       if (recentInstance && prop in recentInstance) {
         return recentInstance[prop as keyof T];
       } else {

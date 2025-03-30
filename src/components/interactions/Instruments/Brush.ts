@@ -100,21 +100,24 @@ const configurations = [{
     'id': 'top',
     "schema": {
         "x": {
-            "container": "Scalar",
+            "container": "Range",
             "valueType": "Numeric",
             // "interactive": true
         },
         "y": {
-            "container": "Absolute",
+            "container": "Scalar",
             "valueType": "Numeric",
             // "interactive": true // TODO add back in when it won't screw with the chart domains
         },
     },
-    "transforms": [{
-        "name": "x",
-        "channel": "x",
-        "value": "(BASE_NODE_ID_interval_start_x+BASE_NODE_ID_interval_stop_x)/2" // replace the parent id + get the channel value
-    },
+    "transforms": [
+    //     {
+    //     "name": "x",
+    //     "channel": "x",
+    //     "value": "(BASE_NODE_ID_interval_start_x+BASE_NODE_ID_interval_stop_x)/2" // replace the parent id + get the channel value
+    // },
+    { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+    { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
     {
         "name": "y",
         "channel": "y",

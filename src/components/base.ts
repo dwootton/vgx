@@ -63,7 +63,6 @@ export abstract class BaseComponent {
 
     // Early return if not a valid component, for now no support for anchor proxies
     if (!isComponent(childComponent)) {
-      console.log('what is this', bindingItem.value.toComponent)
       console.warn('Cannot elaborate binding for AnchorProxy', bindingItem);
       return;
     }

@@ -67,10 +67,8 @@ class DataTransformer extends BaseComponent {
   
   compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
-    console.log('data transformer compilation inputContext', inputContext)
     const transforms = this.compileToTransforms();
     
-    console.log('data transformer', transforms, this)
     const compilation = {
       "data":{
         name: "VGXMOD_"+this.id +"_transform_data",
@@ -86,7 +84,6 @@ class DataTransformer extends BaseComponent {
       ]
     };
 
-    console.log('data transformer compilation', compilation, this)
 
     return compilation;
   }
@@ -95,7 +92,6 @@ class DataTransformer extends BaseComponent {
   private compileToTransforms(): any[] {
     const transforms = [];
 
-    console.log('data transformer compileToTransforms', this.accessor.operations)
     
     // Start with the selection filter
     transforms.push({
@@ -207,9 +203,7 @@ export class DataAccessor {
   // Used to apply operations to data transforms if referenced before initialization
    public applyOperations(accessor: any, operations: LazyOperation[]){
     let value = accessor;
-    console.log('applyOperations', value, operations, this.operations)
     for (const op of operations) {
-      console.log('applyOperations', op, value, value[op.type])
         if (value && value[op.type]) {
             value = value[op.type](...op.args);
         }

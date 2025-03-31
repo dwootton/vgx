@@ -866,10 +866,40 @@ function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
     
     // Step 2: Organize cycles by type (start, stop, etc.)
     const cyclesByType = organizeCyclesByType(cycles);
-    console.log('cyclesByType', cyclesByType)
+    console.log('cyclesByType', cyclesByType);
+    
     // Step 3: Merge and rewire cycles with constraint extraction
-    const resolvedSignals = mergeAndRewireWithConstraints(params, cyclesByType);
-    console.log('resolvedSignals', resolvedSignals)
+    // Iterate up to 10 times or until no more cycles are found
+    let resolvedSignals = [...params];
+    let iterationCount = 0;
+    const maxIterations = 10;
+    
+    while (iterationCount < maxIterations) {
+        // Find remaining cycles
+        const remainingCycles = findMinimalCycles(resolvedSignals);
+        
+        // If no more cycles, we're done
+        if (remainingCycles.length === 0) {
+            console.log(`Resolved all cycles in ${iterationCount} iterations`);
+            break;
+        }
+        
+        // Organize remaining cycles by type
+        const remainingCyclesByType = organizeCyclesByType(remainingCycles);
+        console.log(`Iteration ${iterationCount + 1}, remaining cycles:`, remainingCyclesByType);
+        
+        // Apply constraint extraction and rewiring
+        resolvedSignals = mergeAndRewireWithConstraints(resolvedSignals, remainingCyclesByType);
+        
+        iterationCount++;
+    }
+    
+    if (iterationCount === maxIterations) {
+        console.warn(`Reached maximum iterations (${maxIterations}) without fully resolving cycles`);
+    }
+    
+    console.log('Final resolvedSignals', resolvedSignals);
+
     return resolvedSignals;
 }
 

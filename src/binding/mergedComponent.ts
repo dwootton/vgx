@@ -146,7 +146,7 @@ export function extractConstraintsForMergedComponent(
 
         const parentSignalName = `${parentId}_${anchorFromParent.targetId}_internal`;
 
-        if(!mergedConstraints[parentSignalName]){
+        if(!mergedConstraints[parentSignalName] ){
             mergedConstraints[parentSignalName] = [];
         }
         
@@ -235,6 +235,7 @@ export function createMergedComponentForChannel(
     // Create the merged component ID
     const mergedId = `merged_${nodeIds.join('_')}_${channel}`;
     
+    console.log('schemaComponent', schemaComponent)
     // Use schema from the component we found
     const mergedSchemaKeys = Object.keys(schemaComponent.schema)
     const mergedSchemaKey = mergedSchemaKeys.find(key => key.includes(channel))
@@ -256,10 +257,11 @@ export function createMergedComponentForChannel(
         
         // Set schema to match the involved components
         this.schema = { [channel]: mergedSchema };
+        console.log('mergedSchema', mergedSchema)
         
         // Create an anchor that provides an absolute value
         this.anchors.set(channel, this.createAnchorProxy(
-          { [channel]: {container:'Scalar ', valueType:ConstraintType.ABSOLUTE} },
+          { [channel]: {container:'Absolute', valueType:mergedSchema.valueType} },
           channel,
           () => ({ value: `${this.id}` })
         ));
@@ -295,38 +297,9 @@ export function createMergedComponentForChannel(
           params: [mergedSignal]
         };
       }
-      
-      /**
-       * Builds update rules for the merged signal based on constraints.
-       */
-      private buildUpdateRules(constraintUpdates: any[]): any[] {
-        const updates: any[] = [];
-        
-        // Flatten constraint updates if needed
-        const flatConstraints = Array.isArray(constraintUpdates[0]) 
-          ? constraintUpdates.flat() 
-          : constraintUpdates;
-        
-        // Apply each constraint as an update rule
-        flatConstraints.forEach(constraint => {
-          if (constraint && constraint.events && constraint.update) {
-            // Extract signal names from update expression
-            const signalNames = extractSignalNames(constraint.update);
-            
-            // Create event triggers for each signal
-            const events = signalNames.map(name => ({ signal: name }));
-            
-            // Add update rule
-            updates.push({
-              events,
-              update: constraint.update
-            });
-          }
-        });
-        
-        return updates;
-      }
     }
+      
+      
     
     return new MergedComponent();
   }

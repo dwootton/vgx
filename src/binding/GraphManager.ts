@@ -74,7 +74,6 @@ function expandConstraintsToSiblingNodes(edges: BindingEdge[], components: BaseC
         });
 
 
-
         // FOR PASSING FROM SIBLINGS TO THE DEFAULT, EVEN IF DEFAULT IS NOT A SOURCE
         // THIS IS NECESSARY TO ENSURE THAT THE DEFAULT MAY BE USED DURING NODE COMPILATION
 
@@ -154,7 +153,7 @@ export class GraphManager {
 
         bindingGraph.edges = siblingExpandedEdges;
 
-        const elaboratedGraph = resolveCycleMulti(bindingGraph, this.bindingManager);
+        const elaboratedGraph = bindingGraph;//resolveCycleMulti(bindingGraph, this.bindingManager);
 
         console.log('elaboratedGraph', elaboratedGraph)
 

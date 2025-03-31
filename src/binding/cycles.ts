@@ -308,6 +308,7 @@ export function resolveCycleMulti(
     let processedGraph = cloneGraph(graph);
 
     let cycles = detectCyclesByChannel(processedGraph.edges);
+    console.log('ALLcycles', cycles)
     cycles = cycles.filter(cycle => !(cycle.nodes.length === 1));
 
 

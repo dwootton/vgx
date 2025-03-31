@@ -100,7 +100,7 @@ export class Rect extends BaseComponent {
 
     compileComponent(inputContext:compilationContext): Partial<UnitSpec<Field>> {
         const {x,y,data} = inputContext.VGX_CONTEXT
-        const allSignals = inputContext.VGX_SIGNALS
+        // const allSignals = inputContext.VGX_SIGNALS
             
         return {
             params: [
@@ -109,7 +109,6 @@ export class Rect extends BaseComponent {
                     "value":rectBaseContext,
                     // "expr":`{'x':{'start':${outputSignals[0].name},'stop':${outputSignals[1].name}},y:{'start':${outputSignals[2].name},'stop':${outputSignals[3].name}}}`
                 },
-                ...allSignals
           
         ],
             data: data,

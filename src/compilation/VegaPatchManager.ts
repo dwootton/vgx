@@ -484,8 +484,6 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                 const ast = vega.parseExpression(update);
 
 
-                console.log('ast', ast)
-
                 // Extract base value and constraints
                 const { baseValue, constraints } = extractConstraintsForCycle(ast, cycle);
 
@@ -659,7 +657,6 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
 
     // Function to extract constraints and base value from AST
     function processNode(node: any): string {
-        console.log('processNode', node)
         if (node.type === 'CallExpression' && node.callee.name === 'clamp' ) {
             const args = node.arguments.map(arg => processNode(arg));
             const fullExpr = `clamp(${args.join(', ')})`;

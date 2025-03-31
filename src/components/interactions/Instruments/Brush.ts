@@ -195,7 +195,7 @@ export class Brush extends BaseComponent {
             "value": brushBaseContext
         }
 
-        const allSignals = inputContext.VGX_SIGNALS
+        // const allSignals = inputContext.VGX_SIGNALS
 
         const { x, y } = inputContext.VGX_CONTEXT
 
@@ -204,7 +204,7 @@ export class Brush extends BaseComponent {
 
 
         return {
-            params: [selection, ...allSignals, brushBaseSignal, ...selectionModifications]
+            params: [selection, brushBaseSignal, ...selectionModifications]
         }
     }
 }

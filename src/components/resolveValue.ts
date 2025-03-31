@@ -171,7 +171,7 @@ interface CompiledValue {
     stop?: { expr: string };
 }
 
-export function calculateValueForComponent(component: BaseComponent, signals: any[], constraints: Record<string, any[]>): CompiledValue {
+export function calculateValuesForComponent(component: BaseComponent, signals: any[], constraints: Record<string, any[]>): CompiledValue {
 
     // Get base schema keys from default configuration
     const baseConfig = component.configurations.find(config => config.default);

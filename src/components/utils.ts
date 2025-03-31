@@ -84,7 +84,6 @@ export function extractAllNodeNames(input: string): string[] {
     return [...new Set(nodeNames)];
 }
 
-console.log('extractAllNodeNames', extractAllNodeNames('node_1_base_data.x.start'))
 export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: string, parentExtractor: string, mergedParent: string): any[] => {
     let channel = anchorId;
 

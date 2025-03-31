@@ -71,7 +71,7 @@ const configurations = [{
     "default": true,
     "schema": {
         "data": {
-            "container": "Set",
+            "container": "Absolute",
             "valueType": "Data",
             // "interactive": true
         },
@@ -184,12 +184,9 @@ export class Grid extends BaseComponent {
 
                 const randomId = Math.random().toString(36).substring(2, 15) +
                     Math.random().toString(36).substring(2, 15);
-                dataset.push({ id: randomId, xValue: x });
+                dataset.push({ id: randomId, xValueStop: x, xValueStart: x, yValueStop:300, yValueStart:0});
             }
-            // Add y values to each data point
-            dataset.forEach(point => {
-                point.yValue = 300 * Math.random();
-            });
+         
             console.log('dataset', dataset)
 
             return dataset;

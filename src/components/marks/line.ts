@@ -145,86 +145,13 @@ export class Line extends BaseComponent {
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
-        const { x, y, data } = inputContext.VGX_CONTEXT
-        const allSignals = inputContext.VGX_SIGNALS
+        let { x, y, data } = inputContext.VGX_CONTEXT
+        // const allSignals = inputContext.VGX_SIGNALS
+        let triggers = []
 
-        function generateDatasetFromContext(context: Record<string, any>) {
-            const dataset = []
-            for (const key in context) {
-                if (typeof context[key] === 'object' && context[key] !== null) {
-                    // Handle nested objects
-                    for (const nestedKey in context[key]) {
-                        dataset.push({ [`${key}_${nestedKey}`]: context[key][nestedKey] });
-                    }
-                } else {
-                    // Handle non-nested values
-                    dataset.push({ [key]: context[key] });
-                }
-            }
-            return dataset;
-        }
+        console.log('inputContextforLine', inputContext)
 
 
-        const baseConfigId = this.configurations.find(c => c.default === true).id
-
-        const triggerValues = generateDatasetFromContext(inputContext.VGX_CONTEXT).map(d => {
-
-            const triggerKey = Object.keys(d)[0]
-            const triggerValue = d[triggerKey]?.expr
-            const updateValues = {}
-            updateValues[triggerKey] = triggerValue
-            return {trigger:triggerValue, modify:true, values:updateValues}
-
-
-        }).filter(d => d.trigger !== undefined)
-        console.log('datasetSchema', triggerValues)
-
-
-        const lineDataName = 'lineData'+this.id
-        const lineData = {
-            name: "VGXMOD_"+lineDataName,
-            // values: []//generateDatasetFromContext(inputContext.VGX_CONTEXT)
-        }
-        const triggers = {
-            name: lineDataName,
-            on: triggerValues
-        }
-
-
-        if(inputContext.VGX_CONTEXT.data){
-            lineData.source = inputContext.VGX_CONTEXT.data.name;
-            lineData.transform = [{
-                "type":"formula",
-                "as":"x_start",
-                "expr":"datum.xValue",
-            },
-            {
-                "type":"formula",
-                "as":"x_stop",
-                "expr":"datum.xValue",
-                
-            }, {
-                "type":"formula",
-                "as":"y_stop",
-                "expr":"300",
-                
-            },{
-                "type":"formula",
-                "as":"y_start",
-                "expr":"0",
-                
-            }]
-            console.log('in the dataTransformed',lineData)
-
-        }
-
-
-
-
-
-
-
-        
 
         return {
             params: [
@@ -232,9 +159,8 @@ export class Line extends BaseComponent {
                     "name": this.id,
                     "value": lineBaseContext,
                 },
-                ...allSignals,
             ],
-            "data": lineData,
+            "data": data,
             name: `${this.id}_position_markName`,
             mark: {
                 type: "rule",
@@ -242,19 +168,13 @@ export class Line extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": {
-                        "expr":"datum.x_start"
-                    },
+                    "value": x.start
                 },
                 "y": {
-                    "value": {
-                        "expr":"datum.y_start"
-                    },
+                    "value": y.start,
                 },
                 "x2": {
-                    "value": {
-                        "expr":"datum.x_stop"
-                    },
+                    "value": x.stop,
                 },
                 "y2": {
                     "value": y.stop,
@@ -264,7 +184,8 @@ export class Line extends BaseComponent {
                 "stroke": { "value": "firebrick" },
 
             },
-            "triggers": [triggers]
+            "triggers": triggers
         }
+        
     }
 }

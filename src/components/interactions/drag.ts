@@ -88,6 +88,39 @@ const configurations = [{
     ]
 }]
 
+const ptconfigurations = [{
+    'id': 'point',
+    "default": true,
+    "schema": {
+        "x": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "y": {
+            "container": "Scalar",
+            "valueType": "Numeric",
+            "interactive": true
+        },
+        "markName": {
+            "container": "Absolute",
+            "valueType": "Categorical",
+            // "restrictions":"input"
+        }
+    },
+    "transforms": [{
+        "name": "x",
+        "channel": "x",
+        "value": "BASE_NODE_ID.x" // replace the parent id + get the channel value
+    },
+    {
+        "name": "y",
+        "channel": "y",
+        "value": "BASE_NODE_ID.y" // replace the parent id + get the channel value
+    }
+    ]
+}]
+
 const rectSide = {
     'id': 'left',
     "schema": {
@@ -126,9 +159,10 @@ export function generateConfigurationAnchors(id: string, configurationId: string
         }
     } else if (schema.container === 'Set') {
         const datasetName = `${id}_base_data`
-        console.log('generateSETConfigurationAnchors', id, configurationId, channel, schema, datasetName,  `pluck(data(${datasetName}), '${channel}Value')`)
+        console.log('generateSETConfigurationAnchors', id, configurationId, channel, schema, datasetName,  `pluck(data(${datasetName}), '${channel}ValueStart')`)
+        // assuming a 
         return {
-            'value': `pluck(data('${datasetName}'), '${channel}Value')`
+            'value': `pluck(data('${datasetName}'), '${channel}ValueStart')`
         }
     }
     
@@ -143,7 +177,7 @@ let generateCompiledValue = (id: string, channel: string, configurationId: strin
 
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
-        super(config, configurations);
+        super(config, ptconfigurations);
         
         this.configurations.forEach(config => {
             // this.configurations[config.id] = config
@@ -168,7 +202,7 @@ export class CombinedDrag extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        const allSignals = inputContext.VGX_SIGNALS
+        // const allSignals = inputContext.VGX_SIGNALS
         const {markName} = inputContext.VGX_CONTEXT
 
         const signal = {
@@ -190,7 +224,7 @@ export class CombinedDrag extends BaseComponent {
 
        
         return {
-            params: [signal, ...allSignals]
+            params: [signal]
         }
     }
 }
@@ -237,7 +271,6 @@ export class DragSpan extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
-        const allSignals = inputContext.VGX_SIGNALS
         const {markName} = inputContext.VGX_CONTEXT
 
         const signal = {
@@ -259,7 +292,7 @@ export class DragSpan extends BaseComponent {
 
        
         return {
-            params: [signal, ...allSignals]
+            params: [signal]
         }
     }
 }

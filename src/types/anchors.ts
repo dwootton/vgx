@@ -104,7 +104,7 @@ export type ScalarValue = {
 }
 
 export type SetValue = {
-  values: Record<string, SetValue | ScalarValue | RangeValue>; // maps to the expression for the value
+  value: string; // maps to the expression for the value
 }
 
   export type AbsoluteValue = {

@@ -21,14 +21,14 @@ export class GridConstructor {
 
 
 
-        
 
 
-   
+
+
 
         const lines = new Line({ ...config }); //bind: [...allBindings,{x: new CombinedDrag(config)}]
 
-        const grid = new Grid({...config,bind:lines});
+        const grid = new Grid({ ...config, bind: lines });
         console.log('grid', grid)
         this.id = grid.id;
 
@@ -75,9 +75,30 @@ const configurations = [{
             "valueType": "Data",
             // "interactive": true
         },
+        "x": {
+            "container": "Set",
+            "valueType": "Numeric",
+            // "interactive": true
+        // },
+        // "y": {
+        //     "container": "Set",
+        //     "valueType": "Numeric",
+        //     // "interactive": true
+        // }
+        }
 
     },
     "transforms": [
+        {
+            "name": "x",
+            "channel": "x",
+            "value": "BASE_NODE_ID.x"
+        },
+        {
+            "name": "y",
+            "channel": "y",
+            "value": "BASE_NODE_ID.y"
+        }
 
 
     ]
@@ -111,6 +132,7 @@ export class Grid extends BaseComponent {
         });
 
         console.log('grid anchors', this.anchors)
+
 
 
 
@@ -150,16 +172,38 @@ export class Grid extends BaseComponent {
             const dataset = [];
             const step = (max - min) / (count - 1);
 
+            // Generate a random ID for this dataset
+            // const randomId = Math.random().toString(36).substring(2, 15) + 
+            //                  Math.random().toString(36).substring(2, 15);
+
+            // // Add the random ID to the dataset metadata
+            // const datasetId = `grid_dataset_${randomId}`;
+
             for (let i = 0; i < count; i++) {
                 const x = min + (step * i);
-                dataset.push({ x });
+
+                const randomId = Math.random().toString(36).substring(2, 15) +
+                    Math.random().toString(36).substring(2, 15);
+                dataset.push({ id: randomId, x });
             }
+            // Add y values to each data point
+            dataset.forEach(point => {
+                point.y = 300 * Math.random();
+            });
+            console.log('dataset', dataset)
 
             return dataset;
         };
+        console.log('generateDataset', generateDataset(10, 0, 400))
 
         // Create a dataset with 10 points from 0-100
         const dataset = generateDataset(10, 0, 400);
+        // const sequence = {
+        //     "start":0,
+        //     "stop":400,
+        //     "step":40,
+        //     "as":"x"
+        // }
 
         // const data = {
         //     "name": this.id + "base_data",
@@ -167,13 +211,13 @@ export class Grid extends BaseComponent {
         // }
 
         const data = {
-            "name": "VGXMOD_"+this.id + "_base_data",
+            "name": "VGXMOD_" + this.id + "_base_data",
             "values": dataset
         }
 
 
 
-        return { params: [] , data};
+        return { params: [], data };
     }
 }
 

@@ -148,6 +148,88 @@ export class Line extends BaseComponent {
         const { x, y, data } = inputContext.VGX_CONTEXT
         const allSignals = inputContext.VGX_SIGNALS
 
+        function generateDatasetFromContext(context: Record<string, any>) {
+            const dataset = []
+            for (const key in context) {
+                if (typeof context[key] === 'object' && context[key] !== null) {
+                    // Handle nested objects
+                    for (const nestedKey in context[key]) {
+                        dataset.push({ [`${key}_${nestedKey}`]: context[key][nestedKey] });
+                    }
+                } else {
+                    // Handle non-nested values
+                    dataset.push({ [key]: context[key] });
+                }
+            }
+            return dataset;
+        }
+
+
+        const baseConfigId = this.configurations.find(c => c.default === true).id
+
+        const triggerValues = generateDatasetFromContext(inputContext.VGX_CONTEXT).map(d => {
+
+            const triggerKey = Object.keys(d)[0]
+            const triggerValue = d[triggerKey]?.expr
+            const updateValues = {}
+            updateValues[triggerKey] = triggerValue
+            return {trigger:triggerValue, modify:true, values:updateValues}
+
+
+        }).filter(d => d.trigger !== undefined)
+        console.log('datasetSchema', triggerValues)
+
+
+        const lineDataName = 'lineData'+this.id
+        const lineData = {
+            name: "VGXMOD_"+lineDataName,
+            // values: []//generateDatasetFromContext(inputContext.VGX_CONTEXT)
+        }
+        const triggers = {
+            name: lineDataName,
+            on: triggerValues
+        }
+        console.log('OURNEWdataset', triggerValues, x,y,lineData)
+
+        let defaultdata = lineData
+
+        if(inputContext.VGX_CONTEXT.data){
+            console.log('in the data',inputContext.VGX_CONTEXT.data)
+            defaultdata = lineData
+            lineData.source = inputContext.VGX_CONTEXT.data.name;
+            lineData.transform = [{
+                "type":"formula",
+                "as":"x_start",
+                "expr":"datum.x",
+            },
+            {
+                "type":"formula",
+                "as":"x_stop",
+                "expr":"datum.x",
+                
+            }, {
+                "type":"formula",
+                "as":"y_stop",
+                "expr":"300",
+                
+            },{
+                "type":"formula",
+                "as":"y_start",
+                "expr":"0",
+                
+            }]
+            console.log('in the dataTransformed',lineData)
+
+        }
+
+
+
+
+
+
+
+        
+
         return {
             params: [
                 {
@@ -156,7 +238,7 @@ export class Line extends BaseComponent {
                 },
                 ...allSignals,
             ],
-            "data": data,
+            "data": lineData,
             name: `${this.id}_position_markName`,
             mark: {
                 type: "rule",
@@ -164,13 +246,19 @@ export class Line extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": x.start,
+                    "value": {
+                        "expr":"datum.x_start"
+                    },
                 },
                 "y": {
-                    "value": y.start,
+                    "value": {
+                        "expr":"datum.y_start"
+                    },
                 },
                 "x2": {
-                    "value": x.stop,
+                    "value": {
+                        "expr":"datum.x_stop"
+                    },
                 },
                 "y2": {
                     "value": y.stop,
@@ -179,7 +267,8 @@ export class Line extends BaseComponent {
                 "color": { "value": "firebrick" },
                 "stroke": { "value": "firebrick" },
 
-            }
+            },
+            // "triggers": [triggers]
         }
     }
 }

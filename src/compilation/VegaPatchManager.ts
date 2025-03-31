@@ -59,15 +59,20 @@ export class VegaPatchManager {
             });
         }
 
+        console.log('baseSignals', baseSignals)
 
         const undefinedRemoved = removeUndefinedInSpec(spec);
+        console.log('baseSignals undefinedRemoved', undefinedRemoved)
 
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('baseSignals unreferencedRemoved', unreferencedRemoved)
+
 
 
         this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
+        console.log('allModifiedElements', this.modifiedElements)
 
 
         let resolvedParams = resolveCyclesCompletePipeline(unreferencedRemoved.params || []);
@@ -101,8 +106,9 @@ export class VegaPatchManager {
                 unreferencedRemoved.datasets[dataset.name] = []
             })
         }
-        // console.log
-
+        
+        // // Remove triggers from the spec
+        // unreferencedRemoved = removeTriggers(unreferencedRemoved);
         this.spec = unreferencedRemoved;
 
 
@@ -133,6 +139,18 @@ export class VegaPatchManager {
                 return dataElement;
             });
 
+            // Add any unmatched datasets from modifiedElements
+            const existingDataNames = vegaCompilation.spec.data.map(d => d.name);
+            const unmatchedDatasets = this.modifiedElements.data.filter(
+                modifiedData => !existingDataNames.includes(modifiedData.name)
+            );
+            
+            if (unmatchedDatasets.length > 0) {
+                console.log('Adding unmatched datasets:', unmatchedDatasets);
+                vegaCompilation.spec.data = [ ...unmatchedDatasets, ...vegaCompilation.spec.data,];
+            }
+
+            
             // Move modified elements to the last position in the array
             vegaCompilation.spec.data.sort((a, b) => {
                 const aIsModified = this.modifiedElements.data.some(d => d.name === a.name);
@@ -143,7 +161,6 @@ export class VegaPatchManager {
             });
         }
 
-        console.log('beforeupdate vegaCompilation', vegaCompilation.spec,this.modifiedElements.params)
 
 
         // Update signals that match modified params

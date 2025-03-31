@@ -88,7 +88,23 @@ export class VegaPatchManager {
     
 
         let resolvedParams = resolveCyclesCompletePipeline(unreferencedRemoved.params || []);
-        
+        // Convert top-level 'update' to 'init' and remove 'value: null'
+        resolvedParams = resolvedParams.map(signal => {
+            const modifiedSignal = { ...signal };
+            
+            // If signal has an update property at the top level, convert it to init
+            if (modifiedSignal.update !== undefined) {
+                modifiedSignal.init = modifiedSignal.update;
+                delete modifiedSignal.update;
+            }
+            
+            // Remove value: null properties
+            if (modifiedSignal.value === null) {
+                delete modifiedSignal.value;
+            }
+            
+            return modifiedSignal;
+        });
         // let resolvedParams = mergeAndRewireCycles(unreferencedRemoved.params || [], minimalCyclesByType);
         // console.log('preresolvedParams', resolvedParams)
 
@@ -211,9 +227,11 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 
             // Create merged signal
             const mergedName = createMergedName(cycle);
+            const initValue = createInternalName(cycle[0]) 
             const mergedSignal: VegaSignal = {
                 name: mergedName,
                 value: null,
+                init: initValue,
                 on: cycle.map(signalName => ({
                     events: [{ signal: createInternalName(signalName) }],
                     update: createInternalName(signalName)
@@ -886,7 +904,7 @@ function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
         
         // Organize remaining cycles by type
         const remainingCyclesByType = organizeCyclesByType(remainingCycles);
-        console.log(`Iteration ${iterationCount + 1}, remaining cycles:`, remainingCyclesByType);
+        console.log(`Iteration ${iterationCount + 1}, remaining cycles:`, remainingCyclesByType,JSON.parse(JSON.stringify(resolvedSignals)));
         
         // Apply constraint extraction and rewiring
         resolvedSignals = mergeAndRewireWithConstraints(resolvedSignals, remainingCyclesByType);
@@ -1005,9 +1023,12 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
             
             // Step 4: Create merged signal with constrainted updates
             const mergedName = createMergedName(cycle);
+            const initValue = createInternalName(cycle[0]) 
+          
             const mergedSignal: VegaSignal = {
                 name: mergedName,
                 value: null,
+                init: initValue,
                 on: cycle.map(signalName => {
                     const internalName = createInternalName(signalName);
                     

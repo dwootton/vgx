@@ -67,16 +67,20 @@ export class LazyBindingRegistry {
                 //TODO implement a extension type for DataAccessor components to fix type errors
                 let realBrush = this.bindingManager.getComponent(realComponent.id);
                 let accessor = realBrush;
+                console.log('realBrush', realBrush)
                 if(realBrush){
-                    realBrush = realBrush.data;
-                    realBrush = realBrush.toComponent();
+                    // realBrush = realBrush.data;
+                    realBrush = realBrush
                     this.bindingManager.addComponent(realBrush);
                 }
 
                 
                 if(accessor){
-                    accessor = accessor.data;
+                    accessor = accessor._data;
+                    console.log('realBrushAccessor', accessor)
+
                     accessor.applyOperations(accessor, lazyComponent.operations);
+                    realBrush = accessor.toComponent();
                 }
 
                

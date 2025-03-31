@@ -168,10 +168,20 @@ export class Brush extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        const selectionId = this.id + "_selection"
         const selection = {
-            "name": this.id + "_selection",
+            "name": selectionId,
             "select": {
                 "type": "interval",
+                "on": {
+                    "type": "pointermove",
+                   
+                    "source": "window",
+                    "between": [
+                        { "type": "pointerdown", "markname": "interval",  "filter":"false",},
+                        { "type": "pointerup", "source": "window" }
+                    ]
+                    },
                 "mark": {
                     "fill": null,
                     "stroke": null,
@@ -189,8 +199,8 @@ export class Brush extends BaseComponent {
 
         const { x, y } = inputContext.VGX_CONTEXT
 
-        const selectionModifications = [{ "name": "VGXMOD_" + this.id + "_x", "on": [{ "events": [{ "signal": x.start.expr }, { "signal": x.stop.expr }], "update": `[${x.start.expr},${x.stop.expr}]` }] },
-        { "name": "VGXMOD_" + this.id + "_y", "on": [{ "events": [{ "signal": y.start.expr }, { "signal": y.stop.expr }], "update": `[${y.start.expr},${y.stop.expr}]` }] }]
+        const selectionModifications = [{ "name": "VGXMOD_" +selectionId + "_x", "on": [{ "events": [{ "signal": x.start.expr }, { "signal": x.stop.expr }], "update": `[${x.start.expr},${x.stop.expr}]` }] },
+        { "name": "VGXMOD_" + selectionId + "_y", "on": [{ "events": [{ "signal": y.start.expr }, { "signal": y.stop.expr }], "update": `[${y.start.expr},${y.stop.expr}]` }] }]
 
 
         return {

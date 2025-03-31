@@ -483,6 +483,9 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                 const update = originalSignal.update;
                 const ast = vega.parseExpression(update);
 
+
+                console.log('ast', ast)
+
                 // Extract base value and constraints
                 const { baseValue, constraints } = extractConstraintsForCycle(ast, cycle);
 
@@ -656,7 +659,8 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
 
     // Function to extract constraints and base value from AST
     function processNode(node: any): string {
-        if (node.type === 'CallExpression' && node.callee.name === 'clamp') {
+        console.log('processNode', node)
+        if (node.type === 'CallExpression' && node.callee.name === 'clamp' ) {
             const args = node.arguments.map(arg => processNode(arg));
             const fullExpr = `clamp(${args.join(', ')})`;
 
@@ -670,6 +674,22 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             } else {
                 // This is a regular constraint that we should preserve
                 constraints.push(`clamp(INSERT, ${args[1]}, ${args[2]})`);
+                return fullExpr;
+            }
+        } if (node.type === 'CallExpression' && node.callee.name === 'nearest' ) {
+            const args = node.arguments.map(arg => processNode(arg));
+            const fullExpr = `nearest(${args.join(', ')})`;
+
+            // If any arguments (other than the first) contain cycle signals,
+            // this is part of the cycle and we extract the base value
+            const hasSignalInBounds = args.slice(1).some(arg => containsCycleSignal(arg));
+            if (hasSignalInBounds) {
+                // The first argument is our base value
+                baseValue = args[0];
+                return baseValue;
+            } else {
+                // This is a regular constraint that we should preserve
+                constraints.push(`nearest(INSERT, ${args[1]})`);
                 return fullExpr;
             }
         } else if (node.type === 'CallExpression') {
@@ -686,7 +706,7 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             return node.name;
         } else if (node.type === 'Literal') {
             // Handle literals (e.g., numbers, strings)
-            return node.value.toString();
+            return `'${node.value.toString()}'`;
         } else if (node.type === 'MemberExpression') {
             // Handle member expressions (e.g., obj.prop)
             const object = processNode(node.object);

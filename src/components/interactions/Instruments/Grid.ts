@@ -184,11 +184,11 @@ export class Grid extends BaseComponent {
 
                 const randomId = Math.random().toString(36).substring(2, 15) +
                     Math.random().toString(36).substring(2, 15);
-                dataset.push({ id: randomId, x });
+                dataset.push({ id: randomId, xValue: x });
             }
             // Add y values to each data point
             dataset.forEach(point => {
-                point.y = 300 * Math.random();
+                point.yValue = 300 * Math.random();
             });
             console.log('dataset', dataset)
 

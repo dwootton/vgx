@@ -126,9 +126,9 @@ export function generateConfigurationAnchors(id: string, configurationId: string
         }
     } else if (schema.container === 'Set') {
         const datasetName = `${id}_base_data`
-        console.log('generateSETConfigurationAnchors', id, configurationId, channel, schema, datasetName,  `pluck(data(${datasetName}), '${channel}')`)
+        console.log('generateSETConfigurationAnchors', id, configurationId, channel, schema, datasetName,  `pluck(data(${datasetName}), '${channel}Value')`)
         return {
-            'value': `pluck(data('${datasetName}'), '${channel}')`
+            'value': `pluck(data('${datasetName}'), '${channel}Value')`
         }
     }
     

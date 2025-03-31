@@ -196,12 +196,12 @@ export class Line extends BaseComponent {
             lineData.transform = [{
                 "type":"formula",
                 "as":"x_start",
-                "expr":"datum.x",
+                "expr":"datum.xValue",
             },
             {
                 "type":"formula",
                 "as":"x_stop",
-                "expr":"datum.x",
+                "expr":"datum.xValue",
                 
             }, {
                 "type":"formula",

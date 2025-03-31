@@ -66,7 +66,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             }))
     );
 
-    console.log('expandedEdges', expandedEdges)
 
     return expandedEdges;
 }
@@ -308,7 +307,6 @@ export function resolveCycleMulti(
     let processedGraph = cloneGraph(graph);
 
     let cycles = detectCyclesByChannel(processedGraph.edges);
-    console.log('ALLcycles', cycles)
     cycles = cycles.filter(cycle => !(cycle.nodes.length === 1));
 
 

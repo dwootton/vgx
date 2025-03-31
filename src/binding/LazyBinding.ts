@@ -66,23 +66,12 @@ export class LazyBindingRegistry {
 
                 //TODO implement a extension type for DataAccessor components to fix type errors
                 let realBrush = this.bindingManager.getComponent(realComponent.id);
-                let accessor = realBrush;
-                console.log('realBrush', realBrush)
+
                 if(realBrush){
-                    // realBrush = realBrush.data;
-                    realBrush = realBrush
-                    this.bindingManager.addComponent(realBrush);
-                }
-
-                
-                if(accessor){
-                    accessor = accessor._data;
-                    console.log('realBrushAccessor', accessor)
-
+                    let accessor = realBrush._data;
                     accessor.applyOperations(accessor, lazyComponent.operations);
                     realBrush = accessor.toComponent();
                 }
-
                
                 // remove old binding 
                  this.bindingManager.removeBinding(
@@ -94,10 +83,8 @@ export class LazyBindingRegistry {
                 
                 // Create the inverse binding as these are cases where text should be created via the brush. 
                 this.bindingManager.addBinding(
-                   
                     realBrush.id,
                     binding.sourceId,
-                    
                     binding.targetAnchor,
                     binding.sourceAnchor
                 );

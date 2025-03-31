@@ -1,115 +1,94 @@
 import { TopLevelSpec } from "vega-lite/build/src/spec";
-import { extractModifiedObjects ,removeUndefinedInSpec, fixVegaSpanBug, removeUnreferencedParams} from "./patchingUtils";
+import { extractModifiedObjects, removeUndefinedInSpec, fixVegaSpanBug, removeUnreferencedParams } from "./patchingUtils";
 import * as vl from "vega-lite";
 
 import * as vega from 'vega';
 import { codegenExpression, parseExpression } from "vega";
 import { extractAllNodeNames } from "../components/utils";
-console.log('parse', vega)
+
+const createBaseSignals = (params: any[]) => {
+    const baseSignals: any[] = [];
+
+    // Find all params that might reference base_ signals
+    const paramsStr = JSON.stringify(params);
+    const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
+    const uniqueBaseSignals = [...new Set(baseMatches)];
+
+    // Create base signals for each unique match
+    uniqueBaseSignals.forEach(baseSignalName => {
+        // Find the original param if it exists
+        const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
+        // Create a new base signal with minimal properties
+        const baseSignal: any = {
+            name: baseSignalName,
+            value: originalParam?.value || null,
+            // on: originalParam?.on || null,
+            init: originalParam?.update || null
+        };
+
+
+        baseSignals.push(baseSignal);
+    });
+
+    return baseSignals;
+}
+
 export class VegaPatchManager {
     private spec: TopLevelSpec;
-    private modifiedElements: {data: any[], params: any[], scales: any[]};
+    private modifiedElements: { data: any[], params: any[], scales: any[] };
     constructor(spec: TopLevelSpec) {
         this.spec = spec;
 
-        console.log('preunreferencedRemoved', spec)
 
-        
 
-        const createBaseSignals = (params: any[]) => {
-            const baseSignals: any[] = [];
-            
-            // Find all params that might reference base_ signals
-            const paramsStr = JSON.stringify(params);
-            const baseMatches = paramsStr.match(/base_[a-zA-Z0-9_]+/g) || [];
-            const uniqueBaseSignals = [...new Set(baseMatches)];
-            
-            console.log('uniqueBaseSignals', uniqueBaseSignals);
-            // Create base signals for each unique match
-            uniqueBaseSignals.forEach(baseSignalName => {
-                // Find the original param if it exists
-                const originalParam = params.find(p => p.name === baseSignalName.replace('base_', ''));
-                console.log('baseSignalsParam', originalParam);
-                // Create a new base signal with minimal properties
-                const baseSignal: any = {
-                    name: baseSignalName,
-                    value: originalParam?.value || null,
-                    // on: originalParam?.on || null,
-                    init: originalParam?.update || null
-                };
-                
-                
-                baseSignals.push(baseSignal);
-            });
-            console.log('baseSignals', baseSignals);
-            
-            return baseSignals;
-        }
+
 
         const baseSignals = createBaseSignals(spec.params || []);
         // Add base signals to spec.params if they have values
         if (baseSignals.length > 0) {
-            console.log('creating baseSignals', baseSignals);
             // Initialize params array if it doesn't exist
             if (!spec.params) {
                 spec.params = [];
             }
-            
+
             // Add each base signal with a value to the params
             baseSignals.forEach(baseSignal => {
                 // if (baseSignal.value !== null && baseSignal.value !== undefined) {
-                    spec.params.push(baseSignal);
+                spec.params.push(baseSignal);
                 // }
             });
-            console.log('spec.params', spec.params);
         }
 
 
-        console.log('baseSignals', baseSignals)
-        console.log('unreferencedRemoved(undefinedRemoved)', spec)
         const undefinedRemoved = removeUndefinedInSpec(spec);
 
-        console.log('unreferencedRemoved(postundefinedRemoved)', undefinedRemoved)
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
-        console.log('unreferencedRemoved', unreferencedRemoved)
 
 
         this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
 
 
-        // console.log('SIGNALMAx',findMinimalCycles(unreferencedRemoved.params || []))
-        
-        
-        
-        // const minimalCycles = findMinimalCycles(unreferencedRemoved.params || []);
-        // const minimalCyclesByType = findMinimalCyclesByType(minimalCycles);
-    
-
         let resolvedParams = resolveCyclesCompletePipeline(unreferencedRemoved.params || []);
+
         // Convert top-level 'update' to 'init' and remove 'value: null'
         resolvedParams = resolvedParams.map(signal => {
             const modifiedSignal = { ...signal };
-            
+
             // If signal has an update property at the top level, convert it to init
             if (modifiedSignal.update !== undefined) {
                 modifiedSignal.init = modifiedSignal.update;
                 delete modifiedSignal.update;
             }
-            
+
             // Remove value: null properties
             if (modifiedSignal.value === null) {
                 delete modifiedSignal.value;
             }
-            
+
             return modifiedSignal;
         });
-        // let resolvedParams = mergeAndRewireCycles(unreferencedRemoved.params || [], minimalCyclesByType);
-        // console.log('preresolvedParams', resolvedParams)
-
-        // let resolvedParams = extractAndApplyConstraintsWithParser(unreferencedRemoved.params, minimalCyclesByType);
-        console.log('resolvedParams2', resolvedParams)
 
         const newParams = fixVegaSpanBug(resolvedParams)
         unreferencedRemoved.params = newParams
@@ -117,7 +96,7 @@ export class VegaPatchManager {
 
 
         // add reference to dataset
-        if(this.modifiedElements.data.length > 0){
+        if (this.modifiedElements.data.length > 0) {
             unreferencedRemoved.datasets = unreferencedRemoved.datasets || {}
             this.modifiedElements.data.forEach(dataset => {
                 unreferencedRemoved.datasets[dataset.name] = []
@@ -130,7 +109,7 @@ export class VegaPatchManager {
 
     }
 
-    public compile(){
+    public compile() {
         console.log('compile vl2', this.spec)
         const vegaCompilation = vl.compile(this.spec);
         vegaCompilation.spec.padding = 40;
@@ -140,26 +119,26 @@ export class VegaPatchManager {
 
         console.log('matchingModifiedData', vegaCompilation.spec.data, this.modifiedElements.data, this.modifiedElements.params)
 
-         // Update data elements that match modified elements
-         if (vegaCompilation.spec.data && this.modifiedElements.data && Array.isArray(this.modifiedElements.data) && this.modifiedElements.data.length > 0) {
-                            // console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
+        // Update data elements that match modified elements
+        if (vegaCompilation.spec.data && this.modifiedElements.data && Array.isArray(this.modifiedElements.data) && this.modifiedElements.data.length > 0) {
+            // console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
 
             vegaCompilation.spec.data = vegaCompilation.spec.data.map(dataElement => {
                 const matchingModifiedData = this.modifiedElements.data.find(
                     modifiedData => modifiedData.name === dataElement.name
                 );
-                
+
                 console.log('matchingModifiedData', matchingModifiedData, vegaCompilation.spec.data)
 
-               
+
                 if (matchingModifiedData) {
-                    return matchingModifiedData ;
+                    return matchingModifiedData;
                 }
                 console.log('matchingModifiedData', matchingModifiedData)
-                
+
                 return dataElement;
             });
-            
+
             // Move modified elements to the last position in the array
             vegaCompilation.spec.data.sort((a, b) => {
                 const aIsModified = this.modifiedElements.data.some(d => d.name === a.name);
@@ -177,7 +156,7 @@ export class VegaPatchManager {
                 const matchingParam = this.modifiedElements.params.find(
                     param => param.name === signal.name
                 );
-                
+
                 if (matchingParam && matchingParam.on && signal.on) {
                     // Create a new signal with merged 'on' arrays
                     return {
@@ -185,17 +164,17 @@ export class VegaPatchManager {
                         on: [...signal.on, ...matchingParam.on]
                     };
                 }
-                
+
                 return signal;
             });
         }
 
-        
+
 
 
         return vegaCompilation;
     }
-    
+
 }
 
 
@@ -227,7 +206,8 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 
             // Create merged signal
             const mergedName = createMergedName(cycle);
-            const initValue = createInternalName(cycle[0]) 
+            console.log('mergedNamedsss', cycle)
+            const initValue = createInternalName(cycle[0])
             const mergedSignal: VegaSignal = {
                 name: mergedName,
                 value: null,
@@ -247,7 +227,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
                     delete originalSignal.update;
 
                     // "clamp(clamp(node_2.stop.x, node_3_plot_start_x, node_3_plot_stop_x), node_2_interval_start_x, node_2_interval_stop_x)"
-                    
+
                     // Clear existing on events and replace with merged signal reference
                     originalSignal.on = [
                         {
@@ -301,35 +281,35 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //     // Helper to create internal signal name
 //     const createInternalName = (name: string) => `${name}_internal`;
 //     const createMergedName = (names: string[]) => `${names.join('_')}_MERGED`;
-    
+
 //     // Process each cycle type
 //     Object.entries(cyclesByType).forEach(([type, cycles]) => {
 //         cycles.forEach(cycle => {
 //             // Step 1: Extract constraints from each internal signal
 //             const extractedConstraints = new Map<string, string[]>();
-            
+
 //             cycle.forEach(signalName => {
 //                 const internalName = createInternalName(signalName);
 //                 const internalSignal = resolvedSignals.find(s => s.name === internalName);
 //                 if (!internalSignal || !internalSignal.update) return;
-                
+
 //                 // Get all merged names in the cycle
 //                 const mergedNames = cycle.map(name => createMergedName([name])).concat(
 //                     [createMergedName(cycle)]
 //                 );
-                
+
 //                 // Parse the update expression
 //                 const update = internalSignal.update;
 //                 const parsedExpression = vega.parseExpression(update);
-                
+
 //                 // Extract constraints that don't involve cycle signals
 //                 const constraints: string[] = [];
-                
+
 //                 // Function to check if an expression contains any merged names
 //                 const containsMergedName = (expr: string): boolean => {
 //                     return mergedNames.some(name => expr.includes(name));
 //                 };
-                
+
 //                 // Function to process an expression part
 //                 const processExpressionPart = (expr: string): string => {
 //                     if (containsMergedName(expr)) {
@@ -348,16 +328,16 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                         return expr;
 //                     }
 //                 };
-                
+
 //                 // Process each expression part
 //                 const parts = update.match(/clamp\([^(]*\)/g) || [update];
 //                 parts.forEach(processExpressionPart);
-                
+
 //                 // Store the extracted constraints for this internal signal
 //                 if (constraints.length > 0) {
 //                     extractedConstraints.set(internalName, constraints);
 //                 }
-                
+
 //                 // Update the internal signal's update expression
 //                 if (constraints.length > 0) {
 //                     // Use the first constraint as the update
@@ -367,13 +347,13 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                     internalSignal.update = processExpressionPart(update);
 //                 }
 //             });
-            
+
 //             // Step 2: Apply extracted constraints to all other internal signals
 //             cycle.forEach(signalName => {
 //                 const internalName = createInternalName(signalName);
 //                 const internalSignal = resolvedSignals.find(s => s.name === internalName);
 //                 if (!internalSignal || !internalSignal.update) return;
-                
+
 //                 // Apply all constraints from other signals
 //                 extractedConstraints.forEach((constraints, sourceInternalName) => {
 //                     if (sourceInternalName !== internalName) {
@@ -383,7 +363,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                                 /INSERT_NEW_INTERNAL_NAME/g,
 //                                 internalSignal.update || ''
 //                             );
-                            
+
 //                             // If the constraint is a clamp, wrap the current update
 //                             if (constraint.startsWith('clamp(')) {
 //                                 const clampArgs = constraint.substring(5, constraint.length - 1).split(',');
@@ -396,7 +376,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                     }
 //                 });
 //             });
-            
+
 //             // Step 3: Update the merged signal's on events to use the internal signals
 //             const mergedName = createMergedName(cycle);
 //             const mergedSignal = resolvedSignals.find(s => s.name === mergedName);
@@ -411,7 +391,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //             }
 //         });
 //     });
-    
+
 //     return resolvedSignals;
 // }
 
@@ -422,13 +402,13 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //     // Helper to create internal signal name
 //     const createInternalName = (name: string) => `${name}_internal`;
 //     const createMergedName = (names: string[]) => `${names.join('_')}_MERGED`;
-    
+
 //     // Process each cycle type
 //     Object.entries(cyclesByType).forEach(([type, cycles]) => {
 //         cycles.forEach(cycle => {
 //             // Step 1: Extract constraints from each internal signal
 //             const extractedConstraints = new Map<string, { template: string, baseValue: string }[]>();
-            
+
 
 //             cycle.forEach(signalName => {
 //                 console.log('signalName', signalName)
@@ -437,34 +417,34 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                 const internalSignal = resolvedSignals.find(s => s.name === internalName);
 //                 console.log('internalSignal', internalSignal)
 //                 if (!internalSignal || !internalSignal.update) return;
-                
+
 //                 const update = internalSignal.update;
 //                 const ast = vega.parseExpression(update);
-                
+
 //                 // Get all merged names in the cycle
 //                 const mergedNames = cycle.map(name => createMergedName([name])).concat(
 //                     [createMergedName(cycle)]
 //                 );
-                
+
 //                 // Extract base value and constraint templates
 //                 const result = extractConstraints(ast, mergedNames);
 //                 console.log('Extractingresult', result)
-                
+
 //                 // Store extracted constraints
 //                 if (result.constraints.length > 0) {
 //                     extractedConstraints.set(internalName, result.constraints);
 //                 }
-                
+
 //                 // Update internal signal with base value
 //                 internalSignal.update = result.baseValue;
 //             });
-            
+
 //             // Step 2: Apply extracted constraints to all other internal signals
 //             cycle.forEach(signalName => {
 //                 const internalName = createInternalName(signalName);
 //                 const internalSignal = resolvedSignals.find(s => s.name === internalName);
 //                 if (!internalSignal || !internalSignal.update) return;
-                
+
 //                 // Apply constraints from other signals
 //                 extractedConstraints.forEach((constraints, sourceInternalName) => {
 //                     if (sourceInternalName !== internalName) {
@@ -479,7 +459,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //                     }
 //                 });
 //             });
-            
+
 //             // Step 3: Update merged signal's on events
 //             const mergedName = createMergedName(cycle);
 //             const mergedSignal = resolvedSignals.find(s => s.name === mergedName);
@@ -494,7 +474,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //             }
 //         });
 //     });
-    
+
 //     return resolvedSignals;
 // }
 
@@ -507,18 +487,18 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 // } {
 //     const constraints: { template: string, baseValue: string }[] = [];
 //     let baseValue = '';
-    
+
 //     // Function to check if node contains merged names
 //     function containsMergedName(expr: string): boolean {
 //         return mergedNames.some(name => expr.includes(name));
 //     }
-    
+
 //     // Function to extract constraints and base value from AST
 //     function processNode(node: any): string {
 //         if (node.type === 'CallExpression' && node.callee.name === 'clamp') {
 //             const args = node.arguments.map((arg: any) => processNode(arg));
 //             const callExpr = `clamp(${args.join(', ')})`;
-            
+
 //             // Check if this clamp contains merged names
 //             if (containsMergedName(callExpr)) {
 //                 // This is a merged constraint, extract base value
@@ -557,7 +537,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 //             return node.toString();
 //         }
 //     }
-    
+
 //     baseValue = processNode(ast);
 //     return { baseValue, constraints };
 // }
@@ -565,7 +545,7 @@ function mergeAndRewireCycles(params: VegaSignal[], cyclesByType: { [key: string
 function findMinimalCycles(params: VegaSignal[]): string[][] {
     // Build dependency graph
     const graph = new Map<string, Set<string>>();
-    
+
     // Helper to extract signal names from expression
     const extractDependencies = (expr: string): string[] => {
         const signalPattern = /[a-zA-Z_][a-zA-Z0-9_]*/g;
@@ -576,12 +556,12 @@ function findMinimalCycles(params: VegaSignal[]): string[][] {
     // Build graph
     params.forEach(param => {
         const dependencies = new Set<string>();
-        
+
         // Add dependencies from update expression
         if (param.update) {
             extractDependencies(param.update).forEach(dep => dependencies.add(dep));
         }
-        
+
         // Add dependencies from on events
         param.on?.forEach(event => {
             if (Array.isArray(event.events)) {
@@ -630,7 +610,7 @@ function findMinimalCycles(params: VegaSignal[]): string[][] {
                 onStack.delete(w);
                 cycle.push(w);
             } while (w !== node);
-            
+
             // Only include cycles with more than one node
             if (cycle.length > 1) {
                 cycles.push(cycle);
@@ -695,97 +675,97 @@ function findMinimalCycles(params: VegaSignal[]): string[][] {
 function gatherFunctionCalls(node) {
     // We'll collect calls in this array
     const calls = [];
-  
+
     // A helper to clone a node, because we need
     // to create a "replaced" version when we insert placeholders
     function cloneNode(obj) {
-      return JSON.parse(JSON.stringify(obj));
+        return JSON.parse(JSON.stringify(obj));
     }
-  
+
     function visit(n) {
-      if (!n || typeof n !== 'object') return n;
-  
-      // If it's a function call: gather it, then transform nested calls to "INSERT"
-      if (n.type === 'CallExpression') {
-        // We'll gather *nested* calls inside the current call
-        // Then we'll produce a replaced version of the current call expression
-        // that has "INSERT" in place of any nested call argument
-  
-        // Step 1: clone the node so we can mutate it freely
-        const replaced = cloneNode(n);
-  
-        // Step 2: check each argument for nested calls
-        replaced.arguments = replaced.arguments.map(arg => {
-          if (arg.type === 'CallExpression') {
-            // Recursively visit the nested call
-            const nestedResult = visit(arg);
-            // We gather all calls from that nested result
-            calls.push(...nestedResult.calls);
-            // And we replace the nested call with a placeholder expression
-            // e.g. "INSERT" can be represented as a literal node:
+        if (!n || typeof n !== 'object') return n;
+
+        // If it's a function call: gather it, then transform nested calls to "INSERT"
+        if (n.type === 'CallExpression') {
+            // We'll gather *nested* calls inside the current call
+            // Then we'll produce a replaced version of the current call expression
+            // that has "INSERT" in place of any nested call argument
+
+            // Step 1: clone the node so we can mutate it freely
+            const replaced = cloneNode(n);
+
+            // Step 2: check each argument for nested calls
+            replaced.arguments = replaced.arguments.map(arg => {
+                if (arg.type === 'CallExpression') {
+                    // Recursively visit the nested call
+                    const nestedResult = visit(arg);
+                    // We gather all calls from that nested result
+                    calls.push(...nestedResult.calls);
+                    // And we replace the nested call with a placeholder expression
+                    // e.g. "INSERT" can be represented as a literal node:
+                    return {
+                        type: 'Literal',
+                        value: 'INSERT'
+                    };
+                } else {
+                    // Otherwise, just recursively visit any sub-structure
+                    // (in case it's a member expression or something else)
+                    return visit(arg).replacedAst;
+                }
+            });
+
+            // Step 3: Now replaced has placeholders for nested calls.
+            // Generate the string for this call expression with placeholders.
+            const replacedExprCode = codegenExpression(replaced);
+
+            // If you want the "original" call as well, you can codegen from `n` directly
+            // but let's focus on the replaced version that shows "INSERT" placeholders.
+            calls.push(replacedExprCode);
+
             return {
-              type: 'Literal',
-              value: 'INSERT'
+                calls,
+                replacedAst: replaced
             };
-          } else {
-            // Otherwise, just recursively visit any sub-structure
-            // (in case it's a member expression or something else)
-            return visit(arg).replacedAst;
-          }
-        });
-  
-        // Step 3: Now replaced has placeholders for nested calls.
-        // Generate the string for this call expression with placeholders.
-        const replacedExprCode = codegenExpression(replaced);
-  
-        // If you want the "original" call as well, you can codegen from `n` directly
-        // but let's focus on the replaced version that shows "INSERT" placeholders.
-        calls.push(replacedExprCode);
-  
-        return { 
-          calls, 
-          replacedAst: replaced 
-        };
-      }
-  
-      // Not a CallExpression, so we just go deeper into children.
-      const replacedObj = cloneNode(n);
-      for (const key of Object.keys(n)) {
-        if (Array.isArray(n[key])) {
-          replacedObj[key] = n[key].map(child => {
-            const result = visit(child);
-            return result?.replacedAst || child;
-          });
-        } else if (typeof n[key] === 'object' && n[key] !== null) {
-          const result = visit(n[key]);
-          replacedObj[key] = result?.replacedAst || n[key];
         }
-      }
-  
-      return {
-        calls,
-        replacedAst: replacedObj
-      };
+
+        // Not a CallExpression, so we just go deeper into children.
+        const replacedObj = cloneNode(n);
+        for (const key of Object.keys(n)) {
+            if (Array.isArray(n[key])) {
+                replacedObj[key] = n[key].map(child => {
+                    const result = visit(child);
+                    return result?.replacedAst || child;
+                });
+            } else if (typeof n[key] === 'object' && n[key] !== null) {
+                const result = visit(n[key]);
+                replacedObj[key] = result?.replacedAst || n[key];
+            }
+        }
+
+        return {
+            calls,
+            replacedAst: replacedObj
+        };
     }
-  
+
     // Start the recursion
     return visit(node);
-  }
-  
-  /**
-   * Given an expression string, parse it into an AST,
-   * then return an array of the extracted function calls (with placeholders).
-   */
-  function extractFunctionalParts(exprString) {
+}
+
+/**
+ * Given an expression string, parse it into an AST,
+ * then return an array of the extracted function calls (with placeholders).
+ */
+function extractFunctionalParts(exprString) {
     // Parse the expression into an AST
     const ast = parseExpression(exprString);
-  
+
     // Recursively gather function calls
     const { calls } = gatherFunctionCalls(ast);
-  
+
     // Return all calls in the order we found them
     return calls;
-  }
+}
 
 // const expr1 = "clamp(clamp(node_2.stop.x, node_3_plot_start_x, node_3_plot_stop_x), node_1_span_start_x, node_1_span_stop_x)";
 // const result1 = extractFunctionalParts(expr1);
@@ -820,11 +800,11 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
         set: [],
         scalar: []
     };
-    
+
     cycles.forEach(cycle => {
         // Determine the type of each signal in the cycle
         const types = new Set<string>();
-        
+
         cycle.forEach(signal => {
             if (signal.includes('_start')) {
                 types.add('start');
@@ -836,7 +816,7 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
                 types.add('scalar');
             }
         });
-        
+
         // If cycle contains only one type, add it to that type's array
         if (types.size === 1) {
             const type = Array.from(types)[0];
@@ -849,7 +829,7 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
                 set: [],
                 scalar: []
             };
-            
+
             cycle.forEach(signal => {
                 if (signal.includes('_start')) {
                     cyclesBySignalType.start.push(signal);
@@ -861,7 +841,7 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
                     cyclesBySignalType.scalar.push(signal);
                 }
             });
-            
+
             // Add non-empty arrays to their respective type groups
             Object.entries(cyclesBySignalType).forEach(([type, signals]) => {
                 if (signals.length > 1) { // Only add if there are at least 2 signals (to form a cycle)
@@ -870,7 +850,7 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
             });
         }
     });
-    
+
     return cyclesByType;
 }
 /**
@@ -881,41 +861,41 @@ function organizeCyclesByType(cycles: string[][]): { [type: string]: string[][] 
 function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
     // Step 1: Find minimal cycles
     const cycles = findMinimalCycles(params);
-    
+
     // Step 2: Organize cycles by type (start, stop, etc.)
     const cyclesByType = organizeCyclesByType(cycles);
     console.log('cyclesByType', cyclesByType);
-    
+
     // Step 3: Merge and rewire cycles with constraint extraction
     // Iterate up to 10 times or until no more cycles are found
     let resolvedSignals = [...params];
     let iterationCount = 0;
     const maxIterations = 10;
-    
+
     while (iterationCount < maxIterations) {
         // Find remaining cycles
         const remainingCycles = findMinimalCycles(resolvedSignals);
-        
+
         // If no more cycles, we're done
         if (remainingCycles.length === 0) {
             console.log(`Resolved all cycles in ${iterationCount} iterations`);
             break;
         }
-        
+
         // Organize remaining cycles by type
         const remainingCyclesByType = organizeCyclesByType(remainingCycles);
-        console.log(`Iteration ${iterationCount + 1}, remaining cycles:`, remainingCyclesByType,JSON.parse(JSON.stringify(resolvedSignals)));
-        
+        console.log(`Iteration ${iterationCount + 1}, remaining cycles:`, remainingCyclesByType, JSON.parse(JSON.stringify(resolvedSignals)));
+
         // Apply constraint extraction and rewiring
         resolvedSignals = mergeAndRewireWithConstraints(resolvedSignals, remainingCyclesByType);
-        
+
         iterationCount++;
     }
-    
+
     if (iterationCount === maxIterations) {
         console.warn(`Reached maximum iterations (${maxIterations}) without fully resolving cycles`);
     }
-    
+
     console.log('Final resolvedSignals', resolvedSignals);
 
     return resolvedSignals;
@@ -931,7 +911,7 @@ function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
 //         scalar: [],
 //         set: []
 //     };
-    
+
 //     cycles.forEach(cycle => {
 //         // Determine cycle type based on signal names
 //         if (cycle[0].includes('_start_')) {
@@ -944,7 +924,7 @@ function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
 //             cyclesByType.scalar.push(cycle);
 //         }
 //     });
-    
+
 //     return cyclesByType;
 // }
 
@@ -953,60 +933,60 @@ function resolveCyclesCompletePipeline(params: VegaSignal[]): VegaSignal[] {
  */
 function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [key: string]: string[][] }): VegaSignal[] {
     const resolvedSignals: VegaSignal[] = [...params];
-    
+
     // Helper functions
     const createInternalName = (name: string) => `${name}_internal`;
     const createMergedName = (names: string[]) => `${names.join('_')}_MERGED`;
-    
+
     // Extract all signal names from an expression
     function extractSignalNames(expr: string): string[] {
         return extractAllNodeNames(expr);
     }
-    
+
     // Process each cycle type
     Object.entries(cyclesByType).forEach(([type, cycles]) => {
         cycles.forEach(cycle => {
             // Step 1: Identify all signals in the cycle
             const cycleSignalSet = new Set(cycle);
-            
+
             // Step 2: Extract constraints and base values
-            const extracted = new Map<string, { 
-                baseValue: string, 
+            const extracted = new Map<string, {
+                baseValue: string,
                 constraints: string[],
                 referencedSignals: string[]
             }>();
-            
+
             cycle.forEach(signalName => {
                 const originalSignal = resolvedSignals.find(s => s.name === signalName);
                 if (!originalSignal || !originalSignal.update) return;
-                
+
                 // Parse the signal's update expression
                 const update = originalSignal.update;
                 const ast = vega.parseExpression(update);
-                
+
                 // Extract base value and constraints
                 const { baseValue, constraints } = extractConstraintsForCycle(ast, cycle);
-                
+
                 // Extract all signal names referenced in the base value
                 const referencedSignals = extractSignalNames(baseValue);
-                
+
                 extracted.set(signalName, { baseValue, constraints, referencedSignals });
             });
-            
+
             // Step 3: Create internal signals with base values and proper events
             cycle.forEach(signalName => {
                 const originalSignal = resolvedSignals.find(s => s.name === signalName);
                 if (!originalSignal) return;
-                
+
                 const extraction = extracted.get(signalName);
                 const baseValue = extraction?.baseValue || originalSignal.update;
-                
+
                 // Extract all signal references from the base value for events
                 const referencedSignals = extraction?.referencedSignals || [];
-                
+
                 // Create events array for the internal signal
                 const events = referencedSignals.map(refSignal => ({ signal: refSignal }));
-                
+
                 const internalSignal = {
                     ...originalSignal,
                     name: createInternalName(signalName),
@@ -1017,21 +997,42 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                         update: baseValue
                     }] : undefined
                 };
-                
+
                 resolvedSignals.push(internalSignal);
             });
-            
+
             // Step 4: Create merged signal with constrainted updates
             const mergedName = createMergedName(cycle);
-            const initValue = createInternalName(cycle[0]) 
-          
+
+            function getInitSignal(cycle: string[]): string {
+                // Find signal with highest number to use as init
+                let highestNumberSignal = cycle[0];
+                let highestNumber = -1;
+
+                cycle.forEach(signalName => {
+                    const matches = signalName.match(/\d+/g);
+                    if (matches) {
+                        const maxNumber = Math.max(...matches.map(Number));
+                        if (maxNumber > highestNumber) {
+                            highestNumber = maxNumber;
+                            highestNumberSignal = signalName;
+                        }
+                    }
+                });
+                return highestNumberSignal;
+            }
+            const highestNumberSignal = getInitSignal(cycle);
+
+            const initSignal = createInternalName(highestNumberSignal);
+            const initValue = initSignal;//createInternalName(cycle[0]) 
+
             const mergedSignal: VegaSignal = {
                 name: mergedName,
                 value: null,
                 init: initValue,
                 on: cycle.map(signalName => {
                     const internalName = createInternalName(signalName);
-                    
+
                     // Collect constraints from all OTHER signals in the cycle
                     const appliedConstraints: string[] = [];
                     cycle.forEach(otherName => {
@@ -1042,13 +1043,13 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                             }
                         }
                     });
-                    
+
                     // Apply all constraints to this internal signal's update
                     let update = internalName;
                     appliedConstraints.forEach(constraint => {
                         update = constraint.replace(/INSERT/g, update);
                     });
-                    
+
                     return {
                         events: [{ signal: internalName }],
                         update: update
@@ -1056,14 +1057,14 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                 })
             };
             resolvedSignals.push(mergedSignal);
-            
+
             // Step 5: Update original signals to reference the merged signal
             cycle.forEach(signalName => {
                 const originalSignal = resolvedSignals.find(s => s.name === signalName);
                 if (originalSignal) {
                     // Remove update statement
                     delete originalSignal.update;
-                    
+
                     // Clear existing on events and replace with merged signal reference
                     originalSignal.on = [
                         {
@@ -1073,12 +1074,12 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                     ];
                 }
             });
-            
+
             // Step 6: Update all signals that reference cycle signals
             resolvedSignals.forEach(signal => {
                 // Skip signals in the cycle
                 if (cycle.includes(signal.name)) return;
-                
+
                 // Update expressions that reference cycle signals
                 if (signal.update) {
                     cycle.forEach(cycleName => {
@@ -1088,7 +1089,7 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                         );
                     });
                 }
-                
+
                 // Update on events
                 signal.on?.forEach(event => {
                     if (event.update) {
@@ -1099,7 +1100,7 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                             );
                         });
                     }
-                    
+
                     // Update event signals as well
                     if (Array.isArray(event.events)) {
                         event.events.forEach(e => {
@@ -1114,31 +1115,31 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
             });
         });
     });
-    
+
     return resolvedSignals;
 }
 
 /**
  * Extract constraints and base value from an expression AST, specifically for cycle resolution
  */
-function extractConstraintsForCycle(ast: any, cycleSignals: string[]): { 
-    baseValue: string, 
-    constraints: string[] 
+function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
+    baseValue: string,
+    constraints: string[]
 } {
     const constraints: string[] = [];
     let baseValue = '';
-    
+
     // Function to check if expression contains any cycle signals
     function containsCycleSignal(expr: string): boolean {
         return cycleSignals.some(signal => expr.includes(signal));
     }
-    
+
     // Function to extract constraints and base value from AST
     function processNode(node: any): string {
         if (node.type === 'CallExpression' && node.callee.name === 'clamp') {
             const args = node.arguments.map(arg => processNode(arg));
             const fullExpr = `clamp(${args.join(', ')})`;
-            
+
             // If any arguments (other than the first) contain cycle signals,
             // this is part of the cycle and we extract the base value
             const hasSignalInBounds = args.slice(1).some(arg => containsCycleSignal(arg));
@@ -1176,9 +1177,9 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             return node.toString();
         }
     }
-    
+
     baseValue = processNode(ast);
-    
+
     // If no base value was found but we have an AST, use the entire expression
     if (!baseValue && ast) {
         try {
@@ -1188,6 +1189,6 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             baseValue = ast.toString();
         }
     }
-    
+
     return { baseValue, constraints };
 }

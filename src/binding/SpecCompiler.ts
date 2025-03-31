@@ -639,19 +639,12 @@ export class SpecCompiler {
                 edge.implicit
             );
 
-            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
-
-                console.log('2sdscfs:', constraint, JSON.parse(JSON.stringify(constraints)), constraints[targetAnchorId], targetAnchorId);
-                console.log('creating new', JSON.parse(JSON.stringify(constraints)), targetAnchorId, !constraints[targetAnchorId])
-            }
+          
 
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
-
-                console.log('2sdscfsbefore:', constraint, JSON.parse(JSON.stringify(constraints)));
-            }
+          
 
             constraints[targetAnchorId].push(constraint);
 

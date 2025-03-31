@@ -116,6 +116,8 @@ export class Line extends BaseComponent {
     constructor(config: any = {}) {
         super({ ...config }, configurations)
 
+        console.log('CONFIGLINE', config)
+
 
 
         // Set up the main schema from configurations

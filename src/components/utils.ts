@@ -22,7 +22,6 @@ import { CompilationContext } from "binding/binding";
 
 
 export const createRangeAccessor = (id: string, channel: string, configurationId: string) => {
-    console.log('createRangeAccessor', id, channel, configurationId);
     return {
         'start': `${id}_${configurationId}_start_${channel}`,
         'stop': `${id}_${configurationId}_stop_${channel}`,

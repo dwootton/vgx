@@ -12,7 +12,7 @@ export const extractComponentBindings = (config: any): any[] => {
     if (!config || !config.bind || typeof config.bind === 'function') {
         return [];
     }
-    
+
     // If bind is an array, process each item
     if (Array.isArray(config.bind)) {
         return config.bind.flatMap(item => {
@@ -23,12 +23,12 @@ export const extractComponentBindings = (config: any): any[] => {
             return item;
         });
     }
-    
+
     // If bind is a single object with its own bindings
     if (typeof config.bind === 'object' && config.bind.bind) {
         return [config.bind, ...extractComponentBindings(config.bind)];
     }
-    
+
     // If bind is a single object without further bindings
     return [config.bind];
 };
@@ -85,6 +85,7 @@ export function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: s
 
     // Function to move params to top level
     const moveParamsToTop = (obj: any) => {
+        // console.log('obj', obj)
         if (!obj || typeof obj !== 'object') return;
 
         if (obj.params && Array.isArray(obj.params)) {
@@ -118,6 +119,7 @@ export function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: s
         });
     };
 
+    console.log('mergedSpec', mergedSpec)
     // Move params to their destinations
     moveParamsToTop(mergedSpec);
 
@@ -133,11 +135,11 @@ export function mergeSpecs(specs: Partial<UnitSpec<Field>>[], rootComponentId: s
 
 
 
-   
-    // Apply the extraction to the merged spec
-    
 
-    return  mergedSpec;
+    // Apply the extraction to the merged spec
+
+
+    return mergedSpec;
 }
 
 function mergeParams(params: any[]): any[] {

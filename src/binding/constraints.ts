@@ -19,17 +19,16 @@ export enum ConstraintType {
 export interface Constraint {
   // The type of constraint being applied
   type: ConstraintType;
-  
+
   // Source signal name that triggers this constraint
   triggerReference?: string;
   isImplicit?: boolean;
 
   constraintValueType?: ValueType;
-  
+
   // For each constraint type, we need different parameters:
   min?: string;         // For CLAMP - can be signal name or expression
   max?: string;         // For CLAMP - can be signal name or expression
-  values?: string[];    // For NEAREST - array of signal names or expressions
   value?: string;       // For ABSOLUTE - direct value or signal name
   expression?: string;  // For EXPRESSION - custom Vega expression
 }
@@ -39,41 +38,41 @@ export interface Constraint {
  */
 export function compileConstraint(constraint: Constraint, targetSignal?: string): string {
 
-  if(constraint.isImplicit){
-    return compileConstraint({...constraint, isImplicit: false}, `base_${targetSignal || constraint.triggerReference}`)
+  if (constraint.isImplicit) {
+    return compileConstraint({ ...constraint, isImplicit: false }, `base_${targetSignal || constraint.triggerReference}`)
     // return `${targetSignal || constraint.triggerReference}`;
   }
-    // // current hack for categorical values
-    // if(constraint.constraintValueType === "Categorical"){
-    //     return `${targetSignal || constraint.triggerReference}`;
-    // }
-    if(constraint.constraintValueType === "Categorical"){
-        return `${ constraint.triggerReference}`;
-    } else if(constraint.constraintValueType === "Data"){
-        return `${targetSignal || constraint.triggerReference}`;
-    }
+  // // current hack for categorical values
+  // if(constraint.constraintValueType === "Categorical"){
+  //     return `${targetSignal || constraint.triggerReference}`;
+  // }
+  if (constraint.constraintValueType === "Categorical") {
+    return `${constraint.triggerReference}`;
+  } else if (constraint.constraintValueType === "Data") {
+    return `${targetSignal || constraint.triggerReference}`;
+  }
 
-    // else numeric
+  // else numeric
 
-     
+
   switch (constraint.type) {
     case ConstraintType.ABSOLUTE:
       return constraint.value || "0";
     case ConstraintType.SCALAR:
-        return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.value}, ${constraint.value})`;
-  
+      return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.value}, ${constraint.value})`;
+
     case ConstraintType.CLAMP:
       return `clamp(${targetSignal || constraint.triggerReference}, ${constraint.min}, ${constraint.max})`;
-      
+
     case ConstraintType.NEAREST:
-      return `nearest(${targetSignal || constraint.triggerReference}, [${constraint.values?.join(', ')}])`;
+      return `nearest(${targetSignal || constraint.triggerReference}, ${constraint.value})`;
     case ConstraintType.EXPRESSION:
       // Replace placeholder with actual signal if needed
       return constraint.expression?.replace('TARGET_SIGNAL', targetSignal || constraint.triggerReference || '') || "0";
-      
+
     case ConstraintType.IDENTITY:
       return targetSignal || constraint.triggerReference || "0";
-      
+
     default:
       return targetSignal || constraint.triggerReference || "0";
   }
@@ -89,29 +88,29 @@ export function createConstraintFromSchema(
   isImplicit?: boolean
 ): Constraint {
 
-    if(schema.valueType === "Categorical"){
-        return {
-            type: ConstraintType.ABSOLUTE,
-            // value: value.value,
-            triggerReference,
-            isImplicit,
-            constraintValueType: schema.valueType
-        }
+  if (schema.valueType === "Categorical") {
+    return {
+      type: ConstraintType.ABSOLUTE,
+      // value: value.value,
+      triggerReference,
+      isImplicit,
+      constraintValueType: schema.valueType
     }
-    
-    if (schema.valueType === ConstraintType.ABSOLUTE) {
-        return {
-            type: ConstraintType.ABSOLUTE,
-            value: value.value,
-        };
-    }
-    if (schema.valueType === 'Data') {
-        return {
-          type: ConstraintType.DATA,
-          triggerReference,
-          value: "VGX_MOD_"+value.value
-        };
-      }
+  }
+
+  if (schema.valueType === ConstraintType.ABSOLUTE) {
+    return {
+      type: ConstraintType.ABSOLUTE,
+      value: value.value,
+    };
+  }
+  if (schema.valueType === 'Data') {
+    return {
+      type: ConstraintType.DATA,
+      triggerReference,
+      value: "VGX_MOD_" + value.value
+    };
+  }
 
 
   if (schema.container === 'Range') {
@@ -125,18 +124,19 @@ export function createConstraintFromSchema(
       isImplicit
     };
   }
-  
+
   if (schema.container === 'Set') {
     // Handle set value constraint (discrete values)
     const setValue = value as SetValue;
+    console.log('setValue', setValue)
     return {
       type: ConstraintType.NEAREST,
       triggerReference,
-      values: setValue.values.map(v => String(v)),
+      value: setValue.value,
       isImplicit
     };
   }
-  
+
   if (schema.container === 'Scalar') {
     // Handle scalar value constraint
     if (typeof value === 'object' && 'value' in value) {
@@ -166,9 +166,9 @@ export function createConstraintFromSchema(
     }
   }
 
-  
 
-  
+
+
   // Default fallback for unknown types
   return {
     type: ConstraintType.EXPRESSION,

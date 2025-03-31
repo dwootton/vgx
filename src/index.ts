@@ -15,7 +15,7 @@ export { Circle } from './components/marks';
 import { Scatterplot, Histogram, LinePlot, BarChart, Heatmap, PieChart } from './components/charts';
 import { Circle, Line, Text,Rect } from './components/marks';
 import { CombinedDrag, Click } from './components/interactions';  
-import { Grid, BrushConstructor, Brush } from './components/interactions/Instruments/';
+import { Grid, BrushConstructor,GridConstructor, Brush } from './components/interactions/Instruments/';
 import { createComponentFactory } from './factories/ComponentFactory';
 
 
@@ -24,7 +24,7 @@ const drag = createComponentFactory(CombinedDrag);
 const rect = createComponentFactory(Rect);
 const line = createComponentFactory(Line);
 const click = createComponentFactory(Click);
-// const grid = createComponentFactory(Grid);
+const grid = createComponentFactory(GridConstructor);
 const text = createComponentFactory(Text);
 
 
@@ -41,6 +41,6 @@ export const all = {
   rect: rect,
   line: line,
   click: click,
-  Grid: (config:any)=> new Grid(config),
+  Grid: grid,
   text: text
 };

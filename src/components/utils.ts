@@ -22,7 +22,6 @@ import { CompilationContext } from "binding/binding";
 
 
 export const createRangeAccessor = (id: string, channel: string, configurationId: string) => {
-    console.log('createRangeAccessor', id, channel, configurationId);
     return {
         'start': `${id}_${configurationId}_start_${channel}`,
         'stop': `${id}_${configurationId}_stop_${channel}`,
@@ -32,16 +31,21 @@ export const createRangeAccessor = (id: string, channel: string, configurationId
 export function generateCompiledValue(id: string, channel: string) {
     return `${id}_${channel}` // min value
 }
-
 export function extractAllNodeNames(input: string): string[] {
     const nodeNames: string[] = [];
+
+    // Helper function to check if a node name contains 'base_data'
+    const isValidNodeName = (name: string): boolean => {
+        // don't include any data nodes as they are not signals, but dataset changes should propogate
+        return !name.includes('base_data');
+    };
 
     // Find all node_X.something patterns (return just node_X)
     const dotPattern = /(node_\d+)\./g;
     let dotMatch;
 
     while ((dotMatch = dotPattern.exec(input)) !== null) {
-        if (dotMatch[1] && !nodeNames.includes(dotMatch[1])) {
+        if (dotMatch[1] && !nodeNames.includes(dotMatch[1]) && isValidNodeName(dotMatch[1])) {
             nodeNames.push(dotMatch[1]);
         }
     }
@@ -51,7 +55,7 @@ export function extractAllNodeNames(input: string): string[] {
     let underscoreMatch;
 
     while ((underscoreMatch = underscorePattern.exec(input)) !== null) {
-        if (underscoreMatch[1] && !nodeNames.includes(underscoreMatch[1])) {
+        if (underscoreMatch[1] && !nodeNames.includes(underscoreMatch[1]) && isValidNodeName(underscoreMatch[1])) {
             nodeNames.push(underscoreMatch[1]);
         }
     }
@@ -61,7 +65,7 @@ export function extractAllNodeNames(input: string): string[] {
     let mergedNodeMatch;
 
     while ((mergedNodeMatch = mergedNodePattern.exec(input)) !== null) {
-        if (mergedNodeMatch[1] && !nodeNames.includes(mergedNodeMatch[1])) {
+        if (mergedNodeMatch[1] && !nodeNames.includes(mergedNodeMatch[1]) && isValidNodeName(mergedNodeMatch[1])) {
             nodeNames.push(mergedNodeMatch[1]);
         }
     }
@@ -71,13 +75,15 @@ export function extractAllNodeNames(input: string): string[] {
     let bareMatch;
 
     while ((bareMatch = barePattern.exec(input)) !== null) {
-        if (bareMatch[1] && !nodeNames.includes(bareMatch[1])) {
+        if (bareMatch[1] && !nodeNames.includes(bareMatch[1]) && isValidNodeName(bareMatch[1])) {
             nodeNames.push(bareMatch[1]);
         }
     }
 
+    console.log('nodeNames', nodeNames)
     return [...new Set(nodeNames)];
 }
+
 export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: string, parentExtractor: string, mergedParent: string): any[] => {
     let channel = anchorId;
 
@@ -102,6 +108,7 @@ export const generateScalarSignalFromAnchor = (constraints: string[], anchorId: 
     const clampedExtractor = collapseSignalUpdates(constraints.map(generateConstraints), parentExtractor)
     const depedentNodes = extractAllNodeNames(clampedExtractor).filter(node => node !== signalName)
 
+    console.log('dependent nodes', depedentNodes)
     return [{
         name: signalName,
         value: null,
@@ -154,6 +161,8 @@ export const generateRangeSignalFromAnchor = (constraints: string[], anchorId: s
 
     const depedentStartNodes = extractAllNodeNames(clampedStartExtractor)
     const depedentStopNodes = extractAllNodeNames(clampedStopExtractor)
+
+    console.log('dependent nodes', depedentStartNodes, depedentStopNodes)
 
 
     return [

@@ -353,6 +353,10 @@ export function resolveCycleMulti(
     });
 
 
+    const hasCycle = detectCycles(processedGraph)
+    if(hasCycle.length > 0){
+        console.log('STILLhasCycle',hasCycle)
+    }
 
 
     return processedGraph;

@@ -116,6 +116,8 @@ export class Line extends BaseComponent {
     constructor(config: any = {}) {
         super({ ...config }, configurations)
 
+        console.log('CONFIGLINE', config)
+
 
 
         // Set up the main schema from configurations
@@ -143,8 +145,13 @@ export class Line extends BaseComponent {
     }
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
-        const { x, y, data } = inputContext.VGX_CONTEXT
-        const allSignals = inputContext.VGX_SIGNALS
+        let { x, y, data } = inputContext.VGX_CONTEXT
+        // const allSignals = inputContext.VGX_SIGNALS
+        let triggers = []
+
+        console.log('inputContextforLine', inputContext)
+
+
 
         return {
             params: [
@@ -152,7 +159,6 @@ export class Line extends BaseComponent {
                     "name": this.id,
                     "value": lineBaseContext,
                 },
-                ...allSignals,
             ],
             "data": data,
             name: `${this.id}_position_markName`,
@@ -162,7 +168,7 @@ export class Line extends BaseComponent {
             },
             "encoding": {
                 "x": {
-                    "value": x.start,
+                    "value": x.start
                 },
                 "y": {
                     "value": y.start,
@@ -173,11 +179,13 @@ export class Line extends BaseComponent {
                 "y2": {
                     "value": y.stop,
                 },
-                "size": { "value": 5 },
+                "size": { "value": 3 },
                 "color": { "value": "firebrick" },
                 "stroke": { "value": "firebrick" },
 
-            }
+            },
+            "triggers": triggers
         }
+        
     }
 }

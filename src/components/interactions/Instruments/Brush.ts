@@ -148,14 +148,14 @@ export class Brush extends BaseComponent {
                 const schemaValue = schema[key];
                 const keyName = config.id + '_' + key
                 this.schema[keyName] = schemaValue;
-
-
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
                     return generatedAnchor
                 }));
             }
         });
+
+        console.log('Brush anchors', this.anchors)
 
         this._data.filter(`vlSelectionTest(${this.id}_store, datum)`)// any data referenced from the brush will be filtered
     }
@@ -168,10 +168,20 @@ export class Brush extends BaseComponent {
     }
 
     compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        const selectionId = this.id + "_selection"
         const selection = {
-            "name": this.id + "_selection",
+            "name": selectionId,
             "select": {
                 "type": "interval",
+                "on": {
+                    "type": "pointermove",
+                   
+                    "source": "window",
+                    "between": [
+                        { "type": "pointerdown", "markname": "interval",  "filter":"false",},
+                        { "type": "pointerup", "source": "window" }
+                    ]
+                    },
                 "mark": {
                     "fill": null,
                     "stroke": null,
@@ -185,16 +195,16 @@ export class Brush extends BaseComponent {
             "value": brushBaseContext
         }
 
-        const allSignals = inputContext.VGX_SIGNALS
+        // const allSignals = inputContext.VGX_SIGNALS
 
         const { x, y } = inputContext.VGX_CONTEXT
 
-        const selectionModifications = [{ "name": "VGXMOD_" + this.id + "_x", "on": [{ "events": [{ "signal": x.start.expr }, { "signal": x.stop.expr }], "update": `[${x.start.expr},${x.stop.expr}]` }] },
-        { "name": "VGXMOD_" + this.id + "_y", "on": [{ "events": [{ "signal": y.start.expr }, { "signal": y.stop.expr }], "update": `[${y.start.expr},${y.stop.expr}]` }] }]
+        const selectionModifications = [{ "name": "VGXMOD_" +selectionId + "_x", "on": [{ "events": [{ "signal": x.start.expr }, { "signal": x.stop.expr }], "update": `[${x.start.expr},${x.stop.expr}]` }] },
+        { "name": "VGXMOD_" + selectionId + "_y", "on": [{ "events": [{ "signal": y.start.expr }, { "signal": y.stop.expr }], "update": `[${y.start.expr},${y.stop.expr}]` }] }]
 
 
         return {
-            params: [selection, ...allSignals, brushBaseSignal, ...selectionModifications]
+            params: [selection, brushBaseSignal, ...selectionModifications]
         }
     }
 }

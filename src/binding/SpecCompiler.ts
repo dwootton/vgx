@@ -10,7 +10,7 @@ import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
 import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
 import { BaseComponent } from "../components/base";
-import { calculateValueForComponent } from "../components/resolveValue";
+import { calculateValuesForComponent } from "../components/resolveValue";
 interface AnchorEdge {
     originalEdge: BindingEdge;
     anchorProxy: AnchorProxy;
@@ -507,20 +507,128 @@ export class SpecCompiler {
             // Generate all signals
             const allSignals = this.generateComponentSignals(component, node.id, constraints);
 
+
             // Build schema values mapping
             // const schemaValues = this.buildSchemaValues(component, allEdges);
 
             // Create compile context
             const compileContext: CompileContext = {
                 VGX_SIGNALS: allSignals,
-                // schemaValues,
                 constraints
             };
 
-            const context = calculateValueForComponent(component, allSignals, constraints);
+            const signalContext = calculateValuesForComponent(component, allSignals, constraints);
+            console.log('signalContext', signalContext)
+            const { context, triggers } = this.generateComponentTriggers(node.id, signalContext);
 
-            return component.compileComponent({ ...{ 'VGX_CONTEXT': context, VGX_SIGNALS: allSignals, }, ...compileContext.constraints });
+
+            const compiledComponent = component.compileComponent({ ...{ 'VGX_CONTEXT': context, VGX_SIGNALS: allSignals, }, ...compileContext.constraints });
+
+            if (allSignals.length !== 0) {
+                if (compiledComponent.params) {
+                    compiledComponent.params?.push(...allSignals)
+                } else {
+                    compiledComponent.params = allSignals
+                }
+            }
+
+            if (triggers.length !== 0) {
+                compiledComponent.triggers = triggers
+            }
+
+            return compiledComponent
         }).filter((spec): spec is Partial<UnitSpec<Field>> => spec !== null);
+    }
+
+    private generateComponentTriggers(nodeId: string, inputContext: Record<string, any>,): { context: Record<string, any>, triggers: any[] } {
+        if (!inputContext?.data?.name || !inputContext?.data?.name?.includes('base_data')) {
+            return { context: inputContext, triggers: [] }
+        }
+
+        const context = JSON.parse(JSON.stringify(inputContext))
+
+        const markDataName = nodeId + '_data';
+
+        function generateDatasetFromContext(context: Record<string, any>) {
+            const dataset = []
+            for (const key in context) {
+                if (typeof context[key] === 'object' && context[key] !== null) {
+                    // Handle nested objects
+                    for (const nestedKey in context[key]) {
+                        dataset.push({ [`${key}_${nestedKey}`]: context[key][nestedKey] });
+                    }
+                } else {
+                    // Handle non-nested values
+                    dataset.push({ [key]: context[key] });
+                }
+            }
+            return dataset;
+        }
+
+        const data = {
+            "name": "VGXMOD_" + markDataName,
+        }
+
+        data.source = context.data.name;
+
+        const dataTransform = []
+
+        const values = ['x', 'y', 'text']
+
+        values.forEach(v => {
+            if (!context[v]) return;
+            if (context[v].start) {
+                const startName = `${v}_start`
+                const stopName = `${v}_stop`
+
+                dataTransform.push({
+                    "type": "formula",
+                    "as": startName,
+                    "expr": `datum.${v}ValueStart`,
+                })
+                dataTransform.push({
+                    "type": "formula",
+                    "as": stopName,
+                    "expr": `datum.${v}ValueStop`,
+                })
+                context[v] = {
+                    start: {
+                        expr: `datum.${startName}`,
+                    },
+                    stop: {
+                        expr: `datum.${stopName}`,
+                    }
+                }
+                return;
+            } else {
+                dataTransform.push({
+                    "type": "formula",
+                    "as": `${v}`,
+                    "expr": `datum.${v}Value`,
+                })
+                context[v] = {
+                    expr: `datum.${v}Value`,
+                }
+            }
+        })
+
+        data.transform = dataTransform
+
+        const triggerValues = generateDatasetFromContext(context).map(d => {
+            const triggerKey = Object.keys(d)[0]
+            const triggerValue = d[triggerKey]?.expr
+            const updateValues = {}
+            updateValues[triggerKey] = triggerValue
+            return { trigger: triggerValue, modify: true, values: updateValues }
+        }).filter(d => d.trigger !== undefined)
+
+        context['data'] = data
+
+        
+        return { context: context, triggers: [{
+            name: markDataName,
+            on: triggerValues
+        }] }
     }
 
     private compileMergedNodes(
@@ -561,11 +669,6 @@ export class SpecCompiler {
             })
 
 
-
-
-
-            // const mergedSignals = mergedConstraints.map(constraint => {
-
             const mergedSignal = {
                 name: nodeId,
                 value: null,
@@ -600,7 +703,7 @@ export class SpecCompiler {
             .filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== null);
     }
 
-   
+
     /**
      * Build constraint objects from parent nodes
      */
@@ -639,12 +742,13 @@ export class SpecCompiler {
                 edge.implicit
             );
 
-          
+
+
 
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-          
+
 
             constraints[targetAnchorId].push(constraint);
 

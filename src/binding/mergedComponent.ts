@@ -127,7 +127,9 @@ export function extractSignalNames(updateExpr: string): string[] {
   // use a more sophisticated parser to extract signal references
   const signalRegex = /\b(\w+)_(\w+)(?:_internal)?\b/g;
   const matches = updateExpr.match(signalRegex) || [];
-  return [...new Set(matches)]; // Deduplicate
+  // Filter out any matches that contain "base_data" in the name
+  const filteredMatches = matches.filter(match => !match.toLowerCase().includes('base_data'));
+  return [...new Set(filteredMatches)]; // Deduplicate
 }
 
 import { mergeConstraints } from "../components/utils";

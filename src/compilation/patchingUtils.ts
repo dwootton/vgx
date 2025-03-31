@@ -15,7 +15,7 @@ type ModifiedElements = {
     scales: any[]
 }
 export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
-    const result: ModifiedElements = { data: [], params: [], scales: []};
+    const result: ModifiedElements = { data: [], params: [], scales: [], triggers: []};
 
     function extractDatasets(spec: any) {
         if (spec.data && spec.data?.name?.startsWith('VGXMOD_')) {
@@ -52,6 +52,12 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
             // }));
             // // result.params = result.params || [];
             // result.params.push(...params);
+        }
+    }
+
+    function extractTriggers(spec: any) {
+        if (spec.triggers) {
+            result.triggers.push(...spec.triggers);
         }
     }
     
@@ -95,6 +101,7 @@ export function extractModifiedObjects(spec: TopLevelSpec): ModifiedElements {
 
     extractFromSpec(spec, extractDatasets);
     extractFromSpec(spec, extractParams);
+    extractFromSpec(spec, extractTriggers);
     return result;
 }
 
@@ -249,11 +256,13 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
                         const pastObject = param.on[0].events;
 
                         param.on[0].events = [ { signal: stopParamName }];
-                        if (pastObject) {
+                        // no base_data on signals there are dataset
+                        if (pastObject ) {
                             param.on[0].events.push(pastObject);
                         }
                         
                     } else {
+
                         param.on[0].events.push({signal:stopParamName});
 
                        

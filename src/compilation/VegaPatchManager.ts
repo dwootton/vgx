@@ -59,15 +59,20 @@ export class VegaPatchManager {
             });
         }
 
+        console.log('baseSignals', baseSignals)
 
         const undefinedRemoved = removeUndefinedInSpec(spec);
+        console.log('baseSignals undefinedRemoved', undefinedRemoved)
 
 
         // const unreferencedRemovedFirst = removeUnreferencedParams(undefinedRemoved);
         const unreferencedRemoved = removeUnreferencedParams(undefinedRemoved);
+        console.log('baseSignals unreferencedRemoved', unreferencedRemoved)
+
 
 
         this.modifiedElements = extractModifiedObjects(unreferencedRemoved);
+        console.log('allModifiedElements', this.modifiedElements)
 
 
         let resolvedParams = resolveCyclesCompletePipeline(unreferencedRemoved.params || []);
@@ -101,8 +106,9 @@ export class VegaPatchManager {
                 unreferencedRemoved.datasets[dataset.name] = []
             })
         }
-        // console.log
-
+        
+        // // Remove triggers from the spec
+        // unreferencedRemoved = removeTriggers(unreferencedRemoved);
         this.spec = unreferencedRemoved;
 
 
@@ -133,6 +139,18 @@ export class VegaPatchManager {
                 return dataElement;
             });
 
+            // Add any unmatched datasets from modifiedElements
+            const existingDataNames = vegaCompilation.spec.data.map(d => d.name);
+            const unmatchedDatasets = this.modifiedElements.data.filter(
+                modifiedData => !existingDataNames.includes(modifiedData.name)
+            );
+            
+            if (unmatchedDatasets.length > 0) {
+                console.log('Adding unmatched datasets:', unmatchedDatasets);
+                vegaCompilation.spec.data = [ ...unmatchedDatasets, ...vegaCompilation.spec.data,];
+            }
+
+            
             // Move modified elements to the last position in the array
             vegaCompilation.spec.data.sort((a, b) => {
                 const aIsModified = this.modifiedElements.data.some(d => d.name === a.name);
@@ -142,6 +160,7 @@ export class VegaPatchManager {
                 return 0;
             });
         }
+
 
 
         // Update signals that match modified params
@@ -464,6 +483,7 @@ function mergeAndRewireWithConstraints(params: VegaSignal[], cyclesByType: { [ke
                 const update = originalSignal.update;
                 const ast = vega.parseExpression(update);
 
+
                 // Extract base value and constraints
                 const { baseValue, constraints } = extractConstraintsForCycle(ast, cycle);
 
@@ -637,7 +657,7 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
 
     // Function to extract constraints and base value from AST
     function processNode(node: any): string {
-        if (node.type === 'CallExpression' && node.callee.name === 'clamp') {
+        if (node.type === 'CallExpression' && node.callee.name === 'clamp' ) {
             const args = node.arguments.map(arg => processNode(arg));
             const fullExpr = `clamp(${args.join(', ')})`;
 
@@ -651,6 +671,22 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             } else {
                 // This is a regular constraint that we should preserve
                 constraints.push(`clamp(INSERT, ${args[1]}, ${args[2]})`);
+                return fullExpr;
+            }
+        } if (node.type === 'CallExpression' && node.callee.name === 'nearest' ) {
+            const args = node.arguments.map(arg => processNode(arg));
+            const fullExpr = `nearest(${args.join(', ')})`;
+
+            // If any arguments (other than the first) contain cycle signals,
+            // this is part of the cycle and we extract the base value
+            const hasSignalInBounds = args.slice(1).some(arg => containsCycleSignal(arg));
+            if (hasSignalInBounds) {
+                // The first argument is our base value
+                baseValue = args[0];
+                return baseValue;
+            } else {
+                // This is a regular constraint that we should preserve
+                constraints.push(`nearest(INSERT, ${args[1]})`);
                 return fullExpr;
             }
         } else if (node.type === 'CallExpression') {
@@ -667,7 +703,7 @@ function extractConstraintsForCycle(ast: any, cycleSignals: string[]): {
             return node.name;
         } else if (node.type === 'Literal') {
             // Handle literals (e.g., numbers, strings)
-            return node.value.toString();
+            return `'${node.value.toString()}'`;
         } else if (node.type === 'MemberExpression') {
             // Handle member expressions (e.g., obj.prop)
             const object = processNode(node.object);

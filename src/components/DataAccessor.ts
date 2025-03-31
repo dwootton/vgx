@@ -185,7 +185,7 @@ export class DataAccessor {
   count(): DataAccessor {
     this.operations.push({ 
       type: 'count', 
-      params: { as: 'count' } 
+      params: { as: 'textValue' } 
     });
     return this;
   }

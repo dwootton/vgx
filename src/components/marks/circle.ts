@@ -115,7 +115,7 @@ export class Circle extends BaseComponent {
 
     compileComponent(inputContext: compilationContext): Partial<UnitSpec<Field>> {
         const {x,y,markName} = inputContext.VGX_CONTEXT
-        const allSignals = inputContext.VGX_SIGNALS
+        // const allSignals = inputContext.VGX_SIGNALS
 
 
 
@@ -126,7 +126,6 @@ export class Circle extends BaseComponent {
                     "name": this.id,
                     "value": circleBaseContext,
                 },
-                ...allSignals,
             ],
             "data":{"values":[{}]}, //TODO FIX
             name: `${this.id}_position_markName`,

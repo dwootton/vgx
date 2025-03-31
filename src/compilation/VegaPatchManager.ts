@@ -143,6 +143,8 @@ export class VegaPatchManager {
             });
         }
 
+        console.log('beforeupdate vegaCompilation', vegaCompilation.spec,this.modifiedElements.params)
+
 
         // Update signals that match modified params
         if (vegaCompilation.spec.signals && this.modifiedElements.params.length > 0) {

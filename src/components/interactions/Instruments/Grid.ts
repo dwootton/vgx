@@ -159,7 +159,7 @@ export class Grid extends BaseComponent {
         };
 
         // Create a dataset with 10 points from 0-100
-        const dataset = generateDataset(10, 0, 100);
+        const dataset = generateDataset(10, 0, 400);
 
         // const data = {
         //     "name": this.id + "base_data",

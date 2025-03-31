@@ -9,6 +9,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js',
+    // filename: '[name].[contenthash].js', // or [name].[hash].js
     library: {
       name: 'alx',
       type: 'umd'
@@ -59,7 +60,8 @@ module.exports = {
   devtool: 'eval-source-map',
 
   // Add cache for faster rebuilds
-  cache: {
-    type: 'filesystem',
-  },
+  // cache: {
+  //   type: 'filesystem',
+  // },
+  cache: false
 };

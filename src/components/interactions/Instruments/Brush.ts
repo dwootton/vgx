@@ -90,7 +90,6 @@ const configurations = [{
         },
     },
     "transforms": [
-
         { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
         { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
         { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },

@@ -196,20 +196,23 @@ export function fixVegaSpanBug(params: Parameter[]) :Parameter[]{
         
         // Check if this is a span start parameter for any dimension (x or y)
 
+        if(param.name.includes('MERGED')){
+            continue;
+        }
         //TOD include param.name.endsWith('begin_x') || param.name.endsWith('begin_y')
-        if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y') ||
-            param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')
+        if (param.name.includes('_start_x') || param.name.includes('_start_y') ||
+            param.name.includes('_begin_x') || param.name.includes('_begin_y')
             ) {
 
          
             // Extract the dimension from the parameter name
             let dimension, startType;
             
-            if (param.name.endsWith('_start_x') || param.name.endsWith('_start_y')) {
-                dimension = param.name.endsWith('_start_x') ? 'x' : 'y';
+            if (param.name.includes('_start_x') || param.name.includes('_start_y')) {
+                dimension = param.name.includes('_start_x') ? 'x' : 'y';
                 startType = 'start';
-            } else if (param.name.endsWith('_begin_x') || param.name.endsWith('_begin_y')) {
-                dimension = param.name.endsWith('_begin_x') ? 'x' : 'y';
+            } else if (param.name.includes('_begin_x') || param.name.includes('_begin_y')) {
+                dimension = param.name.includes('_begin_x') ? 'x' : 'y';
                 startType = 'begin';
             } else {
                 // Fallback to extracting channel if the pattern doesn't match

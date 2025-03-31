@@ -148,8 +148,6 @@ export class Brush extends BaseComponent {
                 const schemaValue = schema[key];
                 const keyName = config.id + '_' + key
                 this.schema[keyName] = schemaValue;
-
-
                 this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
                     const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
                     return generatedAnchor

@@ -74,7 +74,7 @@ const configurations = [{
         // }
     },
     "transforms": [
-        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.x.start" },
+        { "name": "x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
         { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" }, // treat x like a scalar
         { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" }, // treat x like a scalar
         { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },

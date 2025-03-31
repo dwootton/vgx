@@ -66,7 +66,6 @@ function expandGroupAnchors(edge: BindingEdge, source: BaseComponent, target: Ba
             }))
     );
 
-    console.log('expandedEdges', expandedEdges)
 
     return expandedEdges;
 }

@@ -9,7 +9,7 @@ import { VegaPatchManager } from "../compilation/VegaPatchManager";
 import { mergeSpecs } from "./utils";
 import { createConstraintFromSchema } from "./constraints";
 import { generateSignal, generateSignalsFromTransforms, mergeConstraints } from "../components/utils";
-import { BaseComponent } from "components/base";
+import { BaseComponent } from "../components/base";
 import { calculateValueForComponent } from "../components/resolveValue";
 interface AnchorEdge {
     originalEdge: BindingEdge;
@@ -600,46 +600,7 @@ export class SpecCompiler {
             .filter((anchor): anchor is { anchor: AnchorProxy, targetId: string } => anchor !== null);
     }
 
-    /**
-     * Add appropriate constraint based on channel schema type
-     */
-    private addConstraintForChannel(
-        constraints: Record<AnchorId, Constraint[]>,
-        targetAnchorId: string,
-        currentNodeSchema: any,
-        parentNodeSchema: any,
-        anchorProxy: AnchorProxy
-    ): void {
-
-        const anchorAccessor = anchorProxy.compile();
-        // Handle special case for absolute values
-
-        if ('absoluteValue' in anchorAccessor) {
-            constraints[targetAnchorId] = [anchorAccessor.absoluteValue];
-            return;
-        }
-
-
-
-
-        // Add constraints based on container type
-        if (currentNodeSchema.container === "Scalar") {
-            constraints[targetAnchorId].push(
-                generateScalarConstraints(parentNodeSchema, anchorAccessor)
-            );
-        } else if (currentNodeSchema.container === "Range") {
-            constraints[targetAnchorId].push(
-                generateRangeConstraints(parentNodeSchema, anchorAccessor)
-            );
-        } else if (currentNodeSchema.container === "Data") {
-
-            constraints[targetAnchorId].push(
-                generateDataConstraints(parentNodeSchema, anchorAccessor)
-            );
-
-        }
-    }
-
+   
     /**
      * Build constraint objects from parent nodes
      */
@@ -678,19 +639,12 @@ export class SpecCompiler {
                 edge.implicit
             );
 
-            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
-
-                console.log('2sdscfs:', constraint, JSON.parse(JSON.stringify(constraints)), constraints[targetAnchorId], targetAnchorId);
-                console.log('creating new', JSON.parse(JSON.stringify(constraints)), targetAnchorId, !constraints[targetAnchorId])
-            }
+          
 
             if (!constraints[targetAnchorId]) {
                 constraints[targetAnchorId] = [];
             }
-            if (sourceNode.id === 'node_4' && edge.source.anchorId === 'transform_text') {
-
-                console.log('2sdscfsbefore:', constraint, JSON.parse(JSON.stringify(constraints)));
-            }
+          
 
             constraints[targetAnchorId].push(constraint);
 

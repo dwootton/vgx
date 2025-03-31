@@ -67,7 +67,6 @@ class DataTransformer extends BaseComponent {
   
   compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
     // Add data transforms to the chart
-    console.log('data transformer compilation inputContext', inputContext)
     const transforms = this.compileToTransforms();
     
     const compilation = {
@@ -85,7 +84,6 @@ class DataTransformer extends BaseComponent {
       ]
     };
 
-    console.log('data transformer compilation', compilation)
 
     return compilation;
   }
@@ -93,6 +91,7 @@ class DataTransformer extends BaseComponent {
   // Method to compile into VL transforms
   private compileToTransforms(): any[] {
     const transforms = [];
+
     
     // Start with the selection filter
     transforms.push({

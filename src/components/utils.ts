@@ -370,11 +370,9 @@ export function generateSignal(config: SignalConfig): any {
     // let mergedExpression = mergeConstraints(compatibleConstraints, transform.value);
 
     if(!mergedExpression){
-        console.log('LOOKATmergedExpressionNULL', mergedExpression, uniqueConstraints, compatibleConstraints)
         return null
     }
 
-    console.log('mergedExpression', mergedExpression), id;
     mergedExpression = mergedExpression.replace(/BASE_NODE_ID/g, id);
 
     // Extract signal names from the merged expression

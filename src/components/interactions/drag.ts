@@ -51,14 +51,13 @@ const configurations = [{
         "x": {
             "container": "Range",
             "valueType": "Numeric",
-            // "interactive": true
+            "interactive": true
         },
         "y": {
             "container": "Range",
             "valueType": "Numeric",
-            // "interactive": true // TODO add back in when it won't screw with the chart domains
+            "interactive": true // TODO add back in when it won't screw with the chart domains
         },
-
     },
 
     // OKAY RN TRANSFORMS ARENT USED lets fix this, adn git it populated, then we'll be doing great
@@ -115,19 +114,23 @@ const rectSide = {
 
 
 export function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
-    console.log('generateConfigurationAnchors', id, channel, configurationId, schema);
     if (schema.container === 'Scalar') {
         return {
             'value': generateCompiledValue(id, channel, configurationId)
         }
     } else if (schema.container === 'Range') {
-        console.log('generateConfigurationAnchorsRANGE', id, channel, configurationId);
         return createRangeAccessor(id, channel, configurationId);
     } else if (schema.container === 'Data') {
         return {
             'value': `${id}_${configurationId}_${channel}`
         }
-    } 
+    } else if (schema.container === 'Set') {
+        const datasetName = `${id}_base_data`
+        console.log('generateSETConfigurationAnchors', id, configurationId, channel, schema, datasetName,  `pluck(data(${datasetName}), '${channel}')`)
+        return {
+            'value': `pluck(data('${datasetName}'), '${channel}')`
+        }
+    }
     
     return { 'value': '' }
 }
@@ -141,6 +144,75 @@ let generateCompiledValue = (id: string, channel: string, configurationId: strin
 export class CombinedDrag extends BaseComponent {
     constructor(config: any = {}) {
         super(config, configurations);
+        
+        this.configurations.forEach(config => {
+            // this.configurations[config.id] = config
+            const schema = config.schema
+            for (const key in schema) {
+                const schemaValue = schema[key];
+                const keyName = config.id + '_' + key
+                this.schema[keyName] = schemaValue;
+
+
+                this.anchors.set(keyName, this.createAnchorProxy({ [keyName]: schemaValue }, keyName, () => {
+                    const generatedAnchor = generateConfigurationAnchors(this.id, config.id, key, schemaValue)
+
+                    return generatedAnchor
+                }));
+            }
+
+        });
+
+
+
+    }
+
+    compileComponent(inputContext: CompilationContext): Partial<UnitSpec<Field>> {
+        const allSignals = inputContext.VGX_SIGNALS
+        const {markName} = inputContext.VGX_CONTEXT
+
+        const signal = {
+            name: this.id, // base signal
+            value: dragBaseContext,
+            on: [{ events: { type: 'pointerdown', 'markname': markName }, update: `{'start': {'x': x(), 'y': y()}}` },
+            {
+                events: {
+                    type: 'pointermove',
+                    source: "window",
+                    between: [
+                        { type: "pointerdown", "markname": markName },
+                        { type: "pointerup", source: "window", }
+                    ]
+                },
+                update: `merge(${this.id}, {'x': x(), 'y': y(),  'stop': {'x': x(), 'y': y()}})`
+            }]
+        };
+
+       
+        return {
+            params: [signal, ...allSignals]
+        }
+    }
+}
+
+
+const dragSpanConfigurations = [{
+    'id': 'span',
+    "default": true,
+    "schema": {
+        "x": { "container": "Range", "valueType": "Numeric", "interactive": true },
+        "y": { "container": "Range", "valueType": "Numeric", "interactive": true }
+    },
+    "transforms": [
+        { "name": "start_x", "channel": "x", "value": "BASE_NODE_ID.start.x" },
+        { "name": "stop_x", "channel": "x", "value": "BASE_NODE_ID.stop.x" },
+        { "name": "start_y", "channel": "y", "value": "BASE_NODE_ID.start.y" },
+        { "name": "stop_y", "channel": "y", "value": "BASE_NODE_ID.stop.y" },
+    ]
+}]
+export class DragSpan extends BaseComponent {
+    constructor(config: any = {}) {
+        super(config, dragSpanConfigurations);
         
         this.configurations.forEach(config => {
             // this.configurations[config.id] = config

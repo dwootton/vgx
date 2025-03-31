@@ -545,14 +545,10 @@ export class SpecCompiler {
             return { context: inputContext, triggers: [] }
         }
 
-
-        console.log('INPUTdata', inputContext.data)
-
         const context = JSON.parse(JSON.stringify(inputContext))
 
         const markDataName = nodeId + '_data';
 
-        console.log('lfsdkjfklajsdlkfj', markDataName)
         function generateDatasetFromContext(context: Record<string, any>) {
             const dataset = []
             for (const key in context) {

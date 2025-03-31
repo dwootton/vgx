@@ -145,7 +145,6 @@ const rectSide = {
 
 // okay, todo: go through and actually create the appropriate signals for each of these. Implement some anchor logic [span].x or something.
 
-
 export function generateConfigurationAnchors(id: string, configurationId: string, channel: string, schema: SchemaType): SchemaValue {
     if (schema.container === 'Scalar') {
         return {

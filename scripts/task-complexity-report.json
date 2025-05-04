@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "generatedAt": "2025-04-06T19:51:04.508Z",
+    "tasksAnalyzed": 10,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": false
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Create Memory Bank Directory Structure",
+      "complexityScore": 2,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Break down the Memory Bank directory structure creation into subtasks covering directory creation, file creation, and permission setting. For each subtask, specify exact commands and verification steps.",
+      "reasoning": "This is a straightforward file system operation with clear requirements. The complexity is low since it involves creating a directory and several empty files with specific names. The only slight complexity is setting proper file permissions."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement Mode Tracking System",
+      "complexityScore": 4,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Divide the Mode Tracking System implementation into subtasks covering state variable creation, mode display functionality, and command recognition logic. For each subtask, specify the implementation approach and testing criteria.",
+      "reasoning": "This task involves state management and command recognition, which adds moderate complexity. It requires tracking state across sessions, implementing command parsing, and ensuring the mode is displayed correctly in each response."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Develop projectbrief.md Template",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the projectbrief.md template development into subtasks covering research on effective project briefs, section design, guidance text creation, and template formatting. For each subtask, specify the expected output and quality criteria.",
+      "reasoning": "Creating an effective template requires understanding project management principles and designing a structure that will guide all other documents. The complexity comes from ensuring the template is comprehensive yet usable, with appropriate guidance."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Implement Memory Bank File Reading System",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the Memory Bank file reading system into subtasks covering file access mechanisms, error handling, priority-based processing, and context summarization. For each subtask, define the implementation approach and success criteria.",
+      "reasoning": "This task has higher complexity due to the need for robust error handling, implementing a priority system for processing files, and creating a summary function. It's a core system that other tasks depend on, requiring careful design."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Develop Templates for Remaining Core Files",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the development of the five remaining core file templates into individual subtasks, one for each file. For each template subtask, specify the sections required, placeholder content, and how it relates to other files in the hierarchy.",
+      "reasoning": "Creating five different templates with distinct purposes and interconnected relationships adds complexity. Each template must align with the overall system while serving its specific purpose in the Memory Bank hierarchy."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implement Plan Mode Workflow",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the Plan Mode workflow implementation into subtasks covering context verification, strategy development logic, approach presentation, and incomplete file handling. For each subtask, specify the implementation approach and integration points with other systems.",
+      "reasoning": "This task has high complexity as it implements a core workflow with multiple conditional paths. It requires integrating with the file reading system, implementing logic to verify context completeness, and creating strategies based on available information."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Implement Act Mode Workflow",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the Act Mode workflow implementation into subtasks covering completeness verification, action execution, documentation updating, safeguard implementation, and integration with Plan Mode. For each subtask, specify the implementation approach and testing scenarios.",
+      "reasoning": "This is one of the most complex tasks as it builds on multiple dependencies and implements critical functionality. It requires implementing safeguards, ensuring proper documentation updates, and coordinating with the Plan Mode workflow."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Create .cursor/rules Management System",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the rules management system into subtasks covering file structure design, pattern recognition algorithms, rule application mechanisms, and file maintenance procedures. For each subtask, specify the implementation approach and evaluation criteria.",
+      "reasoning": "This task involves complex pattern recognition and learning capabilities. Creating a system that can identify project patterns and user preferences requires sophisticated logic and a well-designed file structure for the rules."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement Memory Bank Update Trigger",
+      "complexityScore": 5,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Break down the Memory Bank update trigger implementation into subtasks covering command recognition, file review process, and update documentation procedures. For each subtask, specify the implementation approach and integration with existing systems.",
+      "reasoning": "This task has moderate complexity as it requires implementing command recognition and creating a structured review process. It depends on several other systems being in place first, which adds integration complexity."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Develop Additional Context File Management",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the additional context file management system into subtasks covering file organization conventions, template creation for common contexts, integration with the reading system, and user guidance for file creation. For each subtask, specify the implementation approach and documentation requirements.",
+      "reasoning": "This task has significant complexity due to the need to design flexible conventions for various file types while maintaining organization. It requires creating multiple templates and ensuring proper integration with the existing Memory Bank system."
+    }
+  ]
+}

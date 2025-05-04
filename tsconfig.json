@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+      "target": "ES2019",
+      "module": "ESNext",
+      "lib": ["DOM", "ESNext"],
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
+      "strict": true,
+      "forceConsistentCasingInFileNames": true,
+      "skipLibCheck": true,
+      "jsx": "react",
+      "sourceMap": true,
+      "outDir": "dist",
+      "baseUrl": "src",
+      "paths": {
+        "components/*": ["components/*"],
+        "types/*": ["types/*"]
+      },
+      "types": ["jest", "node"]
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
+    "exclude": ["node_modules"]
+ 
+}

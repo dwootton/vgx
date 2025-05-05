@@ -87,6 +87,11 @@ import {
           x2: null,
           y2: null
         });
+        rect.x1.setComponentId('rect1');
+        rect.y1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
+        rect.y2.setComponentId('rect1');
+
         
         expect(rect.x1.id).toBe('x1');
         expect(rect.x1.getFullPath()).toBe('rect1_x1');
@@ -187,6 +192,8 @@ import {
           x1: null,
           x2: null
         });
+        rect.x1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
         
         // width = x2 - x1
         const width = rect.x2.subtract(rect.x1);
@@ -201,6 +208,11 @@ import {
           x2: null,
           y2: null
         });
+
+        rect.x1.setComponentId('rect1');
+        rect.y1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
+        rect.y2.setComponentId('rect1');
         
         // width = x2 - x1
         const width = rect.x2.subtract(rect.x1);
@@ -258,6 +270,12 @@ import {
           x2: null,
           y2: null
         });
+
+        // Set component ID for each state ref in rect, done in tests
+        rect.x1.setComponentId('rect1');
+        rect.y1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
+        rect.y2.setComponentId('rect1');
         
         // Spy on the internal map
         const setSpy = jest.spyOn((kiwiManager as any).stateRefs, 'set');
@@ -277,14 +295,18 @@ import {
           x1: null,
           x2: null
         });
+
+        rect.x1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
         
         kiwiManager.registerStateRefs(rect);
         
         // Get variables for the references
         const x1Var = kiwiManager.getVariable(rect.x1);
         const x2Var = kiwiManager.getVariable(rect.x2);
+
         
-        // Check names match
+        // Check names match, no rect in prefix because this is a kiwivariable, not a component yet.
         expect(x1Var.name()).toBe('rect1_x1');
         expect(x2Var.name()).toBe('rect1_x2');
       });
@@ -295,6 +317,9 @@ import {
           x1: null,
           x2: null
         });
+
+        rect.x1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
         
         kiwiManager.registerStateRefs(rect);
         
@@ -316,6 +341,9 @@ import {
           x1: null,
           x2: null
         });
+
+        rect.x1.setComponentId('rect1');
+        rect.x2.setComponentId('rect1');
         
         kiwiManager.registerStateRefs(rect);
         

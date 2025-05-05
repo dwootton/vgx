@@ -10,7 +10,7 @@ describe('BaseComponent', () => {
     test('should add and get portGroups', () => {
       const component = new DragComponent({});
       // @ts-ignore as we are testing a protected methods
-      component.registerGroup({
+      component.registerPortGroup({
         id: 'test',
         name: 'Test portGroup',
         ports: new Map()

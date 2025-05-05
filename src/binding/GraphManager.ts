@@ -1,7 +1,8 @@
 import { BaseComponent } from '../components/base';
 import { PortType } from '../types/portTypes';
-import { BindingManager, BindingEdge } from './BindingManager';
+import { BindingManager, BindingEdge, PortReference } from './BindingManager';
 import { MiscPortType } from '../types/portTypes';
+import { isPortTypeCompatible } from './compatabilityUtils';
 
 export interface Node {
     id: string;
@@ -98,8 +99,22 @@ export class GraphManager {
                     continue;
                 }
 
-                const sourcePorts = sourceComponent.getPortReferencesForGroup(edge.source.portGroup);
-                const targetPorts = targetComponent.getPortReferencesForGroup(edge.target.portGroup);
+                // If edge is to all ports, expand to all ports, else just use the provided port
+                let sourcePorts: PortReference[] = [];
+                let targetPorts: PortReference[] = [];
+
+                if (edge.source.portType === MiscPortType.ALL) {
+                    sourcePorts = sourceComponent.getPortReferencesForGroup(edge.source.portGroup);
+                } else {
+                    sourcePorts = sourceComponent.getPortReferencesForGroup(edge.source.portGroup).filter(p => p.portType === edge.source.portType);
+                }
+
+                if (edge.target.portType === MiscPortType.ALL) {
+                    targetPorts = targetComponent.getPortReferencesForGroup(edge.target.portGroup);
+                } else {
+                    targetPorts = targetComponent.getPortReferencesForGroup(edge.target.portGroup).filter(p => p.portType === edge.target.portType);
+                }
+
 
                 if (!Array.isArray(sourcePorts) || !Array.isArray(targetPorts)) {
                     console.error('Invalid ports returned:', {
@@ -117,9 +132,8 @@ export class GraphManager {
                     for (const targetPort of targetPorts) {
                         if (!targetPort || !targetPort.portType) continue;
 
-                        // If either port type is ALL, or the port types match the edge's port types
-                        if ((edge.source.portType === MiscPortType.ALL || edge.target.portType === MiscPortType.ALL || sourcePort.portType === targetPort.portType) ||
-                            (sourcePort.portType === edge.source.portType && targetPort.portType === edge.target.portType)) {
+                        // If port types match, add the edge. This should be turned to "compatability checks"
+                        if (isPortTypeCompatible(sourcePort.portType, targetPort.portType) ) {
                             const edgeKey = `${edge.source.componentId}:${edge.source.portGroup}:${sourcePort.portType}:${edge.target.componentId}:${edge.target.portGroup}:${targetPort.portType}`;
                             if (processedEdges.has(edgeKey)) {
                                 continue;

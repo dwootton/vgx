@@ -8,6 +8,8 @@ export enum ChannelType {
   SHAPE = 'shape',
   OPACITY = 'opacity',
   TEXT = 'text',
+  FILL = 'fill',
+  STROKE = 'stroke',
   
   // Spatial variants
   X1 = 'x1',

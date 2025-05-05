@@ -184,10 +184,6 @@ export abstract class BaseComponent {
         return this.id;
     }
 
-    protected registerGroup(group: PortGroup): void {
-        this.portGroups.set(group.name, group);
-    }
-
     // Abstract methods that derived classes must implement
     abstract compile(compilationContext: CompilationContext): any;
 
@@ -196,6 +192,7 @@ export abstract class BaseComponent {
             const bindings: { value: BaseComponent | BaseComponent[], key: string }[] = [];
             const configEdges: ConfigurationEdge[] = [];
 
+            
 
             function handleProp(prop: any, propPath: string, propType: 'component' | 'port' | 'portGroup' | 'configurationValue') {
                 if (propType === 'component') {
@@ -282,7 +279,7 @@ export abstract class BaseComponent {
     }
 
     protected registerPortGroup(portGroup: PortGroup): void {
-        this.portGroups.set(portGroup.name, portGroup);
+        this.portGroups.set(portGroup.id, portGroup);
     }
 
     public getPortGroup(groupName: string): PortGroup | undefined {
@@ -332,16 +329,10 @@ export abstract class BaseComponent {
             return;
         }
 
-        const sourceId = this.id;
-        const targetId = target.id;
-        const sourcePortGroup = portGroup;
-        const targetPortGroup = portGroup;
-        const sourcePortType = MiscPortType.ALL;
-        const targetPortType = MiscPortType.ALL;
-        const sourceIsInternal = false;
-        const targetIsInternal = false;
-        // Add to binding manager
-        BindingManager.getInstance().addBinding(sourceId, targetId, sourcePortGroup, targetPortGroup, sourcePortType, targetPortType, sourceIsInternal, targetIsInternal);
+        // Don't create configuration bindings for BaseComponents
+        // This prevents duplicate bindings when a component is directly provided in a props field
+        // instead of nested in an object with 'bind'
+        console.warn('Skipping configuration binding for BaseComponent - use explicit bind property instead');
     }
 
     protected addPortGroupBinding(portGroup: string, target: BaseComponent) {
@@ -351,15 +342,35 @@ export abstract class BaseComponent {
         }
 
         const sourceId = this.id;
-        const targetId = target.id;
+        const targetId = target.getId();
         const sourcePortGroup = portGroup;
         const targetPortGroup = DEFAULT_PORT_GROUP; // default as the target is a component
         const sourcePortType = MiscPortType.ALL;
         const targetPortType = MiscPortType.ALL;
         const sourceIsInternal = false;
         const targetIsInternal = false;
-        // Add to binding manager
-        BindingManager.getInstance().addBinding(sourceId, targetId, sourcePortGroup, targetPortGroup, sourcePortType, targetPortType, sourceIsInternal, targetIsInternal);
+        
+        // Check if this binding already exists before adding it
+        const existingBindings = this.bindingManager.getBindingsForComponent(sourceId);
+        const hasDuplicate = existingBindings.some(binding => 
+            binding.target.componentId === targetId &&
+            binding.source.portGroup === sourcePortGroup &&
+            binding.target.portGroup === targetPortGroup
+        );
+        
+        if (!hasDuplicate) {
+            // Add to binding manager
+            this.bindingManager.addBinding(
+                sourceId, 
+                targetId, 
+                sourcePortGroup, 
+                targetPortGroup, 
+                sourcePortType, 
+                targetPortType, 
+                sourceIsInternal, 
+                targetIsInternal
+            );
+        }
     }
 }
 

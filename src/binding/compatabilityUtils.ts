@@ -10,6 +10,8 @@ export function isPortTypeCompatible(sourcePortType: PortType, targetPortType: P
         [ChannelType.SHAPE]: [ChannelType.SHAPE],
         [ChannelType.OPACITY]: [ChannelType.OPACITY],
         [ChannelType.TEXT]: [ChannelType.TEXT],
+        [ChannelType.FILL]: [ChannelType.FILL],
+        [ChannelType.STROKE]: [ChannelType.STROKE],
         [ChannelType.X1]: [ChannelType.X],
         [ChannelType.X2]: [ChannelType.X],
         [ChannelType.Y1]: [ChannelType.Y],

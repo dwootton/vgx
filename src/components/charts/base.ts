@@ -17,6 +17,7 @@ type FieldValue = string | ExprRef | SignalRef | Gradient | null;
 export const initChartState = {
     x: 'x',
     y: 'y',
+    color: 'color',
     data: [],
     // Dimensions
     width: 600,

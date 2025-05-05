@@ -56,9 +56,9 @@ const portConfigurations: PortConfiguration[] = [
     write: null  // Read-only
   },
   { 
-    port: AllPortTypes.SIZE, 
+    port: AllPortTypes.FILL, 
     portGroup: portGroup.DEFAULT, 
-    read: circleStateRef.size 
+    read: circleStateRef.fill 
   },
 ];
 

@@ -5,8 +5,8 @@ describe('ScatterplotComponent', () => {
   test('should register default ports', () => {
     const scatter = new ScatterplotComponent({
       data: [],
-      x:'x',
-      y:'y',
+      x: 'x',
+      y: 'y',
     });
     
     const portGroups = scatter.getPortGroups();

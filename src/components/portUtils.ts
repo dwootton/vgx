@@ -14,43 +14,13 @@ import { PortRelationship, EnhancedStateRef, PortValue, PortConfiguration } from
 /**
  * Creates a type for component props based on port configurations.
  * 
- * The resulting type will:
- * 1. Allow direct properties for ports in the default port group
- * 2. Nest properties for ports in non-default port groups
- * 3. Allow a special 'bind' property for binding to components
+ * TODO: fill in such that the types are generated from the port configuraitons 
  * 
- * @example
- * // For port configurations:
- * // [
- * //   { port: 'x1', portGroup: 'default' },
- * //   { port: 'y1', portGroup: 'default' },
- * //   { port: 'x1', portGroup: 'span' },
- * //   { port: 'x2', portGroup: 'span' }
- * // ]
- * 
- * // The resulting props type allows:
- * {
- *   x1: 100,                    // Configuration for default.x1
- *   y1: 200,                    // Configuration for default.y1
- *   span: {                     // Nested properties for span port group
- *     x1: 0,                    // Configuration for span.x1 
- *     x2: 500                   // Configuration for span.x2
- *   },
- *   bind: Component             // Binding to default port group
- * }
  */
 export type ComponentPropsFromPorts<T extends readonly PortConfiguration[]> = {
-    // Default port group properties are at the top level
-    [P in Extract<T[number], { portGroup: 'default' }>['port']]?: ComponentArgument;
-} & {
-    // Non-default port groups are nested objects
-    [G in Exclude<T[number]['portGroup'], 'default'>]?: {
-        [P in Extract<T[number], { portGroup: G }>['port']]?: ComponentArgument;
-    } | BaseComponent | BaseComponent[];  // Allow direct component binding to port group
-} & {
-    // Special 'bind' property for binding to default port group
-    bind?: BaseComponent | BaseComponent[];
-};
+    // Default properties (both bindings and configuration values)
+    [key: string]: ComponentArgument;
+};  
     
 export const midpointRelationship = (
     midRef: string,

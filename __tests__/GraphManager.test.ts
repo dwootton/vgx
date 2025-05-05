@@ -20,11 +20,9 @@ describe('GraphManager', () => {
     test('should generate graph for scatterplot with circle and drag', () => {
       // Create components
       const scatter = new ScatterplotComponent({
-        "default": {
-          [AllPortTypes.DATA]: [{ x: 1, y: 2 }],
-          [AllPortTypes.XFIELD]: 'x',
-          [AllPortTypes.YFIELD]: 'y'
-        }
+        data: [{ x: 1, y: 2 }],
+        x: 'x',
+        y: 'y'
       });
       const circle = new CircleComponent({});
       const drag = new DragComponent({});
@@ -142,15 +140,15 @@ describe('GraphManager', () => {
       // expect(expandedEdges[0].target.nodeId).toBe(circle.getId());
     });
 
-    test('should expand edges with multiple port types', () => {
+    test('should not create edges for non-existant ports', () => {
       // Create components
       const scatter = new ScatterplotComponent({
-        "default": {
-          [AllPortTypes.DATA]: [{ x: 1, y: 2 }],
-          [AllPortTypes.XFIELD]: 'x',
-          [AllPortTypes.YFIELD]: 'y'
-        }
+        data: [{ x: 1, y: 2 }],
+        x: 'x',
+        y: 'y'
       });
+
+      // doesn't have a color port, only a fill port
       const circle = new CircleComponent({});
 
       // Register components
@@ -174,6 +172,7 @@ describe('GraphManager', () => {
         ChannelType.Y,
         ChannelType.Y,
       );
+      
       bindingManager.addBinding(
         scatter.getId(),
         circle.getId(),
@@ -188,11 +187,11 @@ describe('GraphManager', () => {
       const expandedEdges = graphManager.expandEdges(graph);
 
       // Verify expanded edges
-      expect(expandedEdges).toHaveLength(3);
+      expect(expandedEdges).toHaveLength(2);
       const portTypes = expandedEdges.map(e => e.source.portType);
       expect(portTypes).toContain(ChannelType.X);
       expect(portTypes).toContain(ChannelType.Y);
-      expect(portTypes).toContain(ChannelType.COLOR);
+      expect(portTypes).not.toContain(ChannelType.COLOR);
     });
   });
 }); 
